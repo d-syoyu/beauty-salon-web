@@ -8,7 +8,13 @@
       "Bash(git push:*)",
       "Bash(git -C \"c:/Users/User/beauty-salon-web\" status)",
       "Bash(git -C \"c:/Users/User/beauty-salon-web\" diff)",
-      "Bash(git -C \"c:/Users/User/beauty-salon-web\" log --oneline -3)"
+      "Bash(git -C \"c:/Users/User/beauty-salon-web\" log --oneline -3)",
+      "Bash(git -C \"c:/Users/User/beauty-salon-web\" diff --stat)",
+      "Bash(git -C \"c:/Users/User/beauty-salon-web\" add web/src/app/menu/page.tsx web/src/app/contact/page.tsx)",
+      "Bash(git -C \"c:/Users/User/beauty-salon-web\" commit -m \"$(cat <<''EOF''\nSimplify menu items across menu and reservation pages\n\n各カテゴリのメニュー項目を代表的なものに絞り込み\n- メニューページ: 91項目 → 34項目\n- 予約ページ: 54項目 → 31項目\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git -C \"c:/Users/User/beauty-salon-web\" push)",
+      "Bash(git -C \"c:/Users/User/beauty-salon-web\" add .claude/settings.local.json)",
+      "Bash(git -C \"c:/Users/User/beauty-salon-web\" commit -m \"$(cat <<''EOF''\nUpdate local Claude settings\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
