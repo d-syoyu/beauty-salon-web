@@ -106,10 +106,10 @@ const Footer = () => {
               <li className="flex items-center gap-3 text-sm">
                 <Mail className="w-4 h-4 text-[var(--color-sage)] flex-shrink-0" />
                 <a
-                  href="mailto:info@serene-salon.jp"
+                  href="mailto:info@lumina-hair.jp"
                   className="text-gray-400 transition-colors duration-300 hover:text-white"
                 >
-                  info@serene-salon.jp
+                  info@lumina-hair.jp
                 </a>
               </li>
             </ul>

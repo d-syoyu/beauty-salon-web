@@ -20,7 +20,7 @@ const zenKaku = Zen_Kaku_Gothic_New({
 });
 
 export const metadata: Metadata = {
-  title: "SERENE Beauty Salon | 表参道の美容室",
+  title: "LUMINA HAIR STUDIO | 表参道の美容室",
   description: "自然由来の成分と熟練の技術で、あなたの美しさを引き出す表参道の美容室。オーガニック製品を使用した髪に優しい施術をご提供します。",
 };
 
