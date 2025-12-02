@@ -569,7 +569,7 @@ export default function ContactPage() {
                             <p className="text-sm text-[var(--color-warm-gray)] mb-2">ご予約内容</p>
                             <div className="flex flex-wrap gap-4 text-sm">
                               <span className="bg-white px-3 py-1">
-                                {menuOptions.find(m => m.id === formData.menu)?.name}
+                                {menuCategories.flatMap(c => c.items).find(item => item.id === formData.menu)?.name}
                               </span>
                               <span className="bg-white px-3 py-1">
                                 {formData.date} {formData.time}
