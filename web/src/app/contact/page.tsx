@@ -3,16 +3,13 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Phone, Mail, Clock, Send, Check, Scissors, Palette, Sparkles, User, Calendar, ChevronRight, ChevronLeft, ChevronDown, Flower2, Wind, Crown } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, Check, User, Calendar, ChevronRight, ChevronLeft } from 'lucide-react';
 
 const menuCategories = [
   {
     id: 'cut',
     name: 'カット',
-    icon: Scissors,
-    color: 'from-rose-50 to-pink-50',
-    borderColor: 'border-rose-200',
-    iconColor: 'text-rose-400',
+    nameEn: 'Cut',
     items: [
       { id: 'cut-basic', name: 'カット', price: '¥5,500' },
       { id: 'cut-shampoo', name: 'カット + シャンプーブロー', price: '¥6,600' },
@@ -23,10 +20,7 @@ const menuCategories = [
   {
     id: 'color',
     name: 'カラー',
-    icon: Palette,
-    color: 'from-amber-50 to-orange-50',
-    borderColor: 'border-amber-200',
-    iconColor: 'text-amber-500',
+    nameEn: 'Color',
     items: [
       { id: 'color-full', name: 'フルカラー', price: '¥8,800' },
       { id: 'color-retouch', name: 'リタッチカラー', price: '¥6,600' },
@@ -41,10 +35,7 @@ const menuCategories = [
   {
     id: 'perm',
     name: 'パーマ',
-    icon: Wind,
-    color: 'from-purple-50 to-violet-50',
-    borderColor: 'border-purple-200',
-    iconColor: 'text-purple-400',
+    nameEn: 'Perm',
     items: [
       { id: 'perm-basic', name: 'パーマ', price: '¥8,800' },
       { id: 'perm-digital', name: 'デジタルパーマ', price: '¥13,200' },
@@ -58,10 +49,7 @@ const menuCategories = [
   {
     id: 'straightening',
     name: '縮毛矯正',
-    icon: Sparkles,
-    color: 'from-sky-50 to-cyan-50',
-    borderColor: 'border-sky-200',
-    iconColor: 'text-sky-400',
+    nameEn: 'Straightening',
     items: [
       { id: 'straight-basic', name: '縮毛矯正', price: '¥17,600' },
       { id: 'straight-long', name: '縮毛矯正（ロング料金）', price: '¥19,800〜' },
@@ -74,10 +62,7 @@ const menuCategories = [
   {
     id: 'hair-improvement',
     name: '髪質改善',
-    icon: Crown,
-    color: 'from-emerald-50 to-teal-50',
-    borderColor: 'border-emerald-200',
-    iconColor: 'text-emerald-400',
+    nameEn: 'Hair Improvement',
     items: [
       { id: 'improve-basic', name: '髪質改善トリートメント', price: '¥11,000' },
       { id: 'improve-straight', name: '髪質改善ストレート', price: '¥19,800' },
@@ -91,10 +76,7 @@ const menuCategories = [
   {
     id: 'treatment',
     name: 'トリートメント',
-    icon: Flower2,
-    color: 'from-lime-50 to-green-50',
-    borderColor: 'border-lime-200',
-    iconColor: 'text-lime-500',
+    nameEn: 'Treatment',
     items: [
       { id: 'treat-quick', name: 'クイックトリートメント', price: '¥2,200' },
       { id: 'treat-special', name: 'スペシャルトリートメント', price: '¥4,400' },
@@ -106,10 +88,7 @@ const menuCategories = [
   {
     id: 'spa',
     name: 'ヘッドスパ',
-    icon: Sparkles,
-    color: 'from-indigo-50 to-blue-50',
-    borderColor: 'border-indigo-200',
-    iconColor: 'text-indigo-400',
+    nameEn: 'Head Spa',
     items: [
       { id: 'spa-quick', name: 'クイックスパ（15分）', price: '¥2,200' },
       { id: 'spa-relax', name: 'リラックススパ（30分）', price: '¥4,400' },
@@ -122,10 +101,7 @@ const menuCategories = [
   {
     id: 'arrangement',
     name: 'ヘアセット',
-    icon: Crown,
-    color: 'from-fuchsia-50 to-pink-50',
-    borderColor: 'border-fuchsia-200',
-    iconColor: 'text-fuchsia-400',
+    nameEn: 'Hair Arrange',
     items: [
       { id: 'set-basic', name: 'ヘアセット', price: '¥5,500' },
       { id: 'set-half', name: 'ヘアセット（ハーフアップ）', price: '¥4,400' },
@@ -138,10 +114,7 @@ const menuCategories = [
   {
     id: 'set-menu',
     name: 'セットメニュー',
-    icon: Sparkles,
-    color: 'from-yellow-50 to-amber-50',
-    borderColor: 'border-yellow-200',
-    iconColor: 'text-yellow-500',
+    nameEn: 'Set Menu',
     items: [
       { id: 'combo-cut-color', name: 'カット + カラー', price: '¥12,100' },
       { id: 'combo-cut-perm', name: 'カット + パーマ', price: '¥12,100' },
@@ -178,6 +151,7 @@ export default function ContactPage() {
     isFirstVisit: '',
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -283,6 +257,7 @@ export default function ContactPage() {
                     onClick={() => {
                       setIsSubmitted(false);
                       setStep(1);
+                      setExpandedCategory(null);
                       setFormData({
                         name: '',
                         email: '',
@@ -342,78 +317,101 @@ export default function ContactPage() {
                           exit={{ opacity: 0, x: -20 }}
                           transition={{ duration: 0.3 }}
                         >
-                          <h2 className="text-xl font-[family-name:var(--font-serif)] mb-8 text-center">
+                          <h2 className="text-xl font-[family-name:var(--font-serif)] mb-2 text-center">
                             ご希望のメニューを選択してください
                           </h2>
+                          <p className="text-sm text-[var(--color-warm-gray)] text-center mb-8">
+                            カテゴリを選択すると詳細メニューが表示されます
+                          </p>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                          <div className="grid grid-cols-3 gap-3 mb-6">
                             {menuCategories.map((category) => {
-                              const Icon = category.icon;
-                              const selectedItem = category.items.find(item => item.id === formData.menu);
-                              const isSelected = !!selectedItem;
+                              const isExpanded = expandedCategory === category.id;
+                              const hasSelectedItem = category.items.some(item => item.id === formData.menu);
 
                               return (
-                                <div
+                                <button
                                   key={category.id}
-                                  className={`relative rounded-2xl border-2 transition-all duration-300 overflow-hidden ${
-                                    isSelected
-                                      ? `${category.borderColor} shadow-lg`
-                                      : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
+                                  type="button"
+                                  onClick={() => setExpandedCategory(isExpanded ? null : category.id)}
+                                  className={`p-4 text-center transition-all duration-300 border ${
+                                    isExpanded
+                                      ? 'border-[var(--color-charcoal)] bg-[var(--color-charcoal)] text-white'
+                                      : hasSelectedItem
+                                        ? 'border-[var(--color-sage)] bg-[var(--color-sage)]/5'
+                                        : 'border-[var(--color-light-gray)] hover:border-[var(--color-sage-light)] bg-white'
                                   }`}
                                 >
-                                  {/* Category Header */}
-                                  <div className={`bg-gradient-to-br ${category.color} p-4`}>
-                                    <div className="flex items-center gap-3 mb-3">
-                                      <div className={`p-2 rounded-full bg-white/60 backdrop-blur-sm ${category.iconColor}`}>
-                                        <Icon className="w-5 h-5" />
-                                      </div>
-                                      <h3 className="font-medium text-gray-800">{category.name}</h3>
-                                    </div>
-
-                                    {/* Dropdown */}
-                                    <div className="relative">
-                                      <select
-                                        value={selectedItem?.id || ''}
-                                        onChange={(e) => handleMenuSelect(e.target.value)}
-                                        className="w-full p-3 pr-10 rounded-xl bg-white/80 backdrop-blur-sm border-0 text-sm text-gray-700 focus:ring-2 focus:ring-white/50 focus:outline-none appearance-none cursor-pointer transition-all hover:bg-white"
-                                      >
-                                        <option value="">選択してください</option>
-                                        {category.items.map((item) => (
-                                          <option key={item.id} value={item.id}>
-                                            {item.name} - {item.price}
-                                          </option>
-                                        ))}
-                                      </select>
-                                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                    </div>
-                                  </div>
-
-                                  {/* Selected Item Display */}
-                                  {selectedItem && (
-                                    <div className="p-3 bg-white border-t border-gray-100">
-                                      <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                          <Check className={`w-4 h-4 ${category.iconColor}`} />
-                                          <span className="text-sm font-medium text-gray-700">{selectedItem.name}</span>
-                                        </div>
-                                        <span className={`text-sm font-semibold ${category.iconColor}`}>{selectedItem.price}</span>
-                                      </div>
-                                    </div>
+                                  <span className="block text-xs tracking-[0.1em] uppercase text-[var(--color-warm-gray)] mb-1" style={{ color: isExpanded ? 'rgba(255,255,255,0.6)' : undefined }}>
+                                    {category.nameEn}
+                                  </span>
+                                  <span className={`block font-medium ${isExpanded ? 'text-white' : 'text-[var(--color-charcoal)]'}`}>
+                                    {category.name}
+                                  </span>
+                                  {hasSelectedItem && !isExpanded && (
+                                    <Check className="w-4 h-4 text-[var(--color-sage)] mx-auto mt-2" />
                                   )}
-                                </div>
+                                </button>
                               );
                             })}
                           </div>
 
-                          {/* Selected Menu Summary */}
-                          {formData.menu && (
-                            <div className="mb-8 p-4 bg-[var(--color-sage)]/10 rounded-xl border border-[var(--color-sage)]/20">
-                              <p className="text-center text-[var(--color-charcoal)]">
-                                <span className="text-sm text-[var(--color-warm-gray)]">選択中: </span>
-                                <span className="font-medium">
-                                  {menuCategories.flatMap(c => c.items).find(item => item.id === formData.menu)?.name}
-                                </span>
-                              </p>
+                          {/* Expanded Menu Items */}
+                          <AnimatePresence mode="wait">
+                            {expandedCategory && (
+                              <motion.div
+                                key={expandedCategory}
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="mb-8 overflow-hidden"
+                              >
+                                <div className="bg-[var(--color-cream)] p-6">
+                                  <h3 className="text-sm tracking-[0.1em] uppercase text-[var(--color-warm-gray)] mb-4">
+                                    {menuCategories.find(c => c.id === expandedCategory)?.nameEn}
+                                  </h3>
+                                  <div className="space-y-2">
+                                    {menuCategories.find(c => c.id === expandedCategory)?.items.map((item) => (
+                                      <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => {
+                                          handleMenuSelect(item.id);
+                                          setExpandedCategory(null);
+                                        }}
+                                        className={`w-full p-4 text-left transition-all duration-200 flex justify-between items-center ${
+                                          formData.menu === item.id
+                                            ? 'bg-[var(--color-sage)] text-white'
+                                            : 'bg-white hover:bg-[var(--color-sage)]/5 border border-transparent hover:border-[var(--color-sage-light)]'
+                                        }`}
+                                      >
+                                        <span className="font-medium">{item.name}</span>
+                                        <span className={formData.menu === item.id ? 'text-white/80' : 'text-[var(--color-gold)]'}>
+                                          {item.price}
+                                        </span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+
+                          {/* Selected Menu Display */}
+                          {formData.menu && !expandedCategory && (
+                            <div className="mb-8 p-4 border border-[var(--color-sage)] bg-white">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <p className="text-xs text-[var(--color-warm-gray)] mb-1">選択中のメニュー</p>
+                                  <p className="font-medium text-[var(--color-charcoal)]">
+                                    {menuCategories.flatMap(c => c.items).find(item => item.id === formData.menu)?.name}
+                                  </p>
+                                </div>
+                                <p className="text-lg text-[var(--color-gold)] font-light">
+                                  {menuCategories.flatMap(c => c.items).find(item => item.id === formData.menu)?.price}
+                                </p>
+                              </div>
                             </div>
                           )}
 
