@@ -11,10 +11,10 @@ const Footer = () => {
           <div className="lg:col-span-1">
             <Link href="/" className="inline-block mb-6">
               <span className="text-2xl font-[family-name:var(--font-serif)] tracking-[0.15em] text-white">
-                SERENE
+                LUMINA
               </span>
               <span className="block text-[10px] tracking-[0.3em] text-gray-400 uppercase">
-                Beauty Salon
+                -HAIR SALON-
               </span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
@@ -131,7 +131,7 @@ const Footer = () => {
       <div className="border-t border-gray-800">
         <div className="container-wide py-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-gray-500 tracking-wider">
-            &copy; {new Date().getFullYear()} SERENE Beauty Salon. All rights reserved.
+            &copy; {new Date().getFullYear()} LUMINA -HAIR SALON-. All rights reserved.
           </p>
           <div className="flex gap-6 text-xs text-gray-500">
             <Link href="/privacy" className="transition-colors duration-300 hover:text-gray-300">

@@ -54,10 +54,10 @@ const Header = () => {
             className="relative z-50 group"
           >
             <span className="text-xl md:text-2xl font-[family-name:var(--font-serif)] tracking-[0.15em] text-[var(--color-charcoal)] transition-colors duration-300">
-              SERENE
+              LUMINA
             </span>
             <span className="block text-[10px] tracking-[0.3em] text-[var(--color-warm-gray)] uppercase">
-              Beauty Salon
+              -HAIR SALON-
             </span>
           </Link>
 
