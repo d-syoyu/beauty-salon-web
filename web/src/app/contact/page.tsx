@@ -7,10 +7,14 @@ import { MapPin, Phone, Mail, Clock, Send, Check, Scissors, Palette, Sparkles, U
 
 const menuOptions = [
   { id: 'cut', name: 'カット', price: '¥5,500〜', icon: Scissors, description: '似合わせカット' },
-  { id: 'color', name: 'カラー', price: '¥8,800〜', icon: Palette, description: 'オーガニックカラー' },
-  { id: 'cut-color', name: 'カット+カラー', price: '¥13,200〜', icon: Sparkles, description: '人気セットメニュー' },
-  { id: 'treatment', name: 'トリートメント', price: '¥4,400〜', icon: Sparkles, description: '髪質改善' },
-  { id: 'headspa', name: 'ヘッドスパ', price: '¥4,400〜', icon: Sparkles, description: 'リラクゼーション' },
+  { id: 'color', name: 'カラー', price: '¥6,600〜', icon: Palette, description: 'オーガニックカラー' },
+  { id: 'perm', name: 'パーマ', price: '¥8,800〜', icon: Sparkles, description: 'デジタルパーマ等' },
+  { id: 'straightening', name: '縮毛矯正', price: '¥17,600〜', icon: Sparkles, description: 'くせ毛・うねり改善' },
+  { id: 'hair-improvement', name: '髪質改善', price: '¥11,000〜', icon: Sparkles, description: '酸熱・TOKIO等' },
+  { id: 'cut-color', name: 'カット+カラー', price: '¥12,100〜', icon: Sparkles, description: '人気セットメニュー' },
+  { id: 'treatment', name: 'トリートメント', price: '¥2,200〜', icon: Sparkles, description: 'ダメージ補修' },
+  { id: 'headspa', name: 'ヘッドスパ', price: '¥2,200〜', icon: Sparkles, description: 'リラクゼーション' },
+  { id: 'arrangement', name: 'ヘアセット', price: '¥4,400〜', icon: Sparkles, description: '結婚式・成人式等' },
   { id: 'other', name: 'その他・相談', price: '', icon: User, description: 'お気軽にご相談' },
 ];
 

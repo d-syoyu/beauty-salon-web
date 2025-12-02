@@ -203,26 +203,26 @@ export default function Home() {
             {[
               {
                 icon: <Sparkles className="w-8 h-8" />,
-                title: 'Cut',
-                titleJa: 'カット',
-                price: '¥5,500〜',
-                description: '骨格や髪質を見極め、再現性の高いスタイルをご提案',
-                image: '/cut.png'
-              },
-              {
-                icon: <Leaf className="w-8 h-8" />,
                 title: 'Color',
                 titleJa: 'カラー',
-                price: '¥8,800〜',
-                description: 'オーガニック成分配合で髪に優しい艶カラー',
+                price: '¥6,600〜',
+                description: 'イルミナカラー・バレイヤージュなど豊富なメニュー',
                 image: '/color.png'
               },
               {
+                icon: <Leaf className="w-8 h-8" />,
+                title: 'Straightening',
+                titleJa: '縮毛矯正',
+                price: '¥17,600〜',
+                description: 'くせ毛・うねりを改善し、自然なストレートヘアに',
+                image: '/treatments.png'
+              },
+              {
                 icon: <Sparkles className="w-8 h-8" />,
-                title: 'Treatment',
-                titleJa: 'トリートメント',
-                price: '¥4,400〜',
-                description: '髪の内部から補修し、うるおいのある髪へ',
+                title: 'Hair Improvement',
+                titleJa: '髪質改善',
+                price: '¥11,000〜',
+                description: '酸熱トリートメント・TOKIOで美髪へ導く',
                 image: '/treatments.png'
               }
             ].map((service) => (
