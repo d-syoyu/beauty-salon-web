@@ -3,19 +3,153 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Phone, Mail, Clock, Send, Check, Scissors, Palette, Sparkles, User, Calendar, ChevronRight, ChevronLeft } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, Check, Scissors, Palette, Sparkles, User, Calendar, ChevronRight, ChevronLeft, ChevronDown, Flower2, Wind, Crown } from 'lucide-react';
 
-const menuOptions = [
-  { id: 'cut', name: 'カット', price: '¥5,500〜', icon: Scissors, description: '似合わせカット' },
-  { id: 'color', name: 'カラー', price: '¥6,600〜', icon: Palette, description: 'オーガニックカラー' },
-  { id: 'perm', name: 'パーマ', price: '¥8,800〜', icon: Sparkles, description: 'デジタルパーマ等' },
-  { id: 'straightening', name: '縮毛矯正', price: '¥17,600〜', icon: Sparkles, description: 'くせ毛・うねり改善' },
-  { id: 'hair-improvement', name: '髪質改善', price: '¥11,000〜', icon: Sparkles, description: '酸熱・TOKIO等' },
-  { id: 'cut-color', name: 'カット+カラー', price: '¥12,100〜', icon: Sparkles, description: '人気セットメニュー' },
-  { id: 'treatment', name: 'トリートメント', price: '¥2,200〜', icon: Sparkles, description: 'ダメージ補修' },
-  { id: 'headspa', name: 'ヘッドスパ', price: '¥2,200〜', icon: Sparkles, description: 'リラクゼーション' },
-  { id: 'arrangement', name: 'ヘアセット', price: '¥4,400〜', icon: Sparkles, description: '結婚式・成人式等' },
-  { id: 'other', name: 'その他・相談', price: '', icon: User, description: 'お気軽にご相談' },
+const menuCategories = [
+  {
+    id: 'cut',
+    name: 'カット',
+    icon: Scissors,
+    color: 'from-rose-50 to-pink-50',
+    borderColor: 'border-rose-200',
+    iconColor: 'text-rose-400',
+    items: [
+      { id: 'cut-basic', name: 'カット', price: '¥5,500' },
+      { id: 'cut-shampoo', name: 'カット + シャンプーブロー', price: '¥6,600' },
+      { id: 'cut-bangs', name: '前髪カット', price: '¥1,100' },
+      { id: 'cut-bangs-face', name: '前髪カット + 顔まわり', price: '¥2,200' },
+    ]
+  },
+  {
+    id: 'color',
+    name: 'カラー',
+    icon: Palette,
+    color: 'from-amber-50 to-orange-50',
+    borderColor: 'border-amber-200',
+    iconColor: 'text-amber-500',
+    items: [
+      { id: 'color-full', name: 'フルカラー', price: '¥8,800' },
+      { id: 'color-retouch', name: 'リタッチカラー', price: '¥6,600' },
+      { id: 'color-organic', name: 'オーガニックカラー', price: '¥9,900' },
+      { id: 'color-illumina', name: 'イルミナカラー', price: '¥11,000' },
+      { id: 'color-highlight', name: 'ハイライト', price: '¥5,500〜' },
+      { id: 'color-balayage', name: 'バレイヤージュ', price: '¥16,500〜' },
+      { id: 'color-inner', name: 'インナーカラー', price: '¥5,500〜' },
+      { id: 'color-gray', name: 'グレイカラー（白髪染め）', price: '¥7,700' },
+    ]
+  },
+  {
+    id: 'perm',
+    name: 'パーマ',
+    icon: Wind,
+    color: 'from-purple-50 to-violet-50',
+    borderColor: 'border-purple-200',
+    iconColor: 'text-purple-400',
+    items: [
+      { id: 'perm-basic', name: 'パーマ', price: '¥8,800' },
+      { id: 'perm-digital', name: 'デジタルパーマ', price: '¥13,200' },
+      { id: 'perm-cosme', name: 'コスメパーマ', price: '¥11,000' },
+      { id: 'perm-air', name: 'エアウェーブ', price: '¥14,300' },
+      { id: 'perm-onecurl', name: '毛先ワンカールパーマ', price: '¥9,900' },
+      { id: 'perm-yurufuwa', name: 'ゆるふわパーマ', price: '¥12,100' },
+      { id: 'perm-korean', name: '韓国風パーマ', price: '¥13,200' },
+    ]
+  },
+  {
+    id: 'straightening',
+    name: '縮毛矯正',
+    icon: Sparkles,
+    color: 'from-sky-50 to-cyan-50',
+    borderColor: 'border-sky-200',
+    iconColor: 'text-sky-400',
+    items: [
+      { id: 'straight-basic', name: '縮毛矯正', price: '¥17,600' },
+      { id: 'straight-long', name: '縮毛矯正（ロング料金）', price: '¥19,800〜' },
+      { id: 'straight-bangs', name: 'ポイント縮毛矯正（前髪）', price: '¥5,500' },
+      { id: 'straight-face', name: 'ポイント縮毛矯正（顔まわり）', price: '¥8,800' },
+      { id: 'straight-acid', name: '酸性ストレート', price: '¥22,000' },
+      { id: 'straight-curl', name: '縮毛矯正 + 毛先カール', price: '¥24,200' },
+    ]
+  },
+  {
+    id: 'hair-improvement',
+    name: '髪質改善',
+    icon: Crown,
+    color: 'from-emerald-50 to-teal-50',
+    borderColor: 'border-emerald-200',
+    iconColor: 'text-emerald-400',
+    items: [
+      { id: 'improve-basic', name: '髪質改善トリートメント', price: '¥11,000' },
+      { id: 'improve-straight', name: '髪質改善ストレート', price: '¥19,800' },
+      { id: 'improve-acid', name: '酸熱トリートメント', price: '¥16,500' },
+      { id: 'improve-science', name: 'サイエンスアクア', price: '¥14,300' },
+      { id: 'improve-tokio', name: 'TOKIO インカラミ', price: '¥8,800' },
+      { id: 'improve-aujua', name: 'オージュア トリートメント', price: '¥7,700〜' },
+      { id: 'improve-ultowa', name: 'ウルトワトリートメント', price: '¥13,200' },
+    ]
+  },
+  {
+    id: 'treatment',
+    name: 'トリートメント',
+    icon: Flower2,
+    color: 'from-lime-50 to-green-50',
+    borderColor: 'border-lime-200',
+    iconColor: 'text-lime-500',
+    items: [
+      { id: 'treat-quick', name: 'クイックトリートメント', price: '¥2,200' },
+      { id: 'treat-special', name: 'スペシャルトリートメント', price: '¥4,400' },
+      { id: 'treat-premium', name: 'プレミアムトリートメント', price: '¥6,600' },
+      { id: 'treat-keratin', name: 'ケラチントリートメント', price: '¥8,800' },
+      { id: 'treat-tsuya', name: '艶髪トリートメント', price: '¥7,700' },
+    ]
+  },
+  {
+    id: 'spa',
+    name: 'ヘッドスパ',
+    icon: Sparkles,
+    color: 'from-indigo-50 to-blue-50',
+    borderColor: 'border-indigo-200',
+    iconColor: 'text-indigo-400',
+    items: [
+      { id: 'spa-quick', name: 'クイックスパ（15分）', price: '¥2,200' },
+      { id: 'spa-relax', name: 'リラックススパ（30分）', price: '¥4,400' },
+      { id: 'spa-premium', name: 'プレミアムスパ（45分）', price: '¥6,600' },
+      { id: 'spa-ultimate', name: '極上スパ（60分）', price: '¥8,800' },
+      { id: 'spa-carbonated', name: '炭酸ヘッドスパ', price: '¥3,300' },
+      { id: 'spa-aroma', name: 'アロマヘッドスパ', price: '¥5,500' },
+    ]
+  },
+  {
+    id: 'arrangement',
+    name: 'ヘアセット',
+    icon: Crown,
+    color: 'from-fuchsia-50 to-pink-50',
+    borderColor: 'border-fuchsia-200',
+    iconColor: 'text-fuchsia-400',
+    items: [
+      { id: 'set-basic', name: 'ヘアセット', price: '¥5,500' },
+      { id: 'set-half', name: 'ヘアセット（ハーフアップ）', price: '¥4,400' },
+      { id: 'set-braid', name: 'ヘアセット（編みおろし）', price: '¥6,600' },
+      { id: 'set-bridal', name: 'ブライダルヘアメイク', price: '¥33,000〜' },
+      { id: 'set-seijin', name: '成人式ヘアセット', price: '¥8,800' },
+      { id: 'set-graduation', name: '卒業式ヘアセット（袴）', price: '¥6,600' },
+    ]
+  },
+  {
+    id: 'set-menu',
+    name: 'セットメニュー',
+    icon: Sparkles,
+    color: 'from-yellow-50 to-amber-50',
+    borderColor: 'border-yellow-200',
+    iconColor: 'text-yellow-500',
+    items: [
+      { id: 'combo-cut-color', name: 'カット + カラー', price: '¥12,100' },
+      { id: 'combo-cut-perm', name: 'カット + パーマ', price: '¥12,100' },
+      { id: 'combo-cut-straight', name: 'カット + 縮毛矯正', price: '¥20,900' },
+      { id: 'combo-cut-improve', name: 'カット + 髪質改善', price: '¥14,300' },
+      { id: 'combo-full', name: '美髪フルコース', price: '¥27,500' },
+    ]
+  },
 ];
 
 const timeSlots = [
@@ -208,31 +342,80 @@ export default function ContactPage() {
                           exit={{ opacity: 0, x: -20 }}
                           transition={{ duration: 0.3 }}
                         >
-                          <h2 className="text-xl font-[family-name:var(--font-serif)] mb-6 text-center">
+                          <h2 className="text-xl font-[family-name:var(--font-serif)] mb-8 text-center">
                             ご希望のメニューを選択してください
                           </h2>
 
-                          <div className="mb-8">
-                            <select
-                              name="menu"
-                              value={formData.menu}
-                              onChange={(e) => handleMenuSelect(e.target.value)}
-                              className="w-full p-4 border-2 border-[var(--color-cream)] bg-white text-[var(--color-charcoal)] focus:border-[var(--color-sage)] focus:outline-none transition-all appearance-none cursor-pointer"
-                              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.5rem' }}
-                            >
-                              <option value="">メニューを選択してください</option>
-                              {menuOptions.map((menu) => (
-                                <option key={menu.id} value={menu.id}>
-                                  {menu.name} {menu.price && `- ${menu.price}`}
-                                </option>
-                              ))}
-                            </select>
-                            {formData.menu && (
-                              <p className="mt-2 text-sm text-[var(--color-warm-gray)]">
-                                {menuOptions.find(m => m.id === formData.menu)?.description}
-                              </p>
-                            )}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                            {menuCategories.map((category) => {
+                              const Icon = category.icon;
+                              const selectedItem = category.items.find(item => item.id === formData.menu);
+                              const isSelected = !!selectedItem;
+
+                              return (
+                                <div
+                                  key={category.id}
+                                  className={`relative rounded-2xl border-2 transition-all duration-300 overflow-hidden ${
+                                    isSelected
+                                      ? `${category.borderColor} shadow-lg`
+                                      : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
+                                  }`}
+                                >
+                                  {/* Category Header */}
+                                  <div className={`bg-gradient-to-br ${category.color} p-4`}>
+                                    <div className="flex items-center gap-3 mb-3">
+                                      <div className={`p-2 rounded-full bg-white/60 backdrop-blur-sm ${category.iconColor}`}>
+                                        <Icon className="w-5 h-5" />
+                                      </div>
+                                      <h3 className="font-medium text-gray-800">{category.name}</h3>
+                                    </div>
+
+                                    {/* Dropdown */}
+                                    <div className="relative">
+                                      <select
+                                        value={selectedItem?.id || ''}
+                                        onChange={(e) => handleMenuSelect(e.target.value)}
+                                        className="w-full p-3 pr-10 rounded-xl bg-white/80 backdrop-blur-sm border-0 text-sm text-gray-700 focus:ring-2 focus:ring-white/50 focus:outline-none appearance-none cursor-pointer transition-all hover:bg-white"
+                                      >
+                                        <option value="">選択してください</option>
+                                        {category.items.map((item) => (
+                                          <option key={item.id} value={item.id}>
+                                            {item.name} - {item.price}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                    </div>
+                                  </div>
+
+                                  {/* Selected Item Display */}
+                                  {selectedItem && (
+                                    <div className="p-3 bg-white border-t border-gray-100">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <Check className={`w-4 h-4 ${category.iconColor}`} />
+                                          <span className="text-sm font-medium text-gray-700">{selectedItem.name}</span>
+                                        </div>
+                                        <span className={`text-sm font-semibold ${category.iconColor}`}>{selectedItem.price}</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
+
+                          {/* Selected Menu Summary */}
+                          {formData.menu && (
+                            <div className="mb-8 p-4 bg-[var(--color-sage)]/10 rounded-xl border border-[var(--color-sage)]/20">
+                              <p className="text-center text-[var(--color-charcoal)]">
+                                <span className="text-sm text-[var(--color-warm-gray)]">選択中: </span>
+                                <span className="font-medium">
+                                  {menuCategories.flatMap(c => c.items).find(item => item.id === formData.menu)?.name}
+                                </span>
+                              </p>
+                            </div>
+                          )}
 
                           {/* Stylist Selection */}
                           <h3 className="text-lg font-[family-name:var(--font-serif)] mb-4 text-center">
