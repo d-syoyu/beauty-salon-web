@@ -324,7 +324,7 @@ export default function ContactPage() {
                             カテゴリを選択すると詳細メニューが表示されます
                           </p>
 
-                          <div className="grid grid-cols-3 gap-3 mb-6">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-6">
                             {menuCategories.map((category) => {
                               const isExpanded = expandedCategory === category.id;
                               const hasSelectedItem = category.items.some(item => item.id === formData.menu);
@@ -334,7 +334,7 @@ export default function ContactPage() {
                                   key={category.id}
                                   type="button"
                                   onClick={() => setExpandedCategory(isExpanded ? null : category.id)}
-                                  className={`p-4 text-center transition-all duration-300 border ${
+                                  className={`p-3 sm:p-4 text-center transition-all duration-300 border ${
                                     isExpanded
                                       ? 'border-[var(--color-charcoal)] bg-[var(--color-charcoal)] text-white'
                                       : hasSelectedItem
@@ -342,14 +342,14 @@ export default function ContactPage() {
                                         : 'border-[var(--color-light-gray)] hover:border-[var(--color-sage-light)] bg-white'
                                   }`}
                                 >
-                                  <span className="block text-xs tracking-[0.1em] uppercase text-[var(--color-warm-gray)] mb-1" style={{ color: isExpanded ? 'rgba(255,255,255,0.6)' : undefined }}>
+                                  <span className="block text-[10px] sm:text-xs tracking-[0.05em] sm:tracking-[0.1em] uppercase text-[var(--color-warm-gray)] mb-1 truncate" style={{ color: isExpanded ? 'rgba(255,255,255,0.6)' : undefined }}>
                                     {category.nameEn}
                                   </span>
-                                  <span className={`block font-medium ${isExpanded ? 'text-white' : 'text-[var(--color-charcoal)]'}`}>
+                                  <span className={`block text-sm sm:text-base font-medium truncate ${isExpanded ? 'text-white' : 'text-[var(--color-charcoal)]'}`}>
                                     {category.name}
                                   </span>
                                   {hasSelectedItem && !isExpanded && (
-                                    <Check className="w-4 h-4 text-[var(--color-sage)] mx-auto mt-2" />
+                                    <Check className="w-4 h-4 text-[var(--color-sage)] mx-auto mt-1 sm:mt-2" />
                                   )}
                                 </button>
                               );
