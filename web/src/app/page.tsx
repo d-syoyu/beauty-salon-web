@@ -76,7 +76,7 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="text-subheading mb-8"
           >
-            Natural Beauty Salon
+            LUMINA HAIR STUDIO
           </motion.p>
 
           <motion.h1

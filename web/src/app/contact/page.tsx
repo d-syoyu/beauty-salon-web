@@ -578,8 +578,8 @@ export default function ContactPage() {
                 </div>
                 <div className="flex items-start gap-3">
                   <Mail className="w-4 h-4 text-[var(--color-sage)] mt-0.5 flex-shrink-0" />
-                  <a href="mailto:info@lumina-salon.jp" className="hover:text-[var(--color-sage)] transition-colors">
-                    info@lumina-salon.jp
+                  <a href="mailto:info@lumina-hair.jp" className="hover:text-[var(--color-sage)] transition-colors">
+                    info@lumina-hair.jp
                   </a>
                 </div>
                 <div className="flex items-start gap-3">
