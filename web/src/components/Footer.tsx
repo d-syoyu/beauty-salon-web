@@ -14,7 +14,7 @@ const Footer = () => {
                 LUMINA
               </span>
               <span className="block text-[10px] tracking-[0.3em] text-gray-400 uppercase">
-                -HAIR SALON-
+                HAIR STUDIO
               </span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
@@ -131,7 +131,7 @@ const Footer = () => {
       <div className="border-t border-gray-800">
         <div className="container-wide py-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-gray-500 tracking-wider">
-            &copy; {new Date().getFullYear()} LUMINA -HAIR SALON-. All rights reserved.
+            &copy; {new Date().getFullYear()} LUMINA HAIR STUDIO. All rights reserved.
           </p>
           <div className="flex gap-6 text-xs text-gray-500">
             <Link href="/privacy" className="transition-colors duration-300 hover:text-gray-300">

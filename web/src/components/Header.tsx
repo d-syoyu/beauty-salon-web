@@ -57,7 +57,7 @@ const Header = () => {
               LUMINA
             </span>
             <span className="block text-[10px] tracking-[0.3em] text-[var(--color-warm-gray)] uppercase">
-              -HAIR SALON-
+              HAIR STUDIO
             </span>
           </Link>
 
