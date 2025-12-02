@@ -12,9 +12,8 @@ const menuCategories = [
     nameEn: 'Cut',
     items: [
       { id: 'cut-basic', name: 'カット', price: '¥5,500' },
-      { id: 'cut-shampoo', name: 'カット + シャンプーブロー', price: '¥6,600' },
       { id: 'cut-bangs', name: '前髪カット', price: '¥1,100' },
-      { id: 'cut-bangs-face', name: '前髪カット + 顔まわり', price: '¥2,200' },
+      { id: 'cut-kids', name: 'キッズカット（小学生以下）', price: '¥3,300' },
     ]
   },
   {
@@ -24,11 +23,8 @@ const menuCategories = [
     items: [
       { id: 'color-full', name: 'フルカラー', price: '¥8,800' },
       { id: 'color-retouch', name: 'リタッチカラー', price: '¥6,600' },
-      { id: 'color-organic', name: 'オーガニックカラー', price: '¥9,900' },
       { id: 'color-illumina', name: 'イルミナカラー', price: '¥11,000' },
       { id: 'color-highlight', name: 'ハイライト', price: '¥5,500〜' },
-      { id: 'color-balayage', name: 'バレイヤージュ', price: '¥16,500〜' },
-      { id: 'color-inner', name: 'インナーカラー', price: '¥5,500〜' },
       { id: 'color-gray', name: 'グレイカラー（白髪染め）', price: '¥7,700' },
     ]
   },
@@ -40,10 +36,7 @@ const menuCategories = [
       { id: 'perm-basic', name: 'パーマ', price: '¥8,800' },
       { id: 'perm-digital', name: 'デジタルパーマ', price: '¥13,200' },
       { id: 'perm-cosme', name: 'コスメパーマ', price: '¥11,000' },
-      { id: 'perm-air', name: 'エアウェーブ', price: '¥14,300' },
-      { id: 'perm-onecurl', name: '毛先ワンカールパーマ', price: '¥9,900' },
-      { id: 'perm-yurufuwa', name: 'ゆるふわパーマ', price: '¥12,100' },
-      { id: 'perm-korean', name: '韓国風パーマ', price: '¥13,200' },
+      { id: 'perm-point', name: 'ポイントパーマ', price: '¥5,500〜' },
     ]
   },
   {
@@ -51,12 +44,9 @@ const menuCategories = [
     name: '縮毛矯正',
     nameEn: 'Straightening',
     items: [
-      { id: 'straight-basic', name: '縮毛矯正', price: '¥17,600' },
-      { id: 'straight-long', name: '縮毛矯正（ロング料金）', price: '¥19,800〜' },
+      { id: 'straight-basic', name: '縮毛矯正', price: '¥17,600〜' },
       { id: 'straight-bangs', name: 'ポイント縮毛矯正（前髪）', price: '¥5,500' },
-      { id: 'straight-face', name: 'ポイント縮毛矯正（顔まわり）', price: '¥8,800' },
       { id: 'straight-acid', name: '酸性ストレート', price: '¥22,000' },
-      { id: 'straight-curl', name: '縮毛矯正 + 毛先カール', price: '¥24,200' },
     ]
   },
   {
@@ -65,12 +55,8 @@ const menuCategories = [
     nameEn: 'Hair Improvement',
     items: [
       { id: 'improve-basic', name: '髪質改善トリートメント', price: '¥11,000' },
-      { id: 'improve-straight', name: '髪質改善ストレート', price: '¥19,800' },
       { id: 'improve-acid', name: '酸熱トリートメント', price: '¥16,500' },
-      { id: 'improve-science', name: 'サイエンスアクア', price: '¥14,300' },
       { id: 'improve-tokio', name: 'TOKIO インカラミ', price: '¥8,800' },
-      { id: 'improve-aujua', name: 'オージュア トリートメント', price: '¥7,700〜' },
-      { id: 'improve-ultowa', name: 'ウルトワトリートメント', price: '¥13,200' },
     ]
   },
   {
@@ -81,8 +67,6 @@ const menuCategories = [
       { id: 'treat-quick', name: 'クイックトリートメント', price: '¥2,200' },
       { id: 'treat-special', name: 'スペシャルトリートメント', price: '¥4,400' },
       { id: 'treat-premium', name: 'プレミアムトリートメント', price: '¥6,600' },
-      { id: 'treat-keratin', name: 'ケラチントリートメント', price: '¥8,800' },
-      { id: 'treat-tsuya', name: '艶髪トリートメント', price: '¥7,700' },
     ]
   },
   {
@@ -93,9 +77,6 @@ const menuCategories = [
       { id: 'spa-quick', name: 'クイックスパ（15分）', price: '¥2,200' },
       { id: 'spa-relax', name: 'リラックススパ（30分）', price: '¥4,400' },
       { id: 'spa-premium', name: 'プレミアムスパ（45分）', price: '¥6,600' },
-      { id: 'spa-ultimate', name: '極上スパ（60分）', price: '¥8,800' },
-      { id: 'spa-carbonated', name: '炭酸ヘッドスパ', price: '¥3,300' },
-      { id: 'spa-aroma', name: 'アロマヘッドスパ', price: '¥5,500' },
     ]
   },
   {
@@ -104,11 +85,8 @@ const menuCategories = [
     nameEn: 'Hair Arrange',
     items: [
       { id: 'set-basic', name: 'ヘアセット', price: '¥5,500' },
-      { id: 'set-half', name: 'ヘアセット（ハーフアップ）', price: '¥4,400' },
-      { id: 'set-braid', name: 'ヘアセット（編みおろし）', price: '¥6,600' },
-      { id: 'set-bridal', name: 'ブライダルヘアメイク', price: '¥33,000〜' },
       { id: 'set-seijin', name: '成人式ヘアセット', price: '¥8,800' },
-      { id: 'set-graduation', name: '卒業式ヘアセット（袴）', price: '¥6,600' },
+      { id: 'set-bridal', name: 'ブライダルヘアメイク', price: '¥33,000〜' },
     ]
   },
   {
@@ -118,7 +96,6 @@ const menuCategories = [
     items: [
       { id: 'combo-cut-color', name: 'カット + カラー', price: '¥12,100' },
       { id: 'combo-cut-perm', name: 'カット + パーマ', price: '¥12,100' },
-      { id: 'combo-cut-straight', name: 'カット + 縮毛矯正', price: '¥20,900' },
       { id: 'combo-cut-improve', name: 'カット + 髪質改善', price: '¥14,300' },
       { id: 'combo-full', name: '美髪フルコース', price: '¥27,500' },
     ]
