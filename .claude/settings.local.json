@@ -5,7 +5,10 @@
       "Bash(npm run dev:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git -C \"c:/Users/User/beauty-salon-web\" status)",
+      "Bash(git -C \"c:/Users/User/beauty-salon-web\" diff)",
+      "Bash(git -C \"c:/Users/User/beauty-salon-web\" log --oneline -3)"
     ],
     "deny": [],
     "ask": []
