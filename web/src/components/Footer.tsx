@@ -68,10 +68,10 @@ const Footer = () => {
             <ul className="space-y-4">
               {[
                 { name: 'カット', price: '¥5,500〜' },
-                { name: 'カラー', price: '¥8,800〜' },
-                { name: 'パーマ', price: '¥11,000〜' },
-                { name: 'トリートメント', price: '¥4,400〜' },
-                { name: 'ヘッドスパ', price: '¥5,500〜' },
+                { name: 'カラー', price: '¥6,600〜' },
+                { name: 'パーマ', price: '¥8,800〜' },
+                { name: '縮毛矯正', price: '¥17,600〜' },
+                { name: '髪質改善', price: '¥11,000〜' },
               ].map((item) => (
                 <li key={item.name} className="flex justify-between text-sm">
                   <span className="text-gray-400">{item.name}</span>
