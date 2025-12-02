@@ -202,20 +202,20 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
             {[
               {
+                icon: <Leaf className="w-8 h-8" />,
+                title: 'Cut',
+                titleJa: 'カット',
+                price: '¥5,500〜',
+                description: '骨格や髪質を見極め、似合うスタイルをご提案',
+                image: '/cut.png'
+              },
+              {
                 icon: <Sparkles className="w-8 h-8" />,
                 title: 'Color',
                 titleJa: 'カラー',
                 price: '¥6,600〜',
                 description: 'イルミナカラー・バレイヤージュなど豊富なメニュー',
                 image: '/color.png'
-              },
-              {
-                icon: <Leaf className="w-8 h-8" />,
-                title: 'Straightening',
-                titleJa: '縮毛矯正',
-                price: '¥17,600〜',
-                description: 'くせ毛・うねりを改善し、自然なストレートヘアに',
-                image: '/treatments.png'
               },
               {
                 icon: <Sparkles className="w-8 h-8" />,
