@@ -212,31 +212,26 @@ export default function ContactPage() {
                             ご希望のメニューを選択してください
                           </h2>
 
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-                            {menuOptions.map((menu) => {
-                              const Icon = menu.icon;
-                              return (
-                                <button
-                                  key={menu.id}
-                                  type="button"
-                                  onClick={() => handleMenuSelect(menu.id)}
-                                  className={`p-4 md:p-6 text-left transition-all border-2 ${
-                                    formData.menu === menu.id
-                                      ? 'border-[var(--color-sage)] bg-[var(--color-sage)]/5'
-                                      : 'border-[var(--color-cream)] hover:border-[var(--color-sage-light)]'
-                                  }`}
-                                >
-                                  <Icon className={`w-6 h-6 mb-3 ${
-                                    formData.menu === menu.id ? 'text-[var(--color-sage)]' : 'text-[var(--color-warm-gray)]'
-                                  }`} />
-                                  <p className="font-medium mb-1">{menu.name}</p>
-                                  <p className="text-xs text-[var(--color-warm-gray)] mb-1">{menu.description}</p>
-                                  {menu.price && (
-                                    <p className="text-sm text-[var(--color-gold)]">{menu.price}</p>
-                                  )}
-                                </button>
-                              );
-                            })}
+                          <div className="mb-8">
+                            <select
+                              name="menu"
+                              value={formData.menu}
+                              onChange={(e) => handleMenuSelect(e.target.value)}
+                              className="w-full p-4 border-2 border-[var(--color-cream)] bg-white text-[var(--color-charcoal)] focus:border-[var(--color-sage)] focus:outline-none transition-all appearance-none cursor-pointer"
+                              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.5rem' }}
+                            >
+                              <option value="">メニューを選択してください</option>
+                              {menuOptions.map((menu) => (
+                                <option key={menu.id} value={menu.id}>
+                                  {menu.name} {menu.price && `- ${menu.price}`}
+                                </option>
+                              ))}
+                            </select>
+                            {formData.menu && (
+                              <p className="mt-2 text-sm text-[var(--color-warm-gray)]">
+                                {menuOptions.find(m => m.id === formData.menu)?.description}
+                              </p>
+                            )}
                           </div>
 
                           {/* Stylist Selection */}
