@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 // ============================================
@@ -306,7 +306,7 @@ model Coupon {
   value                 Int
   description           String?
 
-  // 適用条件（SQLiteはJSON文字列で保存）
+  // 適用条件（JSON文字列で保存）
   applicableMenuIds     String   @default("[]")
   applicableCategoryIds String   @default("[]")
   applicableWeekdays    String   @default("[]")

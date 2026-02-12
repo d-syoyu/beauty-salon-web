@@ -1,25 +1,19 @@
 // lib/db.ts
-// Prisma Client instance (SQLite) - Prisma 7 with better-sqlite3 adapter
+// Prisma Client instance (PostgreSQL/Neon) - Prisma 7 with Neon serverless adapter
 
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import path from "path";
+import { PrismaNeon } from "@prisma/adapter-neon";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-function getDbUrl(): string {
-  const url = process.env.DATABASE_URL || "file:./dev.db";
-  if (path.isAbsolute(url.replace("file:", ""))) return url;
-  // Prisma 7 resolves file:./dev.db relative to project root (where prisma.config.ts is)
-  const relativePath = url.replace("file:", "");
-  return "file:" + path.resolve(process.cwd(), relativePath);
-}
-
 function createPrismaClient(): PrismaClient {
-  const adapter = new PrismaBetterSqlite3({ url: getDbUrl() });
-
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL environment variable is not set");
+  }
+  const adapter = new PrismaNeon({ connectionString });
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
