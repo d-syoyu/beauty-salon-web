@@ -65,15 +65,20 @@ export async function POST(request: NextRequest) {
       customerPhone,
       reservationId,
       items,
-      paymentMethod,
+      payments: paymentsInput,
+      paymentMethod: legacyPaymentMethod,
       discountAmount,
       couponId,
       couponDiscount,
       note,
+      saleDate: bodyDate,
+      saleTime: bodyTime,
       taxRate: bodyTaxRate,
     } = body;
 
-    if (!items?.length || !paymentMethod) {
+    // Support both: payments array (new) or single paymentMethod (legacy)
+    const primaryPaymentMethod = paymentsInput?.[0]?.paymentMethod || legacyPaymentMethod;
+    if (!items?.length || !primaryPaymentMethod) {
       return NextResponse.json({ error: "必須項目が不足しています" }, { status: 400 });
     }
 
@@ -92,9 +97,10 @@ export async function POST(request: NextRequest) {
     const taxAmount = Math.floor((taxableAmount * taxRate) / (100 + taxRate));
     const totalAmount = taxableAmount;
 
-    // Generate sale number
+    // Generate sale number using the sale date
     const now = new Date();
-    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+    const saleDateObj = bodyDate ? new Date(bodyDate) : now;
+    const dateStr = `${saleDateObj.getFullYear()}${String(saleDateObj.getMonth() + 1).padStart(2, "0")}${String(saleDateObj.getDate()).padStart(2, "0")}`;
     const count = await prisma.sale.count({
       where: {
         saleNumber: { startsWith: dateStr },
@@ -102,7 +108,10 @@ export async function POST(request: NextRequest) {
     });
     const saleNumber = `${dateStr}-${String(count + 1).padStart(4, "0")}`;
 
-    const saleTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const saleTime = bodyTime || `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const saleDate = bodyDate
+      ? new Date(new Date(bodyDate).getFullYear(), new Date(bodyDate).getMonth(), new Date(bodyDate).getDate())
+      : new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     const sale = await prisma.sale.create({
       data: {
@@ -118,9 +127,9 @@ export async function POST(request: NextRequest) {
         couponId: couponId || null,
         couponDiscount: couponDiscount || 0,
         totalAmount,
-        paymentMethod,
+        paymentMethod: primaryPaymentMethod,
         paymentStatus: "PAID",
-        saleDate: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+        saleDate,
         saleTime,
         note: note || null,
         createdBy: user!.id,
@@ -156,9 +165,21 @@ export async function POST(request: NextRequest) {
             })
           ),
         },
+        ...(paymentsInput?.length && {
+          payments: {
+            create: paymentsInput.map(
+              (p: { paymentMethod: string; amount: number }, idx: number) => ({
+                paymentMethod: p.paymentMethod,
+                amount: p.amount,
+                orderIndex: idx,
+              })
+            ),
+          },
+        }),
       },
       include: {
         items: { orderBy: { orderIndex: "asc" } },
+        payments: { orderBy: { orderIndex: "asc" } },
         user: { select: { name: true } },
       },
     });

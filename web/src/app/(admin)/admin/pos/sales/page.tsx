@@ -6,9 +6,6 @@ import {
   ArrowLeft,
   Plus,
   Search,
-  ChevronLeft,
-  ChevronRight,
-  X,
   Receipt,
   Trash2,
   AlertTriangle,
@@ -44,14 +41,6 @@ interface Sale {
   createdByUser: { name: string | null } | null;
 }
 
-interface Menu {
-  id: string;
-  name: string;
-  price: number;
-  duration: number;
-  category: { name: string; id: string };
-}
-
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   CASH: '現金',
   CREDIT_CARD: 'クレジットカード',
@@ -70,30 +59,16 @@ const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string }> = 
 
 export default function AdminSalesPage() {
   const [sales, setSales] = useState<Sale[]>([]);
-  const [menus, setMenus] = useState<Menu[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
 
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingSale, setDeletingSale] = useState<Sale | null>(null);
 
-  // Create form
-  const [saleForm, setSaleForm] = useState({
-    customerName: '',
-    customerPhone: '',
-    paymentMethod: 'CASH',
-    note: '',
-  });
-  const [saleItems, setSaleItems] = useState<{ menuId: string; menuName: string; unitPrice: number; quantity: number; category: string; categoryId: string; duration: number }[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-
   useEffect(() => {
     fetchSales();
-    fetchMenus();
   }, []);
 
   const fetchSales = async () => {
@@ -112,63 +87,6 @@ export default function AdminSalesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fetchMenus = async () => {
-    try {
-      const res = await fetch('/api/admin/menus');
-      const data = await res.json();
-      setMenus(Array.isArray(data) ? data : []);
-    } catch (err) { console.error('Failed to fetch menus:', err); }
-  };
-
-  const addSaleItem = (menu: Menu) => {
-    const existing = saleItems.find(i => i.menuId === menu.id);
-    if (existing) {
-      setSaleItems(saleItems.map(i => i.menuId === menu.id ? { ...i, quantity: i.quantity + 1 } : i));
-    } else {
-      setSaleItems([...saleItems, {
-        menuId: menu.id, menuName: menu.name, unitPrice: menu.price,
-        quantity: 1, category: menu.category.name, categoryId: menu.category.id, duration: menu.duration,
-      }]);
-    }
-  };
-
-  const removeSaleItem = (menuId: string) => {
-    setSaleItems(saleItems.filter(i => i.menuId !== menuId));
-  };
-
-  const saleTotal = saleItems.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
-
-  const handleCreateSale = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (saleItems.length === 0) { setCreateError('メニューを選択してください'); return; }
-    setIsSubmitting(true);
-    setCreateError(null);
-    try {
-      const res = await fetch('/api/admin/sales', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...saleForm,
-          items: saleItems.map(i => ({
-            itemType: 'MENU',
-            menuId: i.menuId,
-            menuName: i.menuName,
-            categoryId: i.categoryId,
-            category: i.category,
-            duration: i.duration,
-            quantity: i.quantity,
-            unitPrice: i.unitPrice,
-          })),
-        }),
-      });
-      if (!res.ok) { const data = await res.json(); throw new Error(data.error); }
-      setIsCreateModalOpen(false);
-      setSaleItems([]);
-      setSaleForm({ customerName: '', customerPhone: '', paymentMethod: 'CASH', note: '' });
-      fetchSales();
-    } catch (err) { setCreateError(err instanceof Error ? err.message : 'エラーが発生しました'); } finally { setIsSubmitting(false); }
   };
 
   const handleDeleteSale = async () => {
@@ -199,9 +117,9 @@ export default function AdminSalesPage() {
               <p className="text-sm text-gray-500 mt-1">会計の作成・管理</p>
             </div>
           </div>
-          <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700">
+          <Link href="/admin/pos/sales/new" className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700">
             <Plus className="w-4 h-4" /> 新規会計
-          </button>
+          </Link>
         </div>
 
         {/* Filters */}
@@ -259,75 +177,6 @@ export default function AdminSalesPage() {
           ))}
         </div>
       </div>
-
-      {/* Create Sale Modal */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsCreateModalOpen(false)} />
-          <div className="relative bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <button onClick={() => setIsCreateModalOpen(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-            <h3 className="text-xl font-medium mb-6">新規会計</h3>
-            {createError && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{createError}</div>}
-            <form onSubmit={handleCreateSale} className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm text-gray-600 mb-1">お客様名</label><input type="text" value={saleForm.customerName} onChange={(e) => setSaleForm({ ...saleForm, customerName: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm" placeholder="ウォークイン" /></div>
-                <div><label className="block text-sm text-gray-600 mb-1">決済方法</label>
-                  <select value={saleForm.paymentMethod} onChange={(e) => setSaleForm({ ...saleForm, paymentMethod: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-white">
-                    {Object.entries(PAYMENT_METHOD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Menu selection */}
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">メニューを選択</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                  {menus.map((menu) => (
-                    <button key={menu.id} type="button" onClick={() => addSaleItem(menu)}
-                      className="text-left p-2 rounded-lg hover:bg-gray-50 border border-gray-100 text-xs">
-                      <p className="font-medium truncate">{menu.name}</p>
-                      <p className="text-gray-500">¥{menu.price.toLocaleString()}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Selected items */}
-              {saleItems.length > 0 && (
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">選択済みメニュー</label>
-                  <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
-                    {saleItems.map((item) => (
-                      <div key={item.menuId} className="p-3 flex items-center gap-3">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{item.menuName}</p>
-                          <p className="text-xs text-gray-500">¥{item.unitPrice.toLocaleString()} x {item.quantity}</p>
-                        </div>
-                        <p className="text-sm font-medium">¥{(item.unitPrice * item.quantity).toLocaleString()}</p>
-                        <button type="button" onClick={() => removeSaleItem(item.menuId)} className="p-1 text-red-400 hover:bg-red-50 rounded"><X className="w-4 h-4" /></button>
-                      </div>
-                    ))}
-                    <div className="p-3 flex justify-between font-medium">
-                      <span>合計</span>
-                      <span className="text-amber-600">¥{saleTotal.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">備考</label>
-                <input type="text" value={saleForm.note} onChange={(e) => setSaleForm({ ...saleForm, note: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm" />
-              </div>
-
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="flex-1 py-3 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">キャンセル</button>
-                <button type="submit" disabled={isSubmitting || saleItems.length === 0} className="flex-1 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50">{isSubmitting ? '作成中...' : '会計を作成'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Delete Dialog */}
       {isDeleteModalOpen && deletingSale && (

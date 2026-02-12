@@ -150,7 +150,11 @@ export default function POSDashboard() {
         </div>
 
         {/* Quick Links */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+          <Link href="/admin/pos/sales/new" className="flex items-center gap-3 p-4 bg-gray-800 text-white rounded-xl shadow-sm hover:bg-gray-700 transition-colors">
+            <div className="p-2 bg-white/10 rounded-lg"><CreditCard className="w-5 h-5" /></div>
+            <div><p className="font-medium text-sm">新規会計</p><p className="text-xs text-gray-300">会計を作成</p></div>
+          </Link>
           <Link href="/admin/pos/sales" className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
             <div className="p-2 bg-green-500/10 rounded-lg"><Receipt className="w-5 h-5 text-green-600" /></div>
             <div><p className="font-medium text-sm">売上一覧</p><p className="text-xs text-gray-500">会計管理</p></div>
