@@ -163,9 +163,9 @@ export default function POSDashboard() {
             <div className="p-2 bg-gray-500/10 rounded-lg"><Settings className="w-5 h-5 text-gray-600" /></div>
             <div><p className="font-medium text-sm">POS設定</p><p className="text-xs text-gray-500">決済・税率</p></div>
           </Link>
-          <Link href="/admin/pos/sales" className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+          <Link href="/admin/pos/reports" className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
             <div className="p-2 bg-blue-500/10 rounded-lg"><TrendingUp className="w-5 h-5 text-blue-600" /></div>
-            <div><p className="font-medium text-sm">新規会計</p><p className="text-xs text-gray-500">会計を作成</p></div>
+            <div><p className="font-medium text-sm">売上分析</p><p className="text-xs text-gray-500">レポート・分析</p></div>
           </Link>
         </div>
 
