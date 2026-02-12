@@ -7,8 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const navItems = [
   { name: 'Menu', href: '/menu', nameJa: 'メニュー' },
   { name: 'Staff', href: '/staff', nameJa: 'スタッフ' },
-  { name: 'Blog', href: '/blog', nameJa: 'ブログ' },
-  { name: 'Reservation', href: '/reservation', nameJa: 'ご予約' },
+  { name: 'News', href: '/blog', nameJa: 'お知らせ' },
   { name: 'Contact', href: '/contact', nameJa: 'お問い合わせ' },
 ];
 

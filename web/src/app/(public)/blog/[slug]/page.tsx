@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Calendar, ArrowLeft, ArrowRight } from 'lucide-react';
 
-const blogPosts = [
+const newsPosts = [
   {
     slug: 'spring-hair-trends-2024',
     title: '2024年春のヘアトレンド',
@@ -81,10 +81,10 @@ const blogPosts = [
   },
 ];
 
-export default function BlogDetailPage() {
+export default function NewsDetailPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const post = blogPosts.find((p) => p.slug === slug);
+  const post = newsPosts.find((p) => p.slug === slug);
 
   if (!post) {
     return (
@@ -93,7 +93,7 @@ export default function BlogDetailPage() {
           <h1 className="text-heading mb-6">記事が見つかりません</h1>
           <Link href="/blog" className="btn-outline">
             <ArrowLeft className="w-4 h-4" />
-            ブログ一覧へ戻る
+            お知らせ一覧へ戻る
           </Link>
         </div>
       </div>
@@ -133,7 +133,7 @@ export default function BlogDetailPage() {
             className="inline-flex items-center gap-2 text-sm text-[var(--color-warm-gray)] hover:text-[var(--color-charcoal)] transition-colors mb-8"
           >
             <ArrowLeft className="w-4 h-4" />
-            ブログ一覧へ戻る
+            お知らせ一覧へ戻る
           </Link>
 
           {/* Meta */}

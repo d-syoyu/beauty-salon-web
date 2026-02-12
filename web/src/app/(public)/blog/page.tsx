@@ -36,7 +36,7 @@ function AnimatedSection({ children, className = '' }: { children: React.ReactNo
   );
 }
 
-const blogPosts = [
+const newsPosts = [
   {
     slug: 'spring-hair-trends-2024',
     title: '2024年春のヘアトレンド',
@@ -71,7 +71,7 @@ const blogPosts = [
   },
 ];
 
-export default function BlogPage() {
+export default function NewsPage() {
   return (
     <div className="min-h-screen bg-[var(--color-cream)] pt-32">
       {/* Hero */}
@@ -82,8 +82,8 @@ export default function BlogPage() {
           transition={{ duration: 0.8 }}
           className="text-center"
         >
-          <p className="text-subheading mb-4">News & Tips</p>
-          <h1 className="text-display mb-6">Blog</h1>
+          <p className="text-subheading mb-4">Information</p>
+          <h1 className="text-display mb-6">News</h1>
           <div className="divider-line mx-auto mb-8" />
           <p className="text-[var(--color-warm-gray)] max-w-lg mx-auto">
             最新のお知らせやヘアケア情報、<br />
@@ -92,11 +92,11 @@ export default function BlogPage() {
         </motion.div>
       </section>
 
-      {/* Blog List */}
+      {/* News List */}
       <AnimatedSection className="pb-32">
         <div className="container-wide">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {blogPosts.map((post) => (
+            {newsPosts.map((post) => (
               <motion.article
                 key={post.slug}
                 variants={fadeInUp}

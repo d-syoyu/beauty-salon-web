@@ -45,7 +45,7 @@ const Footer = () => {
                 { name: 'ホーム', href: '/' },
                 { name: 'メニュー', href: '/menu' },
                 { name: 'スタッフ', href: '/staff' },
-                { name: 'ブログ', href: '/blog' },
+                { name: 'お知らせ', href: '/blog' },
                 { name: 'ご予約', href: '/reservation' },
                 { name: 'お問い合わせ', href: '/contact' },
               ].map((item) => (
