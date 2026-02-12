@@ -24,6 +24,8 @@ import {
   Ticket,
   Receipt,
   CreditCard,
+  Pencil,
+  Percent,
 } from 'lucide-react';
 
 const fadeInUp = {
@@ -110,7 +112,7 @@ type Step = 1 | 2 | 3 | 4;
 const STEPS = [
   { step: 1, label: '会計元・日時', icon: Calendar },
   { step: 2, label: '施術メニュー', icon: MenuIcon },
-  { step: 3, label: 'クーポン', icon: Ticket },
+  { step: 3, label: '割引・クーポン', icon: Ticket },
   { step: 4, label: '支払・確認', icon: Receipt },
 ] as const;
 
@@ -145,6 +147,12 @@ export default function NewSalePage() {
   // Menu selection
   const [selectedMenuIds, setSelectedMenuIds] = useState<string[]>([]);
   const [expandedMenuCategories, setExpandedMenuCategories] = useState<string[]>([]);
+  const [priceOverrides, setPriceOverrides] = useState<Record<string, number>>({}); // menuId -> overridden price
+
+  // Manual discount (現地割引)
+  const [discountType, setDiscountType] = useState<'FIXED' | 'PERCENTAGE'>('FIXED');
+  const [discountValue, setDiscountValue] = useState(0);
+  const [discountNote, setDiscountNote] = useState('');
 
   // Coupons
   const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
@@ -254,28 +262,48 @@ export default function NewSalePage() {
     setCustomerName('');
     setCustomerPhone('');
     setSelectedMenuIds([]);
+    setPriceOverrides({});
+    setDiscountType('FIXED');
+    setDiscountValue(0);
+    setDiscountNote('');
     setAppliedCoupon(null);
     setCouponCode('');
   };
 
+  // Helpers
+  const getEffectivePrice = (menuId: string): number => {
+    if (priceOverrides[menuId] !== undefined) return priceOverrides[menuId];
+    const menu = menus.find(m => m.id === menuId);
+    return menu?.price || 0;
+  };
+
   // Calculations
   const calculateSubtotal = useMemo(() => {
-    return selectedMenuIds.reduce((sum, menuId) => {
-      const menu = menus.find(m => m.id === menuId);
-      return sum + (menu?.price || 0);
-    }, 0);
-  }, [selectedMenuIds, menus]);
+    return selectedMenuIds.reduce((sum, menuId) => sum + getEffectivePrice(menuId), 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMenuIds, menus, priceOverrides]);
 
   const getCouponDiscount = useMemo(() => appliedCoupon?.discountAmount || 0, [appliedCoupon]);
 
+  // 現地割引額の計算（mone-web方式: PERCENTAGE or FIXED）
+  const manualDiscountAmount = useMemo(() => {
+    if (discountValue <= 0) return 0;
+    if (discountType === 'PERCENTAGE') {
+      return Math.floor(calculateSubtotal * discountValue / 100);
+    }
+    return discountValue;
+  }, [discountType, discountValue, calculateSubtotal]);
+
+  const totalDiscount = useMemo(() => getCouponDiscount + manualDiscountAmount, [getCouponDiscount, manualDiscountAmount]);
+
   const calculateTax = useMemo(() => {
-    const taxInclusiveAmount = Math.max(0, calculateSubtotal - getCouponDiscount);
+    const taxInclusiveAmount = Math.max(0, calculateSubtotal - totalDiscount);
     return Math.floor(taxInclusiveAmount * taxRate / (100 + taxRate));
-  }, [calculateSubtotal, getCouponDiscount, taxRate]);
+  }, [calculateSubtotal, totalDiscount, taxRate]);
 
   const calculateTotal = useMemo(() => {
-    return Math.max(0, calculateSubtotal - getCouponDiscount);
-  }, [calculateSubtotal, getCouponDiscount]);
+    return Math.max(0, calculateSubtotal - totalDiscount);
+  }, [calculateSubtotal, totalDiscount]);
 
   const paymentTotal = useMemo(() => payments.reduce((sum, p) => sum + p.amount, 0), [payments]);
 
@@ -373,9 +401,16 @@ export default function NewSalePage() {
         const menu = menus.find(m => m.id === menuId);
         return menu ? {
           itemType: 'MENU' as const, menuId: menu.id, menuName: menu.name,
-          category: menu.category.name, duration: menu.duration, quantity: 1, unitPrice: menu.price,
+          category: menu.category.name, duration: menu.duration, quantity: 1,
+          unitPrice: getEffectivePrice(menuId),
         } : null;
       }).filter(Boolean);
+
+      // 備考に割引理由を追記
+      let fullNote = note || '';
+      if (manualDiscountAmount > 0 && discountNote) {
+        fullNote = fullNote ? `${fullNote}\n割引: ${discountNote}` : `割引: ${discountNote}`;
+      }
 
       const res = await fetch('/api/admin/sales', {
         method: 'POST',
@@ -386,10 +421,10 @@ export default function NewSalePage() {
           customerName: customerName || undefined,
           customerPhone: customerPhone || undefined,
           items, payments,
-          discountAmount: 0,
+          discountAmount: manualDiscountAmount,
           couponId: appliedCoupon?.id,
           couponDiscount: getCouponDiscount,
-          saleDate, saleTime, note: note || undefined,
+          saleDate, saleTime, note: fullNote || undefined,
         }),
       });
       const data = await res.json();
@@ -676,21 +711,49 @@ export default function NewSalePage() {
                         const menu = menus.find(m => m.id === menuId);
                         const reservationItem = selectedReservation?.items.find(item => item.menuId === menuId);
                         const name = menu?.name || reservationItem?.menuName || menuId;
-                        const price = menu?.price || reservationItem?.price || 0;
+                        const originalPrice = menu?.price || reservationItem?.price || 0;
+                        const effectivePrice = getEffectivePrice(menuId);
                         const duration = menu?.duration || reservationItem?.duration || 0;
+                        const isEditing = priceOverrides[menuId] !== undefined;
                         return (
-                          <div key={menuId} className="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-100">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{name}</p>
-                              <p className="text-xs text-gray-500">{duration}分</p>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              <span className="text-[var(--color-gold)] font-medium">{formatPrice(price)}</span>
-                              <button type="button" onClick={() => setSelectedMenuIds(prev => prev.filter(id => id !== menuId))} className="p-1 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                          <div key={menuId} className="p-2 bg-white rounded-lg border border-gray-100">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{name}</p>
+                                <p className="text-xs text-gray-500">{duration}分</p>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                {isEditing ? (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-xs text-gray-400 line-through">{formatPrice(originalPrice)}</span>
+                                    <span className="text-xs">→</span>
+                                    <input type="number" min="0" value={effectivePrice}
+                                      onChange={e => setPriceOverrides(prev => ({ ...prev, [menuId]: parseInt(e.target.value) || 0 }))}
+                                      className="w-20 px-2 py-1 text-sm text-right border border-amber-300 bg-amber-50 rounded" />
+                                    <button type="button" onClick={() => setPriceOverrides(prev => { const n = { ...prev }; delete n[menuId]; return n; })}
+                                      className="p-1 text-amber-500 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[var(--color-gold)] font-medium">{formatPrice(effectivePrice)}</span>
+                                    <button type="button" onClick={() => setPriceOverrides(prev => ({ ...prev, [menuId]: originalPrice }))}
+                                      className="p-1 text-gray-400 hover:text-amber-500" title="価格を変更"><Pencil className="w-3.5 h-3.5" /></button>
+                                  </div>
+                                )}
+                                <button type="button" onClick={() => {
+                                  setSelectedMenuIds(prev => prev.filter(id => id !== menuId));
+                                  setPriceOverrides(prev => { const n = { ...prev }; delete n[menuId]; return n; });
+                                }} className="p-1 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                              </div>
                             </div>
                           </div>
                         );
                       })}
+                    </div>
+                    {/* 小計 */}
+                    <div className="mt-3 pt-3 border-t border-[var(--color-sage)]/20 flex justify-between text-sm">
+                      <span className="text-gray-600">メニュー小計</span>
+                      <span className="font-medium text-[var(--color-gold)]">{formatPrice(calculateSubtotal)}</span>
                     </div>
                   </div>
                 )}
@@ -700,18 +763,67 @@ export default function NewSalePage() {
                     <ArrowLeft className="w-5 h-5" />戻る
                   </button>
                   <button type="button" onClick={goToNextStep} className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 font-medium">
-                    次へ：クーポン<ArrowRight className="w-5 h-5" />
+                    次へ：割引・クーポン<ArrowRight className="w-5 h-5" />
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Step 3: Coupons */}
+            {/* Step 3: Discount & Coupons */}
             {currentStep === 3 && (
               <div className="space-y-6">
+                {/* 現地割引 */}
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+                    <Percent className="w-5 h-5 text-[var(--color-gold)]" />現地割引
+                  </h2>
+                  <p className="text-sm text-gray-500 mb-4">割引がなければスキップしてください</p>
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <button type="button" onClick={() => setDiscountType('FIXED')}
+                        className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                          discountType === 'FIXED' ? 'border-[var(--color-sage)] bg-[var(--color-sage)]/5 text-[var(--color-sage)]' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}>
+                        ¥ 金額指定
+                      </button>
+                      <button type="button" onClick={() => setDiscountType('PERCENTAGE')}
+                        className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                          discountType === 'PERCENTAGE' ? 'border-[var(--color-sage)] bg-[var(--color-sage)]/5 text-[var(--color-sage)]' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}>
+                        % パーセント
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <input type="number" min="0" max={discountType === 'PERCENTAGE' ? 100 : calculateSubtotal}
+                          value={discountValue || ''} onChange={e => {
+                            let v = parseInt(e.target.value) || 0;
+                            if (discountType === 'PERCENTAGE') v = Math.min(100, v);
+                            setDiscountValue(v);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-[var(--color-sage)] pr-10"
+                          placeholder={discountType === 'FIXED' ? '割引額を入力' : '割引率を入力'} />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                          {discountType === 'FIXED' ? '円' : '%'}
+                        </span>
+                      </div>
+                      {discountValue > 0 && (
+                        <button type="button" onClick={() => { setDiscountValue(0); setDiscountNote(''); }}
+                          className="p-2 text-gray-400 hover:text-red-500"><X className="w-5 h-5" /></button>
+                      )}
+                    </div>
+                    {discountValue > 0 && discountType === 'PERCENTAGE' && (
+                      <p className="text-sm text-amber-600">割引額: -{formatPrice(manualDiscountAmount)}</p>
+                    )}
+                    <input type="text" value={discountNote} onChange={e => setDiscountNote(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-[var(--color-sage)] text-sm"
+                      placeholder="割引理由（例: 学割、常連割引、施術不備等）" />
+                  </div>
+                </div>
+
+                {/* クーポン */}
                 <div className="bg-white rounded-xl shadow-sm p-6">
                   <h2 className="text-lg font-medium mb-4 flex items-center gap-2"><Ticket className="w-5 h-5 text-[var(--color-gold)]" />クーポン</h2>
-                  <p className="text-sm text-gray-500 mb-4">クーポンがなければスキップしてください</p>
 
                   {appliedCoupon ? (
                     <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
@@ -770,11 +882,27 @@ export default function NewSalePage() {
                   {couponError && <p className="mt-2 text-sm text-red-600">{couponError}</p>}
                 </div>
 
-                {getCouponDiscount > 0 && (
+                {/* 割引サマリー */}
+                {totalDiscount > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded-xl p-4">
                     <h3 className="text-sm font-medium text-red-700 mb-2">適用中の割引</h3>
-                    <div className="flex justify-between text-sm text-red-600">
-                      <span>クーポン割引</span><span>-{formatPrice(getCouponDiscount)}</span>
+                    <div className="space-y-1">
+                      {manualDiscountAmount > 0 && (
+                        <div className="flex justify-between text-sm text-red-600">
+                          <span>現地割引{discountType === 'PERCENTAGE' ? ` (${discountValue}%)` : ''}{discountNote ? ` - ${discountNote}` : ''}</span>
+                          <span>-{formatPrice(manualDiscountAmount)}</span>
+                        </div>
+                      )}
+                      {getCouponDiscount > 0 && (
+                        <div className="flex justify-between text-sm text-red-600">
+                          <span>クーポン割引</span><span>-{formatPrice(getCouponDiscount)}</span>
+                        </div>
+                      )}
+                      {manualDiscountAmount > 0 && getCouponDiscount > 0 && (
+                        <div className="flex justify-between text-sm text-red-700 font-medium pt-1 border-t border-red-200">
+                          <span>割引合計</span><span>-{formatPrice(totalDiscount)}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -867,10 +995,15 @@ export default function NewSalePage() {
                         {selectedMenuIds.map(menuId => {
                           const menu = menus.find(m => m.id === menuId);
                           if (!menu) return null;
+                          const effective = getEffectivePrice(menuId);
+                          const isOverridden = priceOverrides[menuId] !== undefined && priceOverrides[menuId] !== menu.price;
                           return (
                             <div key={menuId} className="flex justify-between items-center py-1">
                               <span className="text-gray-600">{menu.name}</span>
-                              <span>{formatPrice(menu.price)}</span>
+                              <span className="flex items-center gap-2">
+                                {isOverridden && <span className="text-xs text-gray-400 line-through">{formatPrice(menu.price)}</span>}
+                                <span className={isOverridden ? 'text-amber-600' : ''}>{formatPrice(effective)}</span>
+                              </span>
                             </div>
                           );
                         })}
@@ -882,6 +1015,12 @@ export default function NewSalePage() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600">小計（税込）</span><span>{formatPrice(calculateSubtotal)}</span>
                     </div>
+                    {manualDiscountAmount > 0 && (
+                      <div className="flex items-center justify-between text-sm text-red-600">
+                        <span>現地割引{discountType === 'PERCENTAGE' ? ` (${discountValue}%)` : ''}{discountNote ? ` - ${discountNote}` : ''}</span>
+                        <span>-{formatPrice(manualDiscountAmount)}</span>
+                      </div>
+                    )}
                     {getCouponDiscount > 0 && (
                       <div className="flex items-center justify-between text-sm text-green-600">
                         <span>クーポン割引</span><span>-{formatPrice(getCouponDiscount)}</span>
