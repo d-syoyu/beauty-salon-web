@@ -62,7 +62,7 @@ export default function Home() {
               src="/full.png"
               alt="LUMINA HAIR STUDIO サロン内観"
               fill
-              className="object-cover"
+              className="object-cover object-right md:object-center"
               priority
             />
           </div>
