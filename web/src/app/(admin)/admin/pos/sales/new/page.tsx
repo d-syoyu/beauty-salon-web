@@ -279,6 +279,32 @@ export default function NewSalePage() {
 
   const paymentTotal = useMemo(() => payments.reduce((sum, p) => sum + p.amount, 0), [payments]);
 
+  // Web決済
+  const isWebPaid = selectedReservation?.paymentMethod === 'ONLINE';
+  const webPaidAmount = useMemo(() => {
+    if (!selectedReservation || selectedReservation.paymentMethod !== 'ONLINE') return 0;
+    return Math.max(0, selectedReservation.totalPrice - (selectedReservation.couponDiscount || 0));
+  }, [selectedReservation]);
+
+  // Web決済済み予約: 合計額変動時に支払を自動分割
+  useEffect(() => {
+    if (!isWebPaid || calculateTotal === 0) return;
+    const creditCode = paymentMethods.find(pm => pm.code === 'CREDIT_CARD')?.code || 'CREDIT_CARD';
+    const cashCode = paymentMethods.find(pm => pm.code === 'CASH')?.code || 'CASH';
+    const additionalAmount = calculateTotal - webPaidAmount;
+    if (additionalAmount > 0) {
+      // 合計がWeb決済額を超えている → 2行に分割
+      setPayments([
+        { paymentMethod: creditCode, amount: webPaidAmount },
+        { paymentMethod: cashCode, amount: additionalAmount },
+      ]);
+    } else {
+      // Web決済額以下（メニュー減など）→ Web決済分のみ
+      setPayments([{ paymentMethod: creditCode, amount: calculateTotal }]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calculateTotal, webPaidAmount, isWebPaid]);
+
   // Coupon validation
   const validateCoupon = async (code: string) => {
     if (!code.trim()) { setCouponError('クーポンコードを入力してください'); return; }
@@ -379,8 +405,6 @@ export default function NewSalePage() {
     const date = new Date(dateStr);
     return `${date.getMonth() + 1}/${date.getDate()}`;
   };
-
-  const isWebPaid = selectedReservation?.paymentMethod === 'ONLINE';
 
   const goToNextStep = () => { if (currentStep < 4) setCurrentStep((currentStep + 1) as Step); };
   const goToPrevStep = () => { if (currentStep > 1) setCurrentStep((currentStep - 1) as Step); };
@@ -774,7 +798,15 @@ export default function NewSalePage() {
                     <CreditCard className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium text-blue-800">Web決済済みの予約です</p>
-                      <p className="text-sm text-blue-600 mt-1">オンラインで支払済みのため、支払方法は自動入力されています。必要に応じて変更できます。</p>
+                      <p className="text-sm text-blue-600 mt-1">
+                        オンライン決済額: {formatPrice(webPaidAmount)}
+                        {calculateTotal > webPaidAmount && (
+                          <span className="ml-2 text-amber-600">・追加分 {formatPrice(calculateTotal - webPaidAmount)} は別途お支払いが必要です</span>
+                        )}
+                        {calculateTotal < webPaidAmount && (
+                          <span className="ml-2">・メニュー変更により減額（差額は要返金対応）</span>
+                        )}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -782,21 +814,32 @@ export default function NewSalePage() {
                   <h2 className="text-lg font-medium mb-4 flex items-center gap-2"><Receipt className="w-5 h-5 text-[var(--color-gold)]" />支払方法</h2>
                   <div className="space-y-3">
                     {payments.map((payment, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <select value={payment.paymentMethod}
-                          onChange={e => { const np = [...payments]; np[index].paymentMethod = e.target.value; setPayments(np); }}
-                          className="flex-1 min-w-0 px-2 sm:px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm sm:text-base">
-                          {paymentMethods.map(method => <option key={method.code} value={method.code}>{method.displayName}</option>)}
-                        </select>
-                        <input type="number" min="0" value={payment.amount}
-                          onChange={e => { const np = [...payments]; np[index].amount = parseInt(e.target.value) || 0; setPayments(np); }}
-                          className="w-20 sm:w-28 px-2 sm:px-3 py-2 border border-gray-200 rounded-lg bg-white text-right text-sm sm:text-base" placeholder="0" />
-                        <button type="button" onClick={() => handleSetFullAmount(index)}
-                          className="px-2 py-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg whitespace-nowrap flex-shrink-0">全額</button>
-                        {payments.length > 1 && (
-                          <button type="button" onClick={() => handleRemovePayment(index)}
-                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg flex-shrink-0"><Trash2 className="w-4 h-4" /></button>
+                      <div key={index}>
+                        {isWebPaid && payments.length > 1 && (
+                          <p className={`text-xs font-medium mb-1 ${index === 0 ? 'text-blue-600' : 'text-amber-600'}`}>
+                            {index === 0 ? 'Web決済分' : '追加分（現地支払）'}
+                          </p>
                         )}
+                        <div className="flex items-center gap-2">
+                          <select value={payment.paymentMethod}
+                            onChange={e => { const np = [...payments]; np[index].paymentMethod = e.target.value; setPayments(np); }}
+                            className={`flex-1 min-w-0 px-2 sm:px-3 py-2 border rounded-lg text-sm sm:text-base ${
+                              isWebPaid && index === 0 ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-white'
+                            }`}>
+                            {paymentMethods.map(method => <option key={method.code} value={method.code}>{method.displayName}</option>)}
+                          </select>
+                          <input type="number" min="0" value={payment.amount}
+                            onChange={e => { const np = [...payments]; np[index].amount = parseInt(e.target.value) || 0; setPayments(np); }}
+                            className={`w-20 sm:w-28 px-2 sm:px-3 py-2 border rounded-lg text-right text-sm sm:text-base ${
+                              isWebPaid && index === 0 ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-white'
+                            }`} placeholder="0" />
+                          <button type="button" onClick={() => handleSetFullAmount(index)}
+                            className="px-2 py-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg whitespace-nowrap flex-shrink-0">全額</button>
+                          {payments.length > 1 && (
+                            <button type="button" onClick={() => handleRemovePayment(index)}
+                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg flex-shrink-0"><Trash2 className="w-4 h-4" /></button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -853,6 +896,16 @@ export default function NewSalePage() {
                       </div>
                     </div>
                     <div className="border-t border-gray-200 pt-3">
+                      {isWebPaid && payments.length > 1 && (
+                        <div className="space-y-1 mb-2">
+                          <div className="flex items-center justify-between text-sm text-blue-600">
+                            <span>Web決済分</span><span>{formatPrice(payments[0]?.amount || 0)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm text-amber-600">
+                            <span>追加分（現地支払）</span><span>{formatPrice(payments.slice(1).reduce((s, p) => s + p.amount, 0))}</span>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600">支払合計</span>
                         <span className={paymentTotal === calculateTotal ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>{formatPrice(paymentTotal)}</span>
