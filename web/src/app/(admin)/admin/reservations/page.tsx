@@ -15,7 +15,7 @@ import {
   X,
   Check,
 } from 'lucide-react';
-import { CATEGORY_COLORS } from '@/constants/menu';
+import { CATEGORY_COLORS, getCategoryTextColor } from '@/constants/menu';
 
 interface ReservationItem {
   id: string;
@@ -90,7 +90,7 @@ const getToday = () => {
 const TIMELINE_START_HOUR = 9;
 const TIMELINE_END_HOUR = 20;
 const TIMELINE_HOURS = TIMELINE_END_HOUR - TIMELINE_START_HOUR; // 11 hours
-const HOUR_HEIGHT = 64; // px per hour
+const TIMELINE_TOTAL_MIN = TIMELINE_HOURS * 60; // 660 minutes
 
 const timeToMinutes = (time: string): number => {
   const [h, m] = time.split(':').map(Number);
@@ -359,132 +359,155 @@ function AdminReservationsContent() {
               </div>
             )}
 
-            {/* Timeline */}
+            {/* Horizontal Timeline */}
             {selectedDate && !isLoading && reservations.filter((r) => r.status !== 'CANCELLED').length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm p-4 mb-4 overflow-x-auto">
-                <div className="relative ml-12" style={{ height: `${TIMELINE_HOURS * HOUR_HEIGHT + 1}px`, minWidth: '200px' }}>
-                  {/* Hour grid lines */}
-                  {Array.from({ length: TIMELINE_HOURS + 1 }, (_, i) => (
-                    <div key={i} className="absolute w-full" style={{ top: `${i * HOUR_HEIGHT}px` }}>
-                      <span
-                        className="absolute text-xs text-gray-400 select-none"
-                        style={{ left: '-3rem', top: '-0.5rem' }}
-                      >
-                        {TIMELINE_START_HOUR + i}:00
-                      </span>
-                      <div className="w-full border-t border-gray-100" />
-                    </div>
-                  ))}
-
-                  {/* Half-hour dotted lines */}
-                  {Array.from({ length: TIMELINE_HOURS }, (_, i) => (
-                    <div
-                      key={`half-${i}`}
-                      className="absolute w-full border-t border-dashed border-gray-50"
-                      style={{ top: `${i * HOUR_HEIGHT + HOUR_HEIGHT / 2}px` }}
-                    />
-                  ))}
-
-                  {/* Current time indicator */}
-                  {selectedDate.toDateString() === new Date().toDateString() && (() => {
-                    const now = new Date();
-                    const nowMin = now.getHours() * 60 + now.getMinutes();
-                    const startMin = TIMELINE_START_HOUR * 60;
-                    const endMin = TIMELINE_END_HOUR * 60;
-                    if (nowMin >= startMin && nowMin <= endMin) {
-                      const top = ((nowMin - startMin) / 60) * HOUR_HEIGHT;
+              <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 mb-4">
+                <div className="px-2 lg:px-4">
+                  {/* Time labels */}
+                  <div className="relative h-7 mb-2">
+                    {Array.from({ length: TIMELINE_HOURS + 1 }, (_, i) => {
+                      const left = (i / TIMELINE_HOURS) * 100;
+                      const translateClass = i === 0
+                        ? 'translate-x-0'
+                        : i === TIMELINE_HOURS
+                          ? '-translate-x-full'
+                          : '-translate-x-1/2';
                       return (
-                        <div className="absolute w-full z-20" style={{ top: `${top}px` }}>
-                          <div className="w-2 h-2 rounded-full bg-red-500 absolute -left-1 -top-1" />
-                          <div className="w-full border-t-2 border-red-500" />
+                        <div
+                          key={i}
+                          className={`absolute text-xs text-gray-400 ${translateClass}`}
+                          style={{ left: `${left}%` }}
+                        >
+                          {TIMELINE_START_HOUR + i}:00
                         </div>
                       );
-                    }
-                    return null;
-                  })()}
+                    })}
+                  </div>
 
-                  {/* Reservation blocks */}
+                  {/* Timeline bar */}
                   {(() => {
                     const active = reservations.filter((r) => r.status !== 'CANCELLED');
-                    // Compute columns for overlapping reservations
-                    const columns: { reservation: Reservation; col: number; totalCols: number }[] = [];
+                    // Compute rows for overlapping reservations
+                    const rows: { reservation: Reservation; row: number }[] = [];
                     const sorted = [...active].sort((a, b) => a.startTime.localeCompare(b.startTime));
 
                     for (const r of sorted) {
                       const rStart = timeToMinutes(r.startTime);
                       const rEnd = timeToMinutes(r.endTime);
-                      // Find overlapping entries already placed
-                      const overlapping = columns.filter((c) => {
-                        const cStart = timeToMinutes(c.reservation.startTime);
-                        const cEnd = timeToMinutes(c.reservation.endTime);
-                        return rStart < cEnd && rEnd > cStart;
-                      });
-                      const usedCols = new Set(overlapping.map((c) => c.col));
-                      let col = 0;
-                      while (usedCols.has(col)) col++;
-                      columns.push({ reservation: r, col, totalCols: 0 });
-                    }
-
-                    // Calculate totalCols for each group
-                    for (const entry of columns) {
-                      const rStart = timeToMinutes(entry.reservation.startTime);
-                      const rEnd = timeToMinutes(entry.reservation.endTime);
-                      const groupCols = columns.filter((c) => {
-                        const cStart = timeToMinutes(c.reservation.startTime);
-                        const cEnd = timeToMinutes(c.reservation.endTime);
-                        return rStart < cEnd && rEnd > cStart;
-                      });
-                      const maxCol = Math.max(...groupCols.map((c) => c.col)) + 1;
-                      for (const g of groupCols) {
-                        g.totalCols = Math.max(g.totalCols, maxCol);
+                      // Find a row where this doesn't overlap
+                      let row = 0;
+                      while (true) {
+                        const rowEntries = rows.filter((e) => e.row === row);
+                        const hasOverlap = rowEntries.some((e) => {
+                          const eStart = timeToMinutes(e.reservation.startTime);
+                          const eEnd = timeToMinutes(e.reservation.endTime);
+                          return rStart < eEnd && rEnd > eStart;
+                        });
+                        if (!hasOverlap) break;
+                        row++;
                       }
+                      rows.push({ reservation: r, row });
                     }
 
-                    return columns.map(({ reservation: r, col, totalCols }) => {
-                      const startMin = timeToMinutes(r.startTime) - TIMELINE_START_HOUR * 60;
-                      const endMin = timeToMinutes(r.endTime) - TIMELINE_START_HOUR * 60;
-                      const top = (startMin / 60) * HOUR_HEIGHT;
-                      const height = Math.max(((endMin - startMin) / 60) * HOUR_HEIGHT, 20);
-                      const widthPct = 100 / totalCols;
-                      const leftPct = col * widthPct;
-                      const primaryCategory = r.items[0]?.category || '';
-                      const color = CATEGORY_COLORS[primaryCategory] || '#6B8E6B';
-                      const isFaded = r.status === 'NO_SHOW';
+                    const maxRow = rows.length > 0 ? Math.max(...rows.map((r) => r.row)) : 0;
+                    const ROW_HEIGHT = 44; // px per row
+                    const barHeight = (maxRow + 1) * ROW_HEIGHT + 8;
 
-                      return (
-                        <div
-                          key={r.id}
-                          className={`absolute rounded-md overflow-hidden cursor-default transition-opacity ${
-                            isFaded ? 'opacity-40' : ''
-                          }`}
-                          style={{
-                            top: `${top}px`,
-                            height: `${height}px`,
-                            left: `calc(${leftPct}% + 2px)`,
-                            width: `calc(${widthPct}% - 4px)`,
-                            backgroundColor: `${color}18`,
-                            borderLeft: `3px solid ${color}`,
-                          }}
-                          title={`${r.startTime}-${r.endTime} ${r.user.name || ''} ${r.menuSummary}`}
-                        >
-                          <div className="px-2 py-1 h-full flex flex-col justify-start">
-                            <p className="text-[11px] font-medium text-gray-800 leading-tight truncate">
-                              {r.user.name || '名前未登録'}
-                            </p>
-                            {height >= 36 && (
-                              <p className="text-[10px] text-gray-500 leading-tight truncate mt-0.5">
-                                {r.menuSummary}
-                              </p>
-                            )}
-                            {height >= 52 && (
-                              <p className="text-[10px] text-gray-400 leading-tight mt-0.5">
-                                {r.startTime}〜{r.endTime}
-                              </p>
-                            )}
-                          </div>
+                    return (
+                      <div className="relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: `${barHeight}px` }}>
+                        {/* Grid lines */}
+                        <div className="absolute inset-0">
+                          {Array.from({ length: TIMELINE_HOURS * 3 + 1 }, (_, i) => {
+                            const isHourLine = i % 3 === 0;
+                            const left = (i / (TIMELINE_HOURS * 3)) * 100;
+                            return (
+                              <div
+                                key={i}
+                                className={`absolute top-0 bottom-0 ${
+                                  isHourLine ? 'border-l border-gray-300' : 'border-l border-gray-200/60'
+                                }`}
+                                style={{ left: `${left}%` }}
+                              />
+                            );
+                          })}
                         </div>
-                      );
-                    });
+
+                        {/* Current time indicator */}
+                        {selectedDate.toDateString() === new Date().toDateString() && (() => {
+                          const now = new Date();
+                          const nowMin = now.getHours() * 60 + now.getMinutes();
+                          const startMin = TIMELINE_START_HOUR * 60;
+                          const endMin = TIMELINE_END_HOUR * 60;
+                          if (nowMin >= startMin && nowMin <= endMin) {
+                            const left = ((nowMin - startMin) / TIMELINE_TOTAL_MIN) * 100;
+                            return (
+                              <div className="absolute top-0 bottom-0 z-20" style={{ left: `${left}%` }}>
+                                <div className="w-2 h-2 rounded-full bg-red-500 absolute -left-1 -top-0.5" />
+                                <div className="h-full border-l-2 border-red-500" />
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+
+                        {/* Reservation blocks */}
+                        {rows.map(({ reservation: r, row }) => {
+                          const startMin = timeToMinutes(r.startTime) - TIMELINE_START_HOUR * 60;
+                          const endMin = timeToMinutes(r.endTime) - TIMELINE_START_HOUR * 60;
+                          const left = (startMin / TIMELINE_TOTAL_MIN) * 100;
+                          const width = ((endMin - startMin) / TIMELINE_TOTAL_MIN) * 100;
+                          const top = row * ROW_HEIGHT + 4;
+                          const isFaded = r.status === 'NO_SHOW';
+
+                          return (
+                            <div
+                              key={r.id}
+                              className={`absolute flex rounded-md overflow-hidden shadow-sm hover:shadow-md transition-all cursor-default ${
+                                isFaded ? 'opacity-40' : ''
+                              } ${highlightId === r.id ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
+                              style={{
+                                left: `${left}%`,
+                                width: `${Math.max(width, 3)}%`,
+                                top: `${top}px`,
+                                height: `${ROW_HEIGHT - 6}px`,
+                              }}
+                              title={`${r.startTime}〜${r.endTime} ${r.menuSummary} - ${r.user.name || '名前未登録'}`}
+                            >
+                              {r.items.length > 0 ? (
+                                r.items.map((item, idx) => {
+                                  const segmentWidth = (item.duration / r.totalDuration) * 100;
+                                  return (
+                                    <div
+                                      key={item.id}
+                                      className={`h-full flex items-center justify-center ${idx === 0 ? 'rounded-l-md' : ''} ${idx === r.items.length - 1 ? 'rounded-r-md' : ''}`}
+                                      style={{
+                                        backgroundColor: CATEGORY_COLORS[item.category] || '#888',
+                                        width: `${segmentWidth}%`,
+                                      }}
+                                    >
+                                      {segmentWidth > 25 && (
+                                        <span
+                                          className="text-[10px] font-medium truncate px-1"
+                                          style={{ color: getCategoryTextColor(item.category) }}
+                                        >
+                                          {item.menuName.split('（')[0]}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })
+                              ) : (
+                                <div className="h-full w-full bg-blue-500 flex items-center px-2">
+                                  <span className="text-white text-[10px] font-medium truncate">
+                                    {r.menuSummary}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
                   })()}
                 </div>
               </div>
