@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Zen_Kaku_Gothic_New } from "next/font/google";
 import "./globals.css";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
+import SessionProvider from "../components/providers/session-provider";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -32,11 +31,9 @@ export default function RootLayout({
   return (
     <html lang="ja" className={`scroll-smooth ${cormorant.variable} ${zenKaku.variable}`}>
       <body className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow">
+        <SessionProvider>
           {children}
-        </main>
-        <Footer />
+        </SessionProvider>
       </body>
     </html>
   );

@@ -112,7 +112,7 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 1.4 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Link href="/contact" className="btn-primary">
+            <Link href="/reservation" className="btn-primary">
               ご予約はこちら
               <ArrowRight className="w-4 h-4" />
             </Link>
@@ -420,7 +420,7 @@ export default function Home() {
                   href="/contact"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[var(--color-charcoal)] text-sm tracking-[0.2em] uppercase transition-all duration-500 hover:bg-[var(--color-sage)] hover:text-white"
                 >
-                  ご予約・お問い合わせ
+                  お問い合わせ・ご予約
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </motion.div>
@@ -475,7 +475,7 @@ export default function Home() {
             お電話またはオンラインフォームよりご予約ください。
           </motion.p>
           <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/contact" className="btn-primary">
+            <Link href="/reservation" className="btn-primary">
               オンライン予約
               <ArrowRight className="w-4 h-4" />
             </Link>

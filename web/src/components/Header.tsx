@@ -8,7 +8,8 @@ const navItems = [
   { name: 'Menu', href: '/menu', nameJa: 'メニュー' },
   { name: 'Staff', href: '/staff', nameJa: 'スタッフ' },
   { name: 'Blog', href: '/blog', nameJa: 'ブログ' },
-  { name: 'Contact', href: '/contact', nameJa: 'ご予約' },
+  { name: 'Reservation', href: '/reservation', nameJa: 'ご予約' },
+  { name: 'Contact', href: '/contact', nameJa: 'お問い合わせ' },
 ];
 
 const Header = () => {
@@ -79,7 +80,7 @@ const Header = () => {
               ))}
               <li>
                 <Link
-                  href="/contact"
+                  href="/reservation"
                   className="ml-4 px-6 py-3 bg-[var(--color-charcoal)] text-white text-xs tracking-[0.15em] uppercase transition-all duration-300 hover:bg-[var(--color-sage-dark)]"
                 >
                   予約する

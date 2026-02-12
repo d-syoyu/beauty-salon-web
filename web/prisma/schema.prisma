@@ -1,0 +1,368 @@
+// prisma/schema.prisma
+// LUMINA HAIR STUDIO - Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================
+// 認証関連（NextAuth.js）
+// ============================================
+
+model User {
+  id               String    @id @default(cuid())
+  name             String?
+  email            String?   @unique
+  emailVerified    DateTime?
+  image            String?
+  phone            String?
+  password         String?
+  role             String    @default("CUSTOMER") // CUSTOMER | ADMIN
+  newsletterOptOut Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  reservations  Reservation[]
+  sales         Sale[]
+  createdSales  Sale[]   @relation("CreatedSales")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// 予約関連
+// ============================================
+
+model Reservation {
+  id            String   @id @default(cuid())
+  userId        String
+  couponId      String?
+  couponCode    String?
+  couponDiscount Int      @default(0)
+
+  totalPrice    Int
+  totalDuration Int
+  menuSummary   String
+
+  date          DateTime
+  startTime     String
+  endTime       String
+  status        String   @default("CONFIRMED") // CONFIRMED | CANCELLED | COMPLETED | NO_SHOW
+  paymentMethod        String   @default("ONSITE") // ONLINE | ONSITE
+  stripePaymentIntentId String?
+  note          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coupon        Coupon?  @relation(fields: [couponId], references: [id])
+  items         ReservationItem[]
+  sale          Sale?
+
+  @@index([date])
+  @@index([userId])
+  @@index([status])
+  @@index([date, status])
+  @@index([couponId])
+}
+
+model ReservationItem {
+  id            String @id @default(cuid())
+  reservationId String
+  menuId        String
+  menuName      String
+  category      String
+  price         Int
+  duration      Int
+  orderIndex    Int
+
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@index([reservationId])
+  @@unique([reservationId, orderIndex])
+}
+
+// ============================================
+// カテゴリー
+// ============================================
+
+model Category {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  nameEn       String
+  color        String
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  menus Menu[]
+
+  @@index([isActive])
+}
+
+// ============================================
+// メニュー
+// ============================================
+
+model Menu {
+  id              String   @id @default(cuid())
+  name            String
+  categoryId      String
+  price           Int
+  priceVariable   Boolean  @default(false)
+  duration        Int
+  lastBookingTime String
+  displayOrder    Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@index([categoryId])
+  @@index([isActive])
+}
+
+// ============================================
+// 不定休（臨時休業日・時間帯休業）
+// ============================================
+
+model Holiday {
+  id        String   @id @default(cuid())
+  date      DateTime
+  startTime String?
+  endTime   String?
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@unique([date, startTime, endTime])
+  @@index([date])
+}
+
+// ============================================
+// 臨時営業日（定休日でも営業する日）
+// ============================================
+
+model SpecialOpenDay {
+  id        String   @id @default(cuid())
+  date      DateTime
+  startTime String?  // "10:00" 形式（nullなら終日営業）
+  endTime   String?  // "18:00" 形式（nullなら終日営業）
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@unique([date, startTime, endTime])
+  @@index([date])
+}
+
+// ============================================
+// 売上・会計関連（POS）
+// ============================================
+
+model Sale {
+  id              String   @id @default(cuid())
+  saleNumber      String   @unique
+
+  userId          String?
+  customerName    String?
+  customerPhone   String?
+
+  reservationId   String?  @unique
+
+  subtotal        Int
+  taxAmount       Int
+  taxRate         Int
+  discountAmount  Int      @default(0)
+  couponId        String?
+  couponDiscount  Int      @default(0)
+  totalAmount     Int
+
+  paymentMethod   String
+  paymentStatus   String   @default("PENDING") // PENDING | PAID | REFUNDED | CANCELLED
+
+  saleDate        DateTime
+  saleTime        String
+
+  note            String?
+
+  createdBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  reservation     Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  coupon          Coupon?      @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  items           SaleItem[]
+  payments        Payment[]
+  createdByUser   User?        @relation("CreatedSales", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([saleDate])
+  @@index([userId])
+  @@index([reservationId])
+  @@index([couponId])
+  @@index([paymentMethod])
+  @@index([createdAt])
+}
+
+model SaleItem {
+  id          String @id @default(cuid())
+  saleId      String
+
+  itemType    String // MENU | PRODUCT
+
+  menuId      String?
+  menuName    String?
+  categoryId  String?
+  category    String?
+  duration    Int?
+
+  productId   String?
+  productName String?
+
+  quantity    Int    @default(1)
+  unitPrice   Int
+  subtotal    Int
+  orderIndex  Int
+
+  sale        Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@index([categoryId])
+  @@unique([saleId, orderIndex])
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  saleId        String
+
+  paymentMethod String
+  amount        Int
+  orderIndex    Int
+
+  note          String?
+  createdAt     DateTime @default(now())
+
+  sale          Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@unique([saleId, orderIndex])
+}
+
+// ============================================
+// クーポン
+// ============================================
+
+model Coupon {
+  id                    String   @id @default(cuid())
+  code                  String   @unique
+  name                  String
+  type                  String   // PERCENTAGE | FIXED
+  value                 Int
+  description           String?
+
+  // 適用条件（SQLiteはJSON文字列で保存）
+  applicableMenuIds     String   @default("[]")
+  applicableCategoryIds String   @default("[]")
+  applicableWeekdays    String   @default("[]")
+  startTime             String?
+  endTime               String?
+  onlyFirstTime         Boolean  @default(false)
+  onlyReturning         Boolean  @default(false)
+
+  validFrom             DateTime
+  validUntil            DateTime
+
+  usageLimit            Int?
+  usageLimitPerCustomer Int?
+  usageCount            Int      @default(0)
+
+  minimumAmount         Int?
+
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  usages                CouponUsage[]
+  sales                 Sale[]
+  reservations          Reservation[]
+
+  @@index([code])
+  @@index([isActive])
+}
+
+model CouponUsage {
+  id          String   @id @default(cuid())
+  couponId    String
+  saleId      String?  @unique
+  customerId  String?
+  usedAt      DateTime @default(now())
+
+  coupon      Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@index([couponId])
+  @@index([customerId])
+}
+
+// ============================================
+// システム設定
+// ============================================
+
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentMethodSetting {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  displayName  String
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([code])
+}

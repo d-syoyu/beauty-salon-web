@@ -46,7 +46,8 @@ const Footer = () => {
                 { name: 'メニュー', href: '/menu' },
                 { name: 'スタッフ', href: '/staff' },
                 { name: 'ブログ', href: '/blog' },
-                { name: 'ご予約・お問い合わせ', href: '/contact' },
+                { name: 'ご予約', href: '/reservation' },
+                { name: 'お問い合わせ', href: '/contact' },
               ].map((item) => (
                 <li key={item.name}>
                   <Link
@@ -120,7 +121,7 @@ const Footer = () => {
               <div className="text-sm text-gray-400 space-y-1">
                 <p>平日 10:00 - 20:00</p>
                 <p>土日祝 9:00 - 19:00</p>
-                <p className="text-gray-500">定休日: 毎週火曜日</p>
+                <p className="text-gray-500">定休日: 毎週月曜日</p>
               </div>
             </div>
           </div>

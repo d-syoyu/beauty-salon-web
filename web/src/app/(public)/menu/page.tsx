@@ -255,7 +255,7 @@ export default function MenuPage() {
             <p>初回のお客様には丁寧なカウンセリングを行うため、<br className="hidden md:inline" />お時間に余裕を持ってお越しください。</p>
             <p>メニューの組み合わせにより、セット割引もございます。</p>
           </div>
-          <Link href="/contact" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[var(--color-charcoal)] text-sm tracking-[0.2em] uppercase transition-all duration-500 hover:bg-[var(--color-sage)] hover:text-white">
+          <Link href="/reservation" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[var(--color-charcoal)] text-sm tracking-[0.2em] uppercase transition-all duration-500 hover:bg-[var(--color-sage)] hover:text-white">
             ご予約はこちら
             <ArrowRight className="w-4 h-4" />
           </Link>
