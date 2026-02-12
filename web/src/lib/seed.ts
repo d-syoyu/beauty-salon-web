@@ -321,6 +321,8 @@ export async function seedDatabase(prisma: PrismaClient) {
       const endMinutes = startHour * 60 + menu.duration;
       const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
 
+      // 一部の予約をWeb決済済み（ONLINE）にする
+      const isOnlinePayment = i === 0 && dayOffset % 2 === 0;
       const assignedStaffId = staffIds[i % staffIds.length];
       const assignedStaff = staffMembers.find(s => s.id === assignedStaffId)!;
       const reservation = await prisma.reservation.create({
@@ -333,6 +335,8 @@ export async function seedDatabase(prisma: PrismaClient) {
           startTime,
           endTime,
           status: "CONFIRMED",
+          paymentMethod: isOnlinePayment ? "ONLINE" : "ONSITE",
+          stripePaymentIntentId: isOnlinePayment ? `pi_demo_${dateStr}_${i}` : null,
           staffId: assignedStaffId,
           staffName: assignedStaff.name,
         },

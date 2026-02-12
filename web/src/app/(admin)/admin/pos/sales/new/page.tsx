@@ -23,6 +23,7 @@ import {
   Check,
   Ticket,
   Receipt,
+  CreditCard,
 } from 'lucide-react';
 
 const fadeInUp = {
@@ -67,6 +68,7 @@ interface Reservation {
   couponId: string | null;
   couponCode: string | null;
   couponDiscount: number;
+  paymentMethod: string; // ONLINE | ONSITE
   user: { id: string; name: string | null; phone: string | null; email: string | null };
   items: { id: string; menuId: string; menuName: string; category: string; price: number; duration: number }[];
 }
@@ -235,6 +237,15 @@ export default function NewSalePage() {
         message: `¥${reservation.couponDiscount.toLocaleString()}割引（予約時適用）`,
       });
     }
+    // Web決済済みの場合、支払方法を自動設定
+    if (reservation.paymentMethod === 'ONLINE') {
+      const totalAfterCoupon = Math.max(0, reservation.totalPrice - (reservation.couponDiscount || 0));
+      const creditMethod = paymentMethods.find(pm => pm.code === 'CREDIT_CARD');
+      setPayments([{
+        paymentMethod: creditMethod?.code || 'CREDIT_CARD',
+        amount: totalAfterCoupon,
+      }]);
+    }
   };
 
   const clearReservation = () => {
@@ -369,6 +380,8 @@ export default function NewSalePage() {
     return `${date.getMonth() + 1}/${date.getDate()}`;
   };
 
+  const isWebPaid = selectedReservation?.paymentMethod === 'ONLINE';
+
   const goToNextStep = () => { if (currentStep < 4) setCurrentStep((currentStep + 1) as Step); };
   const goToPrevStep = () => { if (currentStep > 1) setCurrentStep((currentStep - 1) as Step); };
 
@@ -469,14 +482,24 @@ export default function NewSalePage() {
                   {sourceType === 'reservation' && (
                     <div className="space-y-3">
                       {selectedReservation ? (
-                        <div className="p-4 border border-[var(--color-sage)] bg-[var(--color-sage)]/5 rounded-lg">
+                        <div className={`p-4 border rounded-lg ${selectedReservation.paymentMethod === 'ONLINE' ? 'border-blue-400 bg-blue-50' : 'border-[var(--color-sage)] bg-[var(--color-sage)]/5'}`}>
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="font-medium">{selectedReservation.user.name || '名前未登録'}</p>
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-medium">{selectedReservation.user.name || '名前未登録'}</p>
+                                {selectedReservation.paymentMethod === 'ONLINE' && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                                    <CreditCard className="w-3 h-3" />Web決済済み
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-sm text-gray-600">{formatReservationDate(selectedReservation.date)} {selectedReservation.startTime}〜{selectedReservation.endTime}</p>
                               <p className="text-sm text-gray-500">{selectedReservation.menuSummary}</p>
                               {selectedReservation.couponCode && (
                                 <p className="text-sm text-green-600 mt-1"><Ticket className="w-3 h-3 inline mr-1" />クーポン: {selectedReservation.couponCode}</p>
+                              )}
+                              {selectedReservation.paymentMethod === 'ONLINE' && (
+                                <p className="text-sm text-blue-600 mt-1">オンラインで支払済み（{formatPrice(selectedReservation.totalPrice - (selectedReservation.couponDiscount || 0))}）</p>
                               )}
                             </div>
                             <button type="button" onClick={clearReservation} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
@@ -488,10 +511,19 @@ export default function NewSalePage() {
                             <p className="text-center text-gray-500 py-4">予約がありません</p>
                           ) : reservations.map(reservation => (
                             <button key={reservation.id} type="button" onClick={() => selectReservation(reservation)}
-                              className="w-full p-3 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 text-left transition-colors">
+                              className={`w-full p-3 border rounded-lg hover:border-gray-300 hover:bg-gray-50 text-left transition-colors ${
+                                reservation.paymentMethod === 'ONLINE' ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200'
+                              }`}>
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <p className="font-medium">{reservation.user.name || '名前未登録'}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium">{reservation.user.name || '名前未登録'}</p>
+                                    {reservation.paymentMethod === 'ONLINE' && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 rounded">
+                                        <CreditCard className="w-2.5 h-2.5" />Web済
+                                      </span>
+                                    )}
+                                  </div>
                                   <p className="text-sm text-gray-600">{formatReservationDate(reservation.date)} {reservation.startTime}〜</p>
                                 </div>
                                 <div className="text-right">
@@ -737,6 +769,15 @@ export default function NewSalePage() {
             {/* Step 4: Payment & Confirmation */}
             {currentStep === 4 && (
               <div className="space-y-6">
+                {isWebPaid && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
+                    <CreditCard className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-blue-800">Web決済済みの予約です</p>
+                      <p className="text-sm text-blue-600 mt-1">オンラインで支払済みのため、支払方法は自動入力されています。必要に応じて変更できます。</p>
+                    </div>
+                  </div>
+                )}
                 <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
                   <h2 className="text-lg font-medium mb-4 flex items-center gap-2"><Receipt className="w-5 h-5 text-[var(--color-gold)]" />支払方法</h2>
                   <div className="space-y-3">
@@ -767,7 +808,14 @@ export default function NewSalePage() {
 
                 {/* Summary */}
                 <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h2 className="text-lg font-medium mb-4">会計サマリー</h2>
+                  <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+                    会計サマリー
+                    {isWebPaid && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                        <CreditCard className="w-3 h-3" />Web決済済み
+                      </span>
+                    )}
+                  </h2>
 
                   {selectedMenuIds.length > 0 && (
                     <div className="mb-4 pb-4 border-b border-gray-200">
