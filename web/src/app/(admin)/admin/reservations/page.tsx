@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   X,
   Check,
+  CreditCard,
 } from 'lucide-react';
 import { CATEGORY_COLORS, getCategoryTextColor } from '@/constants/menu';
 
@@ -264,9 +265,9 @@ function AdminReservationsContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Link href="/admin" className="p-2 rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </Link>
@@ -276,68 +277,82 @@ function AdminReservationsContent() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Calendar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm p-4">
-              <div className="flex items-center justify-between mb-4">
-                <button
-                  onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <span className="font-medium">
-                  {currentMonth.getFullYear()}年{currentMonth.getMonth() + 1}月
+              {/* Mobile: collapsible toggle */}
+              <button
+                onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                className="lg:hidden w-full flex items-center justify-between mb-2"
+              >
+                <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  {selectedDate ? formatDate(selectedDate) : 'すべての日付'}
                 </span>
-                <button
-                  onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
+                <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${isCalendarOpen ? 'rotate-90' : ''}`} />
+              </button>
 
-              <div className="grid grid-cols-7 gap-1 text-center mb-2">
-                {WEEKDAYS.map((day) => (
-                  <div key={day} className="text-xs text-gray-500 py-1">{day}</div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-7 gap-1">
-                {generateCalendarDays().map((date, i) => (
+              <div className={`${isCalendarOpen ? 'block' : 'hidden'} lg:block`}>
+                <div className="flex items-center justify-between mb-4">
                   <button
-                    key={i}
-                    onClick={() => date && setSelectedDate(date)}
-                    disabled={!date}
-                    className={`aspect-square flex items-center justify-center text-sm rounded-lg transition-colors ${
-                      !date
-                        ? ''
-                        : isSelected(date)
-                          ? 'bg-gray-800 text-white'
-                          : isToday(date)
-                            ? 'bg-blue-50 text-blue-600 font-medium'
-                            : 'hover:bg-gray-100'
-                    }`}
+                    onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    {date?.getDate()}
+                    <ChevronLeft className="w-5 h-5" />
                   </button>
-                ))}
-              </div>
+                  <span className="font-medium">
+                    {currentMonth.getFullYear()}年{currentMonth.getMonth() + 1}月
+                  </span>
+                  <button
+                    onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
 
-              <div className="mt-4 flex gap-2">
-                <button
-                  onClick={() => setSelectedDate(getToday())}
-                  className="flex-1 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  今日
-                </button>
-                <button
-                  onClick={() => setSelectedDate(null)}
-                  className="flex-1 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  全日付
-                </button>
+                <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                  {WEEKDAYS.map((day) => (
+                    <div key={day} className="text-xs text-gray-500 py-1">{day}</div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-1">
+                  {generateCalendarDays().map((date, i) => (
+                    <button
+                      key={i}
+                      onClick={() => date && setSelectedDate(date)}
+                      disabled={!date}
+                      className={`aspect-square flex items-center justify-center text-sm rounded-lg transition-colors ${
+                        !date
+                          ? ''
+                          : isSelected(date)
+                            ? 'bg-gray-800 text-white'
+                            : isToday(date)
+                              ? 'bg-blue-50 text-blue-600 font-medium'
+                              : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      {date?.getDate()}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={() => setSelectedDate(getToday())}
+                    className="flex-1 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    今日
+                  </button>
+                  <button
+                    onClick={() => setSelectedDate(null)}
+                    className="flex-1 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    全日付
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -396,8 +411,8 @@ function AdminReservationsContent() {
 
             {/* Per-Stylist Lane Timeline */}
             {selectedDate && !isLoading && reservations.filter((r) => r.status !== 'CANCELLED').length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 mb-4">
-                <div className="px-2 lg:px-4">
+              <div className="bg-white rounded-xl shadow-sm p-2 sm:p-4 md:p-6 mb-4 overflow-x-auto">
+                <div className="min-w-[360px] px-1 sm:px-2 lg:px-4">
                   {(() => {
                     const active = reservations.filter((r) => r.status !== 'CANCELLED');
                     // Group by staff
@@ -425,7 +440,7 @@ function AdminReservationsContent() {
                     return (
                       <div>
                         {/* Time labels */}
-                        <div className="relative h-7 mb-2 ml-20">
+                        <div className="relative h-7 mb-2 ml-14 sm:ml-20">
                           {Array.from({ length: TIMELINE_HOURS + 1 }, (_, i) => {
                             const left = (i / TIMELINE_HOURS) * 100;
                             const translateClass = i === 0
@@ -436,7 +451,7 @@ function AdminReservationsContent() {
                             return (
                               <div
                                 key={i}
-                                className={`absolute text-xs text-gray-400 ${translateClass}`}
+                                className={`absolute text-[10px] sm:text-xs text-gray-400 ${translateClass} ${i % 2 !== 0 ? 'hidden sm:block' : ''}`}
                                 style={{ left: `${left}%` }}
                               >
                                 {TIMELINE_START_HOUR + i}:00
@@ -449,8 +464,8 @@ function AdminReservationsContent() {
                         {lanes.map(([staffId, lane]) => (
                           <div key={staffId} className="flex items-stretch mb-1">
                             {/* Staff label */}
-                            <div className="w-20 flex-shrink-0 flex items-center pr-2">
-                              <span className="text-xs font-medium text-gray-600 truncate">{lane.name}</span>
+                            <div className="w-14 sm:w-20 flex-shrink-0 flex items-center pr-1 sm:pr-2">
+                              <span className="text-[10px] sm:text-xs font-medium text-gray-600 truncate">{lane.name}</span>
                             </div>
                             {/* Lane timeline */}
                             <div className="flex-1 relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: `${ROW_HEIGHT}px` }}>
@@ -495,18 +510,21 @@ function AdminReservationsContent() {
                                 const left = (startMin / TIMELINE_TOTAL_MIN) * 100;
                                 const width = ((endMin - startMin) / TIMELINE_TOTAL_MIN) * 100;
                                 const isFaded = r.status === 'NO_SHOW';
+                                const isOnline = r.paymentMethod === 'ONLINE';
 
                                 return (
                                   <div
                                     key={r.id}
                                     className={`absolute top-1 bottom-1 flex rounded-md overflow-hidden shadow-sm hover:shadow-md transition-all cursor-default ${
                                       isFaded ? 'opacity-40' : ''
-                                    } ${highlightId === r.id ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
+                                    } ${highlightId === r.id ? 'ring-2 ring-blue-500 ring-offset-1' : ''} ${
+                                      isOnline ? 'ring-1 ring-blue-400' : ''
+                                    }`}
                                     style={{
                                       left: `${left}%`,
                                       width: `${Math.max(width, 3)}%`,
                                     }}
-                                    title={`${r.startTime}〜${r.endTime} ${r.menuSummary} - ${r.user.name || '名前未登録'}`}
+                                    title={`${r.startTime}〜${r.endTime} ${r.menuSummary} - ${r.user.name || '名前未登録'}${isOnline ? ' (Web決済済み)' : ''}`}
                                   >
                                     {r.items.length > 0 ? (
                                       r.items.map((item, idx) => {
@@ -563,9 +581,89 @@ function AdminReservationsContent() {
                 reservations.map((reservation) => (
                   <div
                     key={reservation.id}
-                    className={`p-4 md:p-5 ${highlightId === reservation.id ? 'bg-blue-50' : ''}`}
+                    className={`p-3 sm:p-4 md:p-5 ${highlightId === reservation.id ? 'bg-blue-50' : ''}`}
                   >
-                    <div className="flex items-start gap-3 md:gap-4">
+                    {/* Mobile layout: stacked */}
+                    <div className="sm:hidden space-y-2">
+                      {/* Top row: time + badges + price */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{reservation.startTime}〜{reservation.endTime}</span>
+                          <span className={`px-1.5 py-0.5 text-[10px] rounded-full ${STATUS_STYLES[reservation.status] || ''}`}>
+                            {STATUS_LABELS[reservation.status] || reservation.status}
+                          </span>
+                          {reservation.paymentMethod === 'ONLINE' && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded-full bg-blue-100 text-blue-700">
+                              <CreditCard className="w-2.5 h-2.5" />Web済
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-medium text-amber-600 text-sm">¥{reservation.totalPrice.toLocaleString()}</span>
+                      </div>
+
+                      {/* Color bar */}
+                      <div className="flex gap-0.5 w-full h-1.5 rounded-full overflow-hidden">
+                        {reservation.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className="h-full"
+                            style={{
+                              backgroundColor: CATEGORY_COLORS[item.category] || '#888',
+                              flex: item.duration,
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Menu + customer */}
+                      <div>
+                        <p className="font-medium text-sm truncate">{reservation.menuSummary}</p>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 mt-0.5">
+                          <span>{reservation.user.name || '名前未登録'}</span>
+                          {reservation.user.phone && <span>{reservation.user.phone}</span>}
+                          {(reservation.staffName || reservation.staff?.name) && (
+                            <span className="text-pink-600">担当: {reservation.staffName || reservation.staff?.name}</span>
+                          )}
+                        </div>
+                        {reservation.coupon && (
+                          <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] rounded-full bg-amber-100 text-amber-700">
+                            {reservation.coupon.code}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 pt-1 border-t border-gray-100">
+                        {reservation.status === 'CONFIRMED' && (
+                          <>
+                            <button onClick={() => openConfirmDialog(reservation, 'COMPLETED')}
+                              className="flex-1 py-1.5 text-xs text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors flex items-center justify-center gap-1">
+                              <Check className="w-3.5 h-3.5" />完了
+                            </button>
+                            <button onClick={() => openConfirmDialog(reservation, 'CANCELLED')}
+                              className="flex-1 py-1.5 text-xs text-gray-500 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-1">
+                              <XCircle className="w-3.5 h-3.5" />キャンセル
+                            </button>
+                            <button onClick={() => openConfirmDialog(reservation, 'NO_SHOW')}
+                              className="flex-1 py-1.5 text-xs text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1">
+                              <Clock className="w-3.5 h-3.5" />無断
+                            </button>
+                          </>
+                        )}
+                        {(reservation.status === 'CANCELLED' || reservation.status === 'NO_SHOW') && (
+                          <button onClick={() => openConfirmDialog(reservation, 'CONFIRMED')}
+                            className="flex-1 py-1.5 text-xs text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                            復元
+                          </button>
+                        )}
+                        {reservation.status === 'COMPLETED' && (
+                          <span className="flex-1 py-1.5 text-xs text-blue-600 bg-blue-50 rounded-lg text-center">完了</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Desktop layout: horizontal */}
+                    <div className="hidden sm:flex items-start gap-3 md:gap-4">
                       {/* Time */}
                       <div className="flex-shrink-0 w-20">
                         <p className="font-medium">{reservation.startTime}</p>
@@ -589,13 +687,13 @@ function AdminReservationsContent() {
 
                       {/* Details */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className={`px-2 py-0.5 text-xs rounded-full ${STATUS_STYLES[reservation.status] || ''}`}>
                             {STATUS_LABELS[reservation.status] || reservation.status}
                           </span>
                           {reservation.paymentMethod === 'ONLINE' && (
-                            <span className="px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-700">
-                              カード決済
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700">
+                              <CreditCard className="w-3 h-3" />Web決済済み
                             </span>
                           )}
                           {reservation.coupon && (

@@ -242,6 +242,11 @@ export default function AdminHolidaysPage() {
 
   const isToday = (date: Date) => date.toDateString() === new Date().toDateString();
 
+  const formatDisplayDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return `${d.getMonth() + 1}月${d.getDate()}日（${WEEKDAYS[d.getDay()]}）`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -390,6 +395,77 @@ export default function AdminHolidaysPage() {
                 <div className="flex items-center gap-1"><div className="w-3 h-3 bg-green-50 border border-green-300 rounded" /> 臨時営業</div>
                 <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-100 border border-red-300 rounded" /> 終日休業</div>
                 <div className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-50 border border-amber-200 rounded" /> 時間帯休業</div>
+              </div>
+
+              {/* Monthly lists */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-100">
+                {/* 不定休 list */}
+                <div>
+                  <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <CalendarOff className="w-4 h-4 text-red-500" />
+                    {currentMonth.getMonth() + 1}月の不定休
+                  </h3>
+                  {holidays.length === 0 ? (
+                    <p className="text-gray-400 text-xs py-3 text-center bg-gray-50 rounded-lg">不定休はありません</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {holidays.map((holiday) => (
+                        <div key={holiday.id} className="flex items-center justify-between p-2.5 bg-red-50/50 rounded-lg">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-xs sm:text-sm">{formatDisplayDate(holiday.date)}</p>
+                            <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5">
+                              {holiday.startTime && holiday.endTime ? `${holiday.startTime}〜${holiday.endTime}` : '終日休業'}
+                            </p>
+                            {holiday.reason && (
+                              <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate">{holiday.reason}</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => { setDeletingHoliday(holiday); setIsDeleteModalOpen(true); }}
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors flex-shrink-0 ml-2"
+                            title="削除"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 特別営業日 list */}
+                <div>
+                  <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <CalendarCheck className="w-4 h-4 text-green-500" />
+                    {currentMonth.getMonth() + 1}月の特別営業日
+                  </h3>
+                  {specialOpenDays.length === 0 ? (
+                    <p className="text-gray-400 text-xs py-3 text-center bg-gray-50 rounded-lg">特別営業日はありません</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {specialOpenDays.map((day) => (
+                        <div key={day.id} className="flex items-center justify-between p-2.5 bg-green-50/50 rounded-lg">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-xs sm:text-sm">{formatDisplayDate(day.date)}</p>
+                            <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5">
+                              {day.startTime && day.endTime ? `${day.startTime}〜${day.endTime}` : '終日営業'}
+                            </p>
+                            {day.reason && (
+                              <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate">{day.reason}</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => { setDeletingSpecialOpenDay(day); setIsDeleteSpecialOpenModalOpen(true); }}
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors flex-shrink-0 ml-2"
+                            title="削除"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}
