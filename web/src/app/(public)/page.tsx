@@ -58,20 +58,27 @@ export default function Home() {
         <motion.div style={{ scale: heroImageScale }} className="absolute inset-0 z-0">
           {/* Ken Burns animated background */}
           <div className="absolute inset-0 hero-ken-burns">
+            {/* Desktop */}
             <Image
               src="/full.png"
               alt="LUMINA HAIR STUDIO サロン内観"
               fill
-              className="object-cover object-[70%_center] md:object-center"
+              className="object-cover object-center hidden md:block"
+              priority
+            />
+            {/* Mobile */}
+            <Image
+              src="/full_for_mobile.png"
+              alt="LUMINA HAIR STUDIO サロン内観"
+              fill
+              className="object-cover object-center md:hidden"
               priority
             />
           </div>
 
           {/* Multi-layer gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-cream)]/80 via-[var(--color-cream)]/35 to-[var(--color-cream)]/95 md:to-[var(--color-cream)]/95" />
-          {/* Extra mobile bottom overlay for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent via-40% to-[var(--color-cream)]/90 md:hidden" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-cream)]/50 via-transparent to-transparent hidden md:block" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-cream)]/60 via-[var(--color-cream)]/20 to-[var(--color-cream)]/75" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-cream)]/35 via-transparent to-transparent hidden md:block" />
 
           {/* Colored blur orbs */}
           <div className="absolute top-[15%] left-[5%] w-[250px] h-[250px] md:w-[450px] md:h-[450px] rounded-full bg-[var(--color-sage)] opacity-[0.07] blur-[80px] md:blur-[120px] hero-float-slow" />
@@ -148,13 +155,13 @@ export default function Home() {
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
                 transition={{ duration: 0.6, delay: 0.8 }}
-                className="w-8 h-[1px] bg-[var(--color-gold)] origin-left"
+                className="w-8 h-[1px] bg-white/60 md:bg-[var(--color-gold)] origin-left"
               />
               <p className="text-subheading hero-shimmer-text">LUMINA HAIR STUDIO</p>
             </motion.div>
 
             {/* Heading with clip-path reveal on main word */}
-            <h1 className="mb-30 md:mb-8">
+            <h1 className="mb-12 md:mb-8">
               <motion.span
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -175,19 +182,22 @@ export default function Home() {
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ duration: 0.8, delay: 1.2 }}
-              className="w-16 h-[1px] mb-8 md:mb-8 mx-auto md:mx-0 origin-center md:origin-left bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)]/0"
+              className="w-16 h-[1px] mb-8 md:mb-8 mx-auto md:mx-0 origin-center md:origin-left bg-gradient-to-r from-white/70 md:from-[var(--color-gold)] to-transparent md:to-[var(--color-gold-light)]/0"
             />
 
             {/* Tagline */}
-            <motion.p
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 1.5 }}
-              className="text-[var(--color-warm-gray)] max-w-md mx-auto md:mx-0 mb-10 md:mb-12 font-light text-sm md:text-base leading-relaxed"
+              className="relative inline-block max-w-md mx-auto md:mx-0 mb-10 md:mb-12"
             >
-              自然由来の成分と熟練の技術で<br />
-              心と髪に優しいサロン体験を
-            </motion.p>
+              <div className="absolute -inset-4 bg-[var(--color-cream)]/75 blur-xl rounded-full md:hidden" />
+              <p className="relative text-[var(--color-warm-gray)] font-light text-sm md:text-base leading-relaxed">
+                自然由来の成分と熟練の技術で<br />
+                心と髪に優しいサロン体験を
+              </p>
+            </motion.div>
 
             {/* CTA Buttons - modern style */}
             <motion.div
