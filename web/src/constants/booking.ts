@@ -5,7 +5,7 @@ export const BOOKING_CONFIG = {
   openTime: "09:00",
   closeTime: "20:00",
   slotInterval: 10,
-  maxConcurrentBookings: 1,
+  // maxConcurrentBookings は廃止（スタイリスト別管理に移行）
   cancelDeadline: {
     daysBefore: 1,
     time: "19:00",

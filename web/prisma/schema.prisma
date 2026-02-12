@@ -93,8 +93,12 @@ model Reservation {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  staffId       String?
+  staffName     String?
+
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   coupon        Coupon?  @relation(fields: [couponId], references: [id])
+  staff         Staff?   @relation(fields: [staffId], references: [id], onDelete: SetNull)
   items         ReservationItem[]
   sale          Sale?
 
@@ -103,6 +107,7 @@ model Reservation {
   @@index([status])
   @@index([date, status])
   @@index([couponId])
+  @@index([staffId])
 }
 
 model ReservationItem {
@@ -158,6 +163,7 @@ model Menu {
   updatedAt       DateTime @updatedAt
 
   category Category @relation(fields: [categoryId], references: [id])
+  staffAssignments StaffMenu[]
 
   @@index([categoryId])
   @@index([isActive])
@@ -365,4 +371,75 @@ model PaymentMethodSetting {
 
   @@index([isActive])
   @@index([code])
+}
+
+// ============================================
+// スタッフ（スタイリスト）
+// ============================================
+
+model Staff {
+  id           String   @id @default(cuid())
+  name         String
+  nameEn       String?
+  role         String               // Director | Top Stylist | Stylist | Junior Stylist
+  image        String?
+  bio          String?
+  specialties  String   @default("[]")  // JSON string array
+  experience   String?
+  socialMedia  String   @default("{}") // JSON string
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  schedules         StaffSchedule[]
+  scheduleOverrides StaffScheduleOverride[]
+  menuAssignments   StaffMenu[]
+  reservations      Reservation[]
+
+  @@index([isActive])
+}
+
+model StaffSchedule {
+  id        String   @id @default(cuid())
+  staffId   String
+  dayOfWeek Int              // 0=日 ... 6=土
+  startTime String           // "10:00"
+  endTime   String           // "20:00"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, dayOfWeek])
+  @@index([staffId])
+}
+
+model StaffScheduleOverride {
+  id        String   @id @default(cuid())
+  staffId   String
+  date      DateTime           // 特定日のシフト上書き
+  startTime String?            // null = 休み
+  endTime   String?            // null = 休み
+  createdAt DateTime @default(now())
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, date])
+  @@index([staffId])
+  @@index([date])
+}
+
+model StaffMenu {
+  id      String @id @default(cuid())
+  staffId String
+  menuId  String
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  menu  Menu  @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, menuId])
+  @@index([staffId])
+  @@index([menuId])
 }

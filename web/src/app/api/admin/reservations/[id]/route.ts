@@ -30,12 +30,26 @@ export async function PATCH(
     const updateData: Record<string, unknown> = {};
     if (status) updateData.status = status;
     if (note !== undefined) updateData.note = note;
+    if (body.staffId !== undefined) {
+      if (body.staffId) {
+        const staff = await prisma.staff.findUnique({ where: { id: body.staffId } });
+        if (!staff) {
+          return NextResponse.json({ error: "スタッフが見つかりません" }, { status: 404 });
+        }
+        updateData.staffId = staff.id;
+        updateData.staffName = staff.name;
+      } else {
+        updateData.staffId = null;
+        updateData.staffName = null;
+      }
+    }
 
     const reservation = await prisma.reservation.update({
       where: { id },
       data: updateData,
       include: {
         user: { select: { id: true, name: true, email: true, phone: true } },
+        staff: { select: { id: true, name: true, image: true } },
         items: { orderBy: { orderIndex: "asc" } },
       },
     });

@@ -159,6 +159,67 @@ async function main() {
     });
   }
 
+  // スタイリスト
+  const staffMembers = [
+    {
+      id: "staff-yamada",
+      name: "山田 花子",
+      nameEn: "Hanako Yamada",
+      role: "Director",
+      image: "/person1.png",
+      bio: "髪のお悩みに寄り添い、ライフスタイルに合った最適なスタイルをご提案いたします。一緒に「なりたい自分」を見つけましょう。",
+      specialties: JSON.stringify(["ショートヘア", "パーマスタイル", "ヘアケア"]),
+      experience: "15年",
+      socialMedia: JSON.stringify({ instagram: "@hanako_lumina" }),
+      displayOrder: 1,
+    },
+    {
+      id: "staff-sato",
+      name: "佐藤 美咲",
+      nameEn: "Misaki Sato",
+      role: "Top Stylist",
+      image: "/person2.png",
+      bio: "お客様の個性を活かした、再現性の高いスタイルを心がけています。カラーのことなら何でもご相談ください。",
+      specialties: JSON.stringify(["カラーリング", "ハイライト", "トリートメント"]),
+      experience: "10年",
+      socialMedia: JSON.stringify({ instagram: "@misaki_lumina" }),
+      displayOrder: 2,
+    },
+  ];
+
+  const staffIds: string[] = [];
+  for (const s of staffMembers) {
+    const staff = await prisma.staff.upsert({
+      where: { id: s.id },
+      update: { ...s },
+      create: s,
+    });
+    staffIds.push(staff.id);
+  }
+
+  // スタイリストのスケジュール（月曜以外の全日）
+  const daySchedules = [
+    { dayOfWeek: 0, startTime: "09:00", endTime: "19:00" }, // 日曜
+    // dayOfWeek: 1 (月曜) - 定休日
+    { dayOfWeek: 2, startTime: "10:00", endTime: "20:00" }, // 火曜
+    { dayOfWeek: 3, startTime: "10:00", endTime: "20:00" }, // 水曜
+    { dayOfWeek: 4, startTime: "10:00", endTime: "20:00" }, // 木曜
+    { dayOfWeek: 5, startTime: "10:00", endTime: "20:00" }, // 金曜
+    { dayOfWeek: 6, startTime: "09:00", endTime: "19:00" }, // 土曜
+  ];
+
+  for (const staffId of staffIds) {
+    for (const sched of daySchedules) {
+      await prisma.staffSchedule.upsert({
+        where: {
+          staffId_dayOfWeek: { staffId, dayOfWeek: sched.dayOfWeek },
+        },
+        update: sched,
+        create: { staffId, ...sched },
+      });
+    }
+  }
+
   // デモ顧客データ（20名）
   const customers = [
     { name: "田中 美咲", email: "tanaka.misaki@example.com", phone: "090-1234-5678" },
@@ -213,6 +274,8 @@ async function main() {
       const endMinutes = startHour * 60 + menu.duration;
       const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
 
+      const assignedStaffId = staffIds[i % staffIds.length];
+      const assignedStaff = staffMembers.find(s => s.id === assignedStaffId)!;
       const reservation = await prisma.reservation.create({
         data: {
           userId: customer,
@@ -223,6 +286,8 @@ async function main() {
           startTime,
           endTime,
           status: "COMPLETED",
+          staffId: assignedStaffId,
+          staffName: assignedStaff.name,
         },
       });
       await prisma.reservationItem.create({
@@ -255,6 +320,8 @@ async function main() {
       const endMinutes = startHour * 60 + menu.duration;
       const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
 
+      const assignedStaffId2 = staffIds[i % staffIds.length];
+      const assignedStaff2 = staffMembers.find(s => s.id === assignedStaffId2)!;
       const reservation = await prisma.reservation.create({
         data: {
           userId: customer,
@@ -265,6 +332,8 @@ async function main() {
           startTime,
           endTime,
           status: "CONFIRMED",
+          staffId: assignedStaffId2,
+          staffName: assignedStaff2.name,
         },
       });
       await prisma.reservationItem.create({

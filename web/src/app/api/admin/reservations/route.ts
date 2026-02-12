@@ -32,6 +32,11 @@ export async function GET(request: NextRequest) {
       where.status = status;
     }
 
+    const staffId = searchParams.get("staffId");
+    if (staffId) {
+      where.staffId = staffId;
+    }
+
     if (search) {
       where.user = {
         OR: [
@@ -54,6 +59,9 @@ export async function GET(request: NextRequest) {
           },
           coupon: {
             select: { id: true, code: true, name: true, type: true, value: true },
+          },
+          staff: {
+            select: { id: true, name: true, image: true },
           },
         },
         orderBy: [{ date: "desc" }, { startTime: "asc" }],

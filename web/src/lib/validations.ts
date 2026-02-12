@@ -14,6 +14,7 @@ export const createReservationSchema = z.object({
   customerEmail: z.string().email("メールアドレスの形式が正しくありません").optional(),
   paymentMethod: z.enum(["ONLINE", "ONSITE"]).default("ONSITE"),
   stripePaymentIntentId: z.string().optional(),
+  staffId: z.string().optional(),
 });
 
 export const cancelReservationSchema = z.object({

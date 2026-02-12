@@ -16,7 +16,7 @@ export default function AdminLayout({
   return (
     <SessionProvider>
       <AdminAutoAuth>
-        <div className="admin-page bg-gray-50 min-h-screen text-gray-900">
+        <div className="admin-page bg-gray-50 min-h-screen text-gray-900 overflow-x-hidden">
           {children}
         </div>
       </AdminAutoAuth>

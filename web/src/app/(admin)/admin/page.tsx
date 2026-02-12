@@ -38,12 +38,19 @@ interface Reservation {
   startTime: string;
   endTime: string;
   status: string;
+  staffId: string | null;
+  staffName: string | null;
   user: {
     id: string;
     name: string | null;
     email: string | null;
     phone: string | null;
   };
+  staff?: {
+    id: string;
+    name: string;
+    image: string | null;
+  } | null;
   items: ReservationItem[];
 }
 
@@ -286,6 +293,19 @@ export default function AdminDashboard() {
           </Link>
 
           <Link
+            href="/admin/staff"
+            className="flex items-center gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div className="p-2 bg-pink-500/10 rounded-lg">
+              <Scissors className="w-5 h-5 text-pink-600" />
+            </div>
+            <div>
+              <p className="font-medium text-sm">スタッフ管理</p>
+              <p className="text-xs text-gray-500 hidden sm:block">スタイリスト・シフト</p>
+            </div>
+          </Link>
+
+          <Link
             href="/admin/customers"
             className="flex items-center gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
           >
@@ -365,137 +385,158 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* Timeline (desktop) */}
+              {/* Timeline (desktop) - Per-stylist lanes */}
               <div className="hidden md:block p-4 md:p-6">
                 <div className="mb-6 px-6 lg:px-8">
-                  {/* Time labels */}
-                  <div className="relative h-7 mb-2">
-                    {Array.from({ length: 12 }, (_, i) => {
-                      const left = (i / 11) * 100;
-                      const translateClass = i === 0
-                        ? 'translate-x-0'
-                        : i === 11
-                          ? '-translate-x-full'
-                          : '-translate-x-1/2';
-                      return (
-                        <div
-                          key={i}
-                          className={`absolute text-xs md:text-sm text-gray-400 ${translateClass}`}
-                          style={{ left: `${left}%` }}
-                        >
-                          {i + 9}:00
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Timeline bar */}
-                  <div className="relative h-14 md:h-16 lg:h-20 bg-gray-50 rounded-lg overflow-hidden">
-                    {/* Grid lines */}
-                    <div className="absolute inset-0">
-                      {Array.from({ length: 34 }, (_, i) => {
-                        const isHourLine = i % 3 === 0;
-                        const left = (i / 33) * 100;
-                        return (
-                          <div
-                            key={i}
-                            className={`absolute top-0 bottom-0 ${
-                              isHourLine ? 'border-l border-gray-300' : 'border-l border-gray-200/60'
-                            }`}
-                            style={{ left: `${left}%` }}
-                          />
-                        );
-                      })}
-                    </div>
-
-                    {/* Holidays on timeline */}
-                    {todayHolidays.map((holiday) => {
-                      if (!holiday.startTime || !holiday.endTime) {
-                        return (
-                          <div
-                            key={holiday.id}
-                            className="absolute inset-0 bg-red-500/20 flex items-center justify-center"
-                            title={holiday.reason || '終日休業'}
-                          >
-                            <span className="text-red-500 text-sm font-medium">
-                              {holiday.reason || '終日休業'}
-                            </span>
-                          </div>
-                        );
+                  {(() => {
+                    const TIMELINE_HOURS = 11;
+                    const TIMELINE_TOTAL_MIN = TIMELINE_HOURS * 60;
+                    const LANE_HEIGHT = 44;
+                    // Group reservations by staff
+                    const staffLanes = new Map<string, { name: string; reservations: Reservation[] }>();
+                    const unassigned: Reservation[] = [];
+                    for (const r of todayReservations) {
+                      const sid = r.staffId || r.staff?.id;
+                      const sname = r.staffName || r.staff?.name;
+                      if (sid && sname) {
+                        if (!staffLanes.has(sid)) {
+                          staffLanes.set(sid, { name: sname, reservations: [] });
+                        }
+                        staffLanes.get(sid)!.reservations.push(r);
+                      } else {
+                        unassigned.push(r);
                       }
-                      const startMin = timeToMinutes(holiday.startTime) - 540;
-                      const endMin = timeToMinutes(holiday.endTime) - 540;
-                      const totalMin = 660;
-                      const left = Math.max(0, (startMin / totalMin) * 100);
-                      const width = Math.min(100 - left, ((endMin - startMin) / totalMin) * 100);
-                      return (
-                        <div
-                          key={holiday.id}
-                          className="absolute top-0 bottom-0 bg-red-500/30 flex items-center justify-center"
-                          style={{ left: `${left}%`, width: `${width}%` }}
-                          title={`${holiday.startTime}〜${holiday.endTime} ${holiday.reason || '休業'}`}
-                        >
-                          <span className="text-red-600 text-xs font-medium truncate px-1">
-                            {holiday.reason || '休業'}
-                          </span>
+                    }
+                    if (unassigned.length > 0) {
+                      staffLanes.set('__unassigned', { name: '未割当', reservations: unassigned });
+                    }
+                    const lanes = Array.from(staffLanes.entries());
+                    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+                    return (
+                      <div>
+                        {/* Time labels */}
+                        <div className="relative h-7 mb-2 ml-20">
+                          {Array.from({ length: 12 }, (_, i) => {
+                            const left = (i / 11) * 100;
+                            const translateClass = i === 0
+                              ? 'translate-x-0'
+                              : i === 11
+                                ? '-translate-x-full'
+                                : '-translate-x-1/2';
+                            return (
+                              <div
+                                key={i}
+                                className={`absolute text-xs md:text-sm text-gray-400 ${translateClass}`}
+                                style={{ left: `${left}%` }}
+                              >
+                                {i + 9}:00
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
 
-                    {/* Reservations */}
-                    {todayReservations.map((reservation) => {
-                      const startMin = timeToMinutes(reservation.startTime) - 540;
-                      const endMin = timeToMinutes(reservation.endTime) - 540;
-                      const totalMin = 660;
-                      const left = (startMin / totalMin) * 100;
-                      const width = ((endMin - startMin) / totalMin) * 100;
-                      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-                      return (
-                        <button
-                          key={reservation.id}
-                          onClick={() => router.push(`/admin/reservations?date=${dateStr}&highlight=${reservation.id}`)}
-                          className="absolute top-1.5 bottom-1.5 md:top-2 md:bottom-2 rounded-md md:rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all flex cursor-pointer hover:scale-[1.02] active:scale-100"
-                          style={{
-                            left: `${left}%`,
-                            width: `${Math.max(width, 4)}%`,
-                          }}
-                          title={`${reservation.startTime}〜${reservation.endTime} ${reservation.menuSummary} - ${reservation.user.name || '名前未登録'}`}
-                        >
-                          {reservation.items.length > 0 ? (
-                            reservation.items.map((item, idx) => {
-                              const segmentWidth = (item.duration / reservation.totalDuration) * 100;
-                              return (
-                                <div
-                                  key={item.id}
-                                  className={`h-full flex items-center justify-center ${idx === 0 ? 'rounded-l-md' : ''} ${idx === reservation.items.length - 1 ? 'rounded-r-md' : ''}`}
-                                  style={{
-                                    backgroundColor: CATEGORY_COLORS[item.category] || '#888',
-                                    width: `${segmentWidth}%`,
-                                  }}
-                                >
-                                  {segmentWidth > 20 && (
-                                    <span
-                                      className="text-xs font-medium truncate px-1"
-                                      style={{ color: getCategoryTextColor(item.category) }}
-                                    >
-                                      {item.menuName.split('（')[0]}
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <div className="h-full w-full bg-blue-500 flex items-center px-2">
-                              <span className="text-white text-xs font-medium truncate">
-                                {reservation.menuSummary}
-                              </span>
+                        {/* Per-staff lanes */}
+                        {lanes.map(([staffId, lane]) => (
+                          <div key={staffId} className="flex items-stretch mb-1">
+                            <div className="w-20 flex-shrink-0 flex items-center pr-2">
+                              <span className="text-xs font-medium text-gray-600 truncate">{lane.name}</span>
                             </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                            <div className="flex-1 relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: `${LANE_HEIGHT}px` }}>
+                              {/* Grid lines */}
+                              <div className="absolute inset-0">
+                                {Array.from({ length: 34 }, (_, i) => {
+                                  const isHourLine = i % 3 === 0;
+                                  const left = (i / 33) * 100;
+                                  return (
+                                    <div
+                                      key={i}
+                                      className={`absolute top-0 bottom-0 ${
+                                        isHourLine ? 'border-l border-gray-300' : 'border-l border-gray-200/60'
+                                      }`}
+                                      style={{ left: `${left}%` }}
+                                    />
+                                  );
+                                })}
+                              </div>
+
+                              {/* Holidays */}
+                              {todayHolidays.map((holiday) => {
+                                if (!holiday.startTime || !holiday.endTime) {
+                                  return (
+                                    <div key={holiday.id} className="absolute inset-0 bg-red-500/20" title={holiday.reason || '終日休業'} />
+                                  );
+                                }
+                                const hStartMin = timeToMinutes(holiday.startTime) - 540;
+                                const hEndMin = timeToMinutes(holiday.endTime) - 540;
+                                const left = Math.max(0, (hStartMin / TIMELINE_TOTAL_MIN) * 100);
+                                const width = Math.min(100 - left, ((hEndMin - hStartMin) / TIMELINE_TOTAL_MIN) * 100);
+                                return (
+                                  <div key={holiday.id} className="absolute top-0 bottom-0 bg-red-500/20" style={{ left: `${left}%`, width: `${width}%` }} />
+                                );
+                              })}
+
+                              {/* Reservations */}
+                              {lane.reservations.map((reservation) => {
+                                const startMin = timeToMinutes(reservation.startTime) - 540;
+                                const endMin = timeToMinutes(reservation.endTime) - 540;
+                                const left = (startMin / TIMELINE_TOTAL_MIN) * 100;
+                                const width = ((endMin - startMin) / TIMELINE_TOTAL_MIN) * 100;
+                                return (
+                                  <button
+                                    key={reservation.id}
+                                    onClick={() => router.push(`/admin/reservations?date=${dateStr}&highlight=${reservation.id}`)}
+                                    className="absolute top-1 bottom-1 rounded-md overflow-hidden shadow-sm hover:shadow-md transition-all flex cursor-pointer hover:scale-[1.02] active:scale-100"
+                                    style={{ left: `${left}%`, width: `${Math.max(width, 4)}%` }}
+                                    title={`${reservation.startTime}〜${reservation.endTime} ${reservation.menuSummary} - ${reservation.user.name || '名前未登録'}`}
+                                  >
+                                    {reservation.items.length > 0 ? (
+                                      reservation.items.map((item, idx) => {
+                                        const segmentWidth = (item.duration / reservation.totalDuration) * 100;
+                                        return (
+                                          <div
+                                            key={item.id}
+                                            className={`h-full flex items-center justify-center ${idx === 0 ? 'rounded-l-md' : ''} ${idx === reservation.items.length - 1 ? 'rounded-r-md' : ''}`}
+                                            style={{ backgroundColor: CATEGORY_COLORS[item.category] || '#888', width: `${segmentWidth}%` }}
+                                          >
+                                            {segmentWidth > 20 && (
+                                              <span className="text-xs font-medium truncate px-1" style={{ color: getCategoryTextColor(item.category) }}>
+                                                {item.menuName.split('（')[0]}
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
+                                      })
+                                    ) : (
+                                      <div className="h-full w-full bg-blue-500 flex items-center px-2">
+                                        <span className="text-white text-xs font-medium truncate">{reservation.menuSummary}</span>
+                                      </div>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Empty state */}
+                        {lanes.length === 0 && todayHolidays.length > 0 && (
+                          <div className="relative h-14 bg-gray-50 rounded-lg overflow-hidden ml-20">
+                            {todayHolidays.map((holiday) => {
+                              if (!holiday.startTime || !holiday.endTime) {
+                                return (
+                                  <div key={holiday.id} className="absolute inset-0 bg-red-500/20 flex items-center justify-center" title={holiday.reason || '終日休業'}>
+                                    <span className="text-red-500 text-sm font-medium">{holiday.reason || '終日休業'}</span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Reservation List */}
@@ -530,6 +571,11 @@ export default function AdminDashboard() {
                         <p className="font-medium text-sm md:text-base truncate">{reservation.menuSummary}</p>
                         <p className="text-xs md:text-sm text-gray-500 truncate">
                           {reservation.user.name || '名前未登録'}
+                          {reservation.staffName && (
+                            <span className="ml-2 text-pink-600">
+                              担当: {reservation.staffName}
+                            </span>
+                          )}
                           <span className="hidden lg:inline">
                             {reservation.user.phone && ` / ${reservation.user.phone}`}
                           </span>
@@ -596,7 +642,12 @@ export default function AdminDashboard() {
                         ))}
                       </div>
                       <p className="font-medium text-sm truncate">{reservation.menuSummary}</p>
-                      <p className="text-xs text-gray-500 truncate">{reservation.user.name || '名前未登録'}</p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {reservation.user.name || '名前未登録'}
+                        {reservation.staffName && (
+                          <span className="ml-1 text-pink-600">・{reservation.staffName}</span>
+                        )}
+                      </p>
                       <p className="text-xs text-amber-600">¥{reservation.totalPrice.toLocaleString()}</p>
                     </div>
 

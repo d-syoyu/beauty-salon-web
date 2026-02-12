@@ -49,13 +49,6 @@ interface CouponResult {
   };
 }
 
-// Stylists (same as contact page)
-const stylists = [
-  { id: '', name: '指名なし', image: null, description: 'スタッフにお任せ' },
-  { id: 'yamada', name: '山田 花子', image: '/person1.png', description: 'Director' },
-  { id: 'sato', name: '佐藤 美咲', image: '/person2.png', description: 'Top Stylist' },
-];
-
 // Step definitions
 const STEPS = [
   { num: 1, label: 'メニュー選択', en: 'Menu' },
@@ -104,6 +97,8 @@ export default function ReservationPage() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [isFirstVisit, setIsFirstVisit] = useState<boolean | null>(null);
   const [selectedStylist, setSelectedStylist] = useState('');
+  const [staffList, setStaffList] = useState<{id: string; name: string; image: string | null; role: string}[]>([]);
+  const [isLoadingStaff, setIsLoadingStaff] = useState(false);
   const [note, setNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'ONLINE' | 'ONSITE'>('ONSITE');
 
@@ -193,22 +188,40 @@ export default function ReservationPage() {
     fetchHolidays();
   }, [currentMonth]);
 
-  // Fetch availability when date or menu changes
+  // Fetch staff when menu selection changes
+  useEffect(() => {
+    if (selectedMenuIds.length > 0) {
+      setIsLoadingStaff(true);
+      fetch(`/api/staff?menuIds=${selectedMenuIds.join(',')}`)
+        .then(res => res.json())
+        .then(data => {
+          setStaffList(data.staff || []);
+        })
+        .catch(() => setStaffList([]))
+        .finally(() => setIsLoadingStaff(false));
+    } else {
+      setStaffList([]);
+    }
+  }, [selectedMenuIds]);
+
+  // Fetch availability when date, menu, or stylist changes
   useEffect(() => {
     if (selectedDate && selectedMenuIds.length > 0) {
-      fetchAvailability(selectedDate, selectedMenuIds);
+      fetchAvailability(selectedDate, selectedMenuIds, selectedStylist);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, selectedMenuIds]);
+  }, [selectedDate, selectedMenuIds, selectedStylist]);
 
-  const fetchAvailability = async (date: Date, menuIds: string[]) => {
+  const fetchAvailability = async (date: Date, menuIds: string[], staffId?: string) => {
     setIsLoadingSlots(true);
     setSelectedTime(null);
     try {
       const dateStr = formatDateLocal(date);
-      const res = await fetch(
-        `/api/availability?date=${dateStr}&menuIds=${menuIds.join(',')}`
-      );
+      let url = `/api/availability?date=${dateStr}&menuIds=${menuIds.join(',')}`;
+      if (staffId) {
+        url += `&staffId=${staffId}`;
+      }
+      const res = await fetch(url);
       const data: AvailabilityData = await res.json();
       setAvailability(data);
     } catch (error) {
@@ -337,7 +350,7 @@ export default function ReservationPage() {
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim(),
           customerEmail: customerEmail.trim() || undefined,
-          stylistId: selectedStylist || undefined,
+          staffId: selectedStylist || undefined,
           isFirstVisit: isFirstVisit ?? undefined,
           note: note.trim() || undefined,
           couponCode: couponResult?.valid ? couponCode.trim() : undefined,
@@ -705,39 +718,65 @@ export default function ReservationPage() {
                       <h3 className="text-sm font-medium mb-4">
                         スタイリストを選択（任意）
                       </h3>
-                      <div className="flex flex-wrap justify-center gap-4">
-                        {stylists.map((stylist) => (
+                      {isLoadingStaff ? (
+                        <div className="flex items-center justify-center py-6">
+                          <div className="inline-block w-6 h-6 border-2 border-[var(--color-sage)] border-t-transparent rounded-full animate-spin" />
+                          <span className="ml-3 text-sm text-[var(--color-warm-gray)]">スタッフを読み込み中...</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap justify-center gap-4">
+                          {/* 指名なし option - always first */}
                           <button
-                            key={stylist.id}
                             type="button"
-                            onClick={() => setSelectedStylist(stylist.id)}
+                            onClick={() => setSelectedStylist('')}
                             className={`p-4 text-center transition-all border-2 w-32 ${
-                              selectedStylist === stylist.id
+                              selectedStylist === ''
                                 ? 'border-[var(--color-sage)] bg-[var(--color-sage)]/5'
                                 : 'border-[var(--color-cream)] hover:border-[var(--color-sage-light)]'
                             }`}
                           >
-                            {stylist.image ? (
-                              <div className="relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden">
-                                <Image
-                                  src={stylist.image}
-                                  alt={stylist.name}
-                                  fill
-                                  className="object-cover"
-                                />
-                              </div>
-                            ) : (
-                              <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-[var(--color-cream)] flex items-center justify-center">
-                                <User className="w-8 h-8 text-[var(--color-warm-gray)]" />
-                              </div>
-                            )}
-                            <p className="text-sm font-medium">{stylist.name}</p>
+                            <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-[var(--color-cream)] flex items-center justify-center">
+                              <User className="w-8 h-8 text-[var(--color-warm-gray)]" />
+                            </div>
+                            <p className="text-sm font-medium">指名なし</p>
                             <p className="text-xs text-[var(--color-warm-gray)]">
-                              {stylist.description}
+                              スタッフにお任せ
                             </p>
                           </button>
-                        ))}
-                      </div>
+                          {/* Dynamic staff from database */}
+                          {staffList.map((staff) => (
+                            <button
+                              key={staff.id}
+                              type="button"
+                              onClick={() => setSelectedStylist(staff.id)}
+                              className={`p-4 text-center transition-all border-2 w-32 ${
+                                selectedStylist === staff.id
+                                  ? 'border-[var(--color-sage)] bg-[var(--color-sage)]/5'
+                                  : 'border-[var(--color-cream)] hover:border-[var(--color-sage-light)]'
+                              }`}
+                            >
+                              {staff.image ? (
+                                <div className="relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden">
+                                  <Image
+                                    src={staff.image}
+                                    alt={staff.name}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-[var(--color-cream)] flex items-center justify-center">
+                                  <User className="w-8 h-8 text-[var(--color-warm-gray)]" />
+                                </div>
+                              )}
+                              <p className="text-sm font-medium">{staff.name}</p>
+                              <p className="text-xs text-[var(--color-warm-gray)]">
+                                {staff.role}
+                              </p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Note */}
@@ -918,7 +957,7 @@ export default function ReservationPage() {
                     couponName={couponResult?.valid ? couponResult.coupon?.name : undefined}
                     stylistName={
                       selectedStylist
-                        ? stylists.find((s) => s.id === selectedStylist)?.name
+                        ? staffList.find((s) => s.id === selectedStylist)?.name
                         : undefined
                     }
                     customerName={customerName}

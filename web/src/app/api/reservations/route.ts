@@ -10,6 +10,7 @@ import { isWithinBookingWindow, calculateEndTime } from "@/constants/booking";
 import { parseLocalDate, parseLocalDateStart, parseLocalDateEnd } from "@/lib/date-utils";
 import { validateCoupon } from "@/lib/coupon-validation";
 import { getClosedDays } from "@/lib/business-settings";
+import { autoAssignStaff, getStaffWorkingHours, canStaffHandleMenus } from "@/lib/staff-assignment";
 
 // DB Menu type
 interface DbMenu {
@@ -90,6 +91,13 @@ export async function GET(request: NextRequest) {
               value: true,
             },
           },
+          staff: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
           items: {
             orderBy: { orderIndex: "asc" },
           },
@@ -143,6 +151,7 @@ export async function POST(request: NextRequest) {
       customerEmail,
       paymentMethod,
       stripePaymentIntentId,
+      staffId: requestedStaffId,
     } = validationResult.data;
 
     // Fetch menus from DB
@@ -288,34 +297,94 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for time conflicts with existing reservations
-    const existingReservations = await prisma.reservation.findMany({
-      where: {
-        date: {
-          gte: startOfDay,
-          lte: endOfDay,
+    // Staff assignment
+    let assignedStaffId: string | null = null;
+    let assignedStaffName: string | null = null;
+
+    const dayOfWeek = date.getDay();
+
+    if (requestedStaffId) {
+      // Specific stylist requested - validate
+      const staff = await prisma.staff.findUnique({
+        where: { id: requestedStaffId, isActive: true },
+        include: {
+          schedules: { where: { isActive: true } },
+          scheduleOverrides: {
+            where: { date: { gte: startOfDay, lte: endOfDay } },
+          },
+          menuAssignments: { select: { menuId: true } },
         },
-        status: "CONFIRMED",
-      },
-      select: {
-        startTime: true,
-        endTime: true,
-      },
-    });
+      });
 
-    const hasConflict = existingReservations.some((reservation) => {
-      return startTime < reservation.endTime && endTime > reservation.startTime;
-    });
+      if (!staff) {
+        return NextResponse.json(
+          { error: "指定されたスタイリストが見つかりません" },
+          { status: 400 }
+        );
+      }
 
-    if (hasConflict) {
-      return NextResponse.json(
-        { error: "申し訳ございません。この時間帯は既に予約が入っています" },
-        { status: 409 }
+      // Check menu compatibility
+      if (!canStaffHandleMenus(staff, menuIds)) {
+        return NextResponse.json(
+          { error: "このスタイリストは選択されたメニューに対応していません" },
+          { status: 400 }
+        );
+      }
+
+      // Check shift
+      const hours = getStaffWorkingHours(staff, date, dayOfWeek);
+      if (!hours || startTime < hours.startTime || endTime > hours.endTime) {
+        return NextResponse.json(
+          { error: "このスタイリストはこの時間帯に勤務していません" },
+          { status: 400 }
+        );
+      }
+
+      // Check conflicts for this staff only
+      const staffReservations = await prisma.reservation.findMany({
+        where: {
+          date: { gte: startOfDay, lte: endOfDay },
+          status: "CONFIRMED",
+          staffId: requestedStaffId,
+        },
+        select: { startTime: true, endTime: true },
+      });
+
+      const hasConflict = staffReservations.some(
+        (r) => startTime < r.endTime && endTime > r.startTime
       );
+      if (hasConflict) {
+        return NextResponse.json(
+          { error: "申し訳ございません。このスタイリストはこの時間帯に既に予約が入っています" },
+          { status: 409 }
+        );
+      }
+
+      assignedStaffId = staff.id;
+      assignedStaffName = staff.name;
+    } else {
+      // Auto-assign: find available qualified staff
+      const result = await autoAssignStaff(
+        dateStr,
+        date,
+        dayOfWeek,
+        startTime,
+        endTime,
+        menuIds
+      );
+
+      if (!result) {
+        return NextResponse.json(
+          { error: "申し訳ございません。この時間帯は全スタイリストの予約が埋まっています" },
+          { status: 409 }
+        );
+      }
+
+      assignedStaffId = result.staffId;
+      assignedStaffName = result.staffName;
     }
 
     // Create reservation in a transaction
-    // Find or create User record for the guest customer
     const reservation = await prisma.$transaction(async (tx) => {
       // Find existing user by phone, or create a new one
       let user = await tx.user.findFirst({
@@ -332,7 +401,6 @@ export async function POST(request: NextRequest) {
           },
         });
       } else {
-        // Update the existing user's name and email if provided
         user = await tx.user.update({
           where: { id: user.id },
           data: {
@@ -342,7 +410,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Create reservation
+      // Create reservation with staff assignment
       const newReservation = await tx.reservation.create({
         data: {
           userId: user.id,
@@ -359,10 +427,11 @@ export async function POST(request: NextRequest) {
           status: "CONFIRMED",
           paymentMethod: paymentMethod || "ONSITE",
           stripePaymentIntentId: stripePaymentIntentId || null,
+          staffId: assignedStaffId,
+          staffName: assignedStaffName,
         },
       });
 
-      // Create reservation items
       await tx.reservationItem.createMany({
         data: menus.map((menu, index) => ({
           reservationId: newReservation.id,
@@ -375,26 +444,17 @@ export async function POST(request: NextRequest) {
         })),
       });
 
-      // Return the full reservation with relations
       return tx.reservation.findUnique({
         where: { id: newReservation.id },
         include: {
           user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              phone: true,
-            },
+            select: { id: true, name: true, email: true, phone: true },
           },
           coupon: {
-            select: {
-              id: true,
-              code: true,
-              name: true,
-              type: true,
-              value: true,
-            },
+            select: { id: true, code: true, name: true, type: true, value: true },
+          },
+          staff: {
+            select: { id: true, name: true, image: true },
           },
           items: {
             orderBy: { orderIndex: "asc" },

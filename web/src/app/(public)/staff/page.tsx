@@ -1,10 +1,22 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useInView, type Variants } from 'framer-motion';
-import { ArrowRight, Instagram } from 'lucide-react';
+import { ArrowRight, Instagram, Loader2 } from 'lucide-react';
+
+interface StaffMember {
+  id: string;
+  name: string;
+  nameEn: string | null;
+  role: string;
+  image: string | null;
+  bio: string | null;
+  specialties: string; // JSON string
+  experience: string | null;
+  socialMedia: string; // JSON string
+}
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 40 },
@@ -36,32 +48,17 @@ function AnimatedSection({ children, className = '' }: { children: React.ReactNo
   );
 }
 
-const staffMembers = [
-  {
-    id: 1,
-    name: '山田 花子',
-    nameEn: 'Hanako Yamada',
-    role: 'Director',
-    image: '/person1.png',
-    career: '15年',
-    specialties: ['ショートヘア', 'パーマスタイル', 'ヘアケア'],
-    message: '髪のお悩みに寄り添い、ライフスタイルに合った最適なスタイルをご提案いたします。一緒に「なりたい自分」を見つけましょう。',
-    instagram: '@hanako_lumina'
-  },
-  {
-    id: 2,
-    name: '佐藤 美咲',
-    nameEn: 'Misaki Sato',
-    role: 'Top Stylist',
-    image: '/person2.png',
-    career: '10年',
-    specialties: ['カラーリング', 'ハイライト', 'トリートメント'],
-    message: 'お客様の個性を活かした、再現性の高いスタイルを心がけています。カラーのことなら何でもご相談ください。',
-    instagram: '@misaki_lumina'
-  }
-];
-
 export default function StaffPage() {
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/staff')
+      .then(res => res.json())
+      .then(data => setStaffMembers(data.staff || []))
+      .catch(() => setStaffMembers([]))
+      .finally(() => setIsLoading(false));
+  }, []);
   return (
     <div className="min-h-screen bg-[var(--color-cream)] pt-32">
       {/* Hero */}
@@ -85,8 +82,18 @@ export default function StaffPage() {
       {/* Staff List */}
       <AnimatedSection className="pb-32">
         <div className="container-wide">
+          {isLoading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-[var(--color-sage)]" />
+            </div>
+          ) : (
           <div className="space-y-32">
-            {staffMembers.map((staff, index) => (
+            {staffMembers.map((staff, index) => {
+              const specialties: string[] = (() => { try { return JSON.parse(staff.specialties); } catch { return []; } })();
+              const social: Record<string, string> = (() => { try { return JSON.parse(staff.socialMedia); } catch { return {}; } })();
+              const instagram = social.instagram || null;
+
+              return (
               <motion.div
                 key={staff.id}
                 variants={fadeInUp}
@@ -96,15 +103,20 @@ export default function StaffPage() {
               >
                 {/* Image */}
                 <div className={`relative ${index % 2 === 1 ? 'lg:order-2' : ''}`}>
-                  <div className="relative aspect-[3/4] overflow-hidden">
+                  <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
+                    {staff.image ? (
                     <Image
                       src={staff.image}
                       alt={staff.name}
                       fill
                       className="object-cover"
                     />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-6xl font-serif text-[var(--color-sage)]">
+                        {staff.name.charAt(0)}
+                      </div>
+                    )}
                   </div>
-                  {/* Decorative element */}
                   <div className={`absolute w-32 h-32 bg-[var(--color-sage)] opacity-20 -z-10 ${
                     index % 2 === 0 ? '-bottom-6 -right-6' : '-bottom-6 -left-6'
                   }`} />
@@ -128,35 +140,41 @@ export default function StaffPage() {
                       <p className="text-xs tracking-[0.2em] text-[var(--color-warm-gray)] uppercase mb-2">
                         Career
                       </p>
-                      <p className="text-[var(--color-charcoal)]">{staff.career}</p>
+                      <p className="text-[var(--color-charcoal)]">{staff.experience || '-'}</p>
                     </div>
                     <div>
                       <p className="text-xs tracking-[0.2em] text-[var(--color-warm-gray)] uppercase mb-2">
                         Specialties
                       </p>
                       <p className="text-[var(--color-charcoal)]">
-                        {staff.specialties.join(' / ')}
+                        {specialties.join(' / ') || '-'}
                       </p>
                     </div>
                   </div>
 
+                  {staff.bio && (
                   <p className="text-[var(--color-warm-gray)] leading-relaxed mb-8">
-                    {staff.message}
+                    {staff.bio}
                   </p>
+                  )}
 
+                  {instagram && (
                   <a
-                    href={`https://instagram.com/${staff.instagram.replace('@', '')}`}
+                    href={`https://instagram.com/${instagram.replace('@', '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-[var(--color-charcoal)] hover:text-[var(--color-sage)] transition-colors"
                   >
                     <Instagram className="w-5 h-5" />
-                    <span className="text-sm">{staff.instagram}</span>
+                    <span className="text-sm">{instagram}</span>
                   </a>
+                  )}
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
+          )}
         </div>
       </AnimatedSection>
 

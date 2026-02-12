@@ -1,5 +1,5 @@
 // src/app/api/availability/route.ts
-// LUMINA HAIR STUDIO - Availability API
+// LUMINA HAIR STUDIO - Availability API (スタイリスト別対応)
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
@@ -7,9 +7,11 @@ import { getBusinessHours } from "@/constants/salon";
 import {
   generateTimeSlots,
   isWithinBookingWindow,
+  calculateEndTime,
 } from "@/constants/booking";
 import { getClosedDays } from "@/lib/business-settings";
 import { parseLocalDateStart, parseLocalDateEnd } from "@/lib/date-utils";
+import { getStaffWorkingHours, canStaffHandleMenus } from "@/lib/staff-assignment";
 
 interface TimeSlot {
   time: string;
@@ -25,12 +27,13 @@ interface AvailabilityResponse {
   totalPrice?: number;
 }
 
-// GET /api/availability?date=2026-01-15&menuIds=id1,id2
+// GET /api/availability?date=2026-01-15&menuIds=id1,id2&staffId=xxx
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const dateStr = searchParams.get("date");
     const menuIdsParam = searchParams.get("menuIds");
+    const staffIdParam = searchParams.get("staffId");
 
     if (!dateStr) {
       return NextResponse.json(
@@ -61,10 +64,7 @@ export async function GET(request: NextRequest) {
     if (isClosedDay) {
       const specialOpenDays = await prisma.specialOpenDay.findMany({
         where: {
-          date: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
+          date: { gte: startOfDay, lte: endOfDay },
         },
       });
 
@@ -76,19 +76,14 @@ export async function GET(request: NextRequest) {
           slots: [],
         });
       }
-      // If there's a special open day, continue to generate slots
     }
 
     const holidays = await prisma.holiday.findMany({
       where: {
-        date: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
+        date: { gte: startOfDay, lte: endOfDay },
       },
     });
 
-    // If there is an all-day holiday (startTime and endTime are null), fully closed
     const hasAllDayHoliday = holidays.some((h) => !h.startTime && !h.endTime);
     if (hasAllDayHoliday) {
       return NextResponse.json<AvailabilityResponse>({
@@ -99,12 +94,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Time-range holidays (partial closures)
     const timeRangeHolidays = holidays.filter(
       (h) => h.startTime && h.endTime
     );
 
-    // Check if date is within the booking window
     if (!isWithinBookingWindow(date)) {
       return NextResponse.json<AvailabilityResponse>({
         date: dateStr,
@@ -114,18 +107,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fetch menu information (multi-menu support)
+    // Fetch menu information
     let totalDuration = 60;
     let totalPrice = 0;
+    let menuIds: string[] = [];
 
-    // Get business hours for this date (weekday vs weekend/holiday)
     const businessHours = getBusinessHours(date);
-
-    // Last booking time defaults to the business hours setting
     const earliestLastBookingTime: string = businessHours.lastBooking;
 
     if (menuIdsParam) {
-      const menuIds = menuIdsParam.split(",").filter(Boolean);
+      menuIds = menuIdsParam.split(",").filter(Boolean);
 
       const menus = await prisma.menu.findMany({
         where: {
@@ -140,7 +131,6 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      // Verify all requested menus exist
       if (menus.length !== menuIds.length) {
         const foundIds = new Set(menus.map((m) => m.id));
         const invalidMenuId = menuIds.find((id) => !foundIds.has(id));
@@ -150,41 +140,72 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Calculate totals from DB menus
       totalDuration = menus.reduce((sum, menu) => sum + menu.duration, 0);
       totalPrice = menus.reduce((sum, menu) => sum + menu.price, 0);
     }
 
-    // Fetch existing reservations for this day
+    // Fetch qualified staff with schedules and overrides
+    const allStaff = await prisma.staff.findMany({
+      where: { isActive: true },
+      include: {
+        schedules: { where: { isActive: true } },
+        scheduleOverrides: {
+          where: { date: { gte: startOfDay, lte: endOfDay } },
+        },
+        menuAssignments: { select: { menuId: true } },
+      },
+      orderBy: { displayOrder: "asc" },
+    });
+
+    // Filter to staff who can handle the requested menus
+    const qualifiedStaff = allStaff.filter((staff) => {
+      if (menuIds.length === 0) return true;
+      return canStaffHandleMenus(staff, menuIds);
+    });
+
+    // If a specific staff is requested, filter to just them
+    const targetStaff = staffIdParam
+      ? qualifiedStaff.filter((s) => s.id === staffIdParam)
+      : qualifiedStaff;
+
+    if (targetStaff.length === 0) {
+      // No qualified staff available at all
+      return NextResponse.json<AvailabilityResponse>({
+        date: dateStr,
+        dayOfWeek,
+        isClosed: false,
+        slots: generateTimeSlots()
+          .filter((s) => s >= businessHours.open)
+          .map((time) => ({ time, available: false })),
+        totalDuration,
+        totalPrice,
+      });
+    }
+
+    // Fetch existing reservations for this day WITH staffId
     const existingReservations = await prisma.reservation.findMany({
       where: {
-        date: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
+        date: { gte: startOfDay, lte: endOfDay },
         status: "CONFIRMED",
       },
       select: {
+        staffId: true,
         startTime: true,
         endTime: true,
-        totalDuration: true,
       },
     });
 
     // Generate time slots
     const allSlots = generateTimeSlots();
-
-    // Current time check (for today)
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
 
-    // Filter slots to only include those after opening time
     const filteredSlots = allSlots.filter(
       (slotTime) => slotTime >= businessHours.open
     );
 
     const slots: TimeSlot[] = filteredSlots.map((slotTime) => {
-      // 1. Check against last booking time (highest priority)
+      // 1. Check against last booking time
       if (slotTime > earliestLastBookingTime) {
         return { time: slotTime, available: false };
       }
@@ -200,34 +221,41 @@ export async function GET(request: NextRequest) {
       }
 
       // 3. Calculate service end time
-      const [startHours, startMinutes] = slotTime.split(":").map(Number);
-      const endMinutes = startHours * 60 + startMinutes + totalDuration;
-      const endHours = Math.floor(endMinutes / 60);
-      const endMins = endMinutes % 60;
-      const endTime = `${endHours.toString().padStart(2, "0")}:${endMins
-        .toString()
-        .padStart(2, "0")}`;
+      const endTime = calculateEndTime(slotTime, totalDuration);
 
       // 4. Check if service would end after closing time
       if (endTime > businessHours.close) {
         return { time: slotTime, available: false };
       }
 
-      // 5. Check for conflicts with existing reservations
-      const hasConflict = existingReservations.some((reservation) => {
-        const resStart = reservation.startTime;
-        const resEnd = reservation.endTime;
-        return slotTime < resEnd && endTime > resStart;
-      });
-
-      // 6. Check for conflicts with time-range holidays
+      // 5. Check for conflicts with time-range holidays
       const hasHolidayConflict = timeRangeHolidays.some((holiday) => {
-        const holidayStart = holiday.startTime!;
-        const holidayEnd = holiday.endTime!;
-        return slotTime < holidayEnd && endTime > holidayStart;
+        return slotTime < holiday.endTime! && endTime > holiday.startTime!;
+      });
+      if (hasHolidayConflict) {
+        return { time: slotTime, available: false };
+      }
+
+      // 6. Per-stylist availability check
+      // A slot is available if ANY qualified staff member is free
+      const anyStaffAvailable = targetStaff.some((staff) => {
+        // Check if staff works during this time
+        const hours = getStaffWorkingHours(staff, date, dayOfWeek);
+        if (!hours) return false;
+        if (slotTime < hours.startTime || endTime > hours.endTime) return false;
+
+        // Check for conflicts with this staff's reservations
+        const staffReservations = existingReservations.filter(
+          (r) => r.staffId === staff.id
+        );
+        const hasConflict = staffReservations.some(
+          (r) => slotTime < r.endTime && endTime > r.startTime
+        );
+
+        return !hasConflict;
       });
 
-      return { time: slotTime, available: !hasConflict && !hasHolidayConflict };
+      return { time: slotTime, available: anyStaffAvailable };
     });
 
     return NextResponse.json<AvailabilityResponse>({
