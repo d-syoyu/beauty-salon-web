@@ -62,13 +62,15 @@ export default function Home() {
               src="/full.png"
               alt="LUMINA HAIR STUDIO サロン内観"
               fill
-              className="object-cover object-right md:object-center"
+              className="object-cover object-[70%_center] md:object-center"
               priority
             />
           </div>
 
           {/* Multi-layer gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-cream)]/80 via-[var(--color-cream)]/35 to-[var(--color-cream)]/95" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-cream)]/80 via-[var(--color-cream)]/35 to-[var(--color-cream)]/95 md:to-[var(--color-cream)]/95" />
+          {/* Extra mobile bottom overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent via-40% to-[var(--color-cream)]/90 md:hidden" />
           <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-cream)]/50 via-transparent to-transparent hidden md:block" />
 
           {/* Colored blur orbs */}
@@ -152,7 +154,7 @@ export default function Home() {
             </motion.div>
 
             {/* Heading with clip-path reveal on main word */}
-            <h1 className="mb-6 md:mb-8">
+            <h1 className="mb-30 md:mb-8">
               <motion.span
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -173,7 +175,7 @@ export default function Home() {
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ duration: 0.8, delay: 1.2 }}
-              className="w-16 h-[1px] mb-6 md:mb-8 mx-auto md:mx-0 origin-center md:origin-left bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)]/0"
+              className="w-16 h-[1px] mb-8 md:mb-8 mx-auto md:mx-0 origin-center md:origin-left bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)]/0"
             />
 
             {/* Tagline */}
