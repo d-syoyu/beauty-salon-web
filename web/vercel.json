@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/demo-reset",
+      "schedule": "0 19 * * *"
+    }
+  ],
+  "functions": {
+    "src/app/api/cron/demo-reset/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/admin/demo-reset/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}
