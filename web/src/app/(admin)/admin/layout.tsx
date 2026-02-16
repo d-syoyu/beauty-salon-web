@@ -3,6 +3,7 @@
 
 import SessionProvider from "@/components/providers/session-provider";
 import AdminAutoAuth from "@/components/admin/AdminAutoAuth";
+import FloatingBackButton from "@/components/FloatingBackButton";
 
 export const metadata = {
   title: "Admin | LUMINA HAIR STUDIO",
@@ -16,9 +17,10 @@ export default function AdminLayout({
   return (
     <SessionProvider>
       <AdminAutoAuth>
-        <div className="admin-page bg-gray-50 min-h-screen text-gray-900 overflow-x-hidden">
+        <div className="admin-page bg-gray-50 min-h-screen text-gray-900 overflow-x-hidden pb-12 md:pb-0">
           {children}
         </div>
+        <FloatingBackButton />
       </AdminAutoAuth>
     </SessionProvider>
   );
