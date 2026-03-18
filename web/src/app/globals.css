@@ -47,6 +47,36 @@ body {
   overflow-x: hidden;
 }
 
+/* ── Square Web Payments SDK ─────────────────────────────── */
+.square-payment-shell {
+  width: 100%;
+  overflow: visible;
+}
+
+.square-payment-container {
+  width: 100%;
+  margin: 0 auto;
+}
+
+.square-payment-container *,
+.square-payment-container iframe {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.square-payment-container iframe {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+/* Desktop: constrain card form width for readability */
+@media (min-width: 640px) {
+  .square-payment-container {
+    max-width: 480px;
+  }
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-serif), serif;
   font-weight: 400;

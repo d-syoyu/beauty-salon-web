@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,7 +21,7 @@ import MenuSelector, { type MenuItem, type MenuCategory } from '@/components/res
 import CalendarPicker from '@/components/reservation/CalendarPicker';
 import TimeSlotGrid, { type TimeSlot } from '@/components/reservation/TimeSlotGrid';
 import ReservationSummary from '@/components/reservation/ReservationSummary';
-import StripePayment, { confirmStripePayment } from '@/components/reservation/StripePayment';
+import SquarePayment from '@/components/reservation/SquarePayment';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -67,11 +67,16 @@ function formatDateLocal(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+function getStepScrollOffset() {
+  return window.innerWidth < 640 ? 88 : 120;
+}
+
 // ---------------------------------------------------------------------------
 // Page Component
 // ---------------------------------------------------------------------------
 export default function ReservationPage() {
   const router = useRouter();
+  const progressStepsRef = useRef<HTMLDivElement | null>(null);
 
   // ---- Step state ----
   const [step, setStep] = useState(1);
@@ -104,24 +109,13 @@ export default function ReservationPage() {
 
   const handlePaymentMethodChange = (method: 'ONLINE' | 'ONSITE') => {
     setPaymentMethod(method);
-    // Reset Stripe state when switching payment methods
-    if (method === 'ONSITE') {
-      setClientSecret(null);
-      setPaymentIntentId(null);
-      setIsStripeReady(false);
-    }
+    setSubmitError(null);
   };
 
   // ---- Coupon ----
   const [couponCode, setCouponCode] = useState('');
   const [couponResult, setCouponResult] = useState<CouponResult | null>(null);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
-
-  // ---- Stripe ----
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
-  const [isStripeReady, setIsStripeReady] = useState(false);
-  const [isCreatingPaymentIntent, setIsCreatingPaymentIntent] = useState(false);
 
   // ---- Submit ----
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -260,37 +254,26 @@ export default function ReservationPage() {
     setSelectedTime(time);
   };
 
-  const goToStep = async (target: number) => {
-    // Create PaymentIntent when entering Step 4 with ONLINE payment
-    if (target === 4 && paymentMethod === 'ONLINE' && !clientSecret) {
-      setIsCreatingPaymentIntent(true);
-      try {
-        const finalAmount = Math.max(0, totalPrice - couponDiscount);
-        const res = await fetch('/api/payment-intent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amount: finalAmount,
-            menuSummary: selectedMenus.map((m) => m.name).join('、'),
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          setSubmitError(data.error || '決済の初期化に失敗しました');
-          setIsCreatingPaymentIntent(false);
+  const scrollToProgressSteps = () => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const top = progressStepsRef.current?.getBoundingClientRect().top;
+
+        if (top === undefined) {
           return;
         }
-        setClientSecret(data.clientSecret);
-        setPaymentIntentId(data.paymentIntentId);
-      } catch {
-        setSubmitError('決済の初期化に失敗しました');
-        setIsCreatingPaymentIntent(false);
-        return;
-      }
-      setIsCreatingPaymentIntent(false);
-    }
+
+        window.scrollTo({
+          top: Math.max(0, window.scrollY + top - getStepScrollOffset()),
+          behavior: 'smooth',
+        });
+      });
+    });
+  };
+
+  const goToStep = (target: number) => {
     setStep(target);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToProgressSteps();
   };
 
   // Coupon validation
@@ -323,22 +306,6 @@ export default function ReservationPage() {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      // If ONLINE payment, confirm Stripe payment first
-      if (paymentMethod === 'ONLINE') {
-        if (!clientSecret || !paymentIntentId) {
-          setSubmitError('決済の準備ができていません。ページを再読み込みしてください。');
-          setIsSubmitting(false);
-          return;
-        }
-        try {
-          await confirmStripePayment(clientSecret);
-        } catch (err) {
-          setSubmitError(typeof err === 'string' ? err : '決済に失敗しました');
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
       // Create reservation
       const res = await fetch('/api/reservations', {
         method: 'POST',
@@ -355,7 +322,7 @@ export default function ReservationPage() {
           note: note.trim() || undefined,
           couponCode: couponResult?.valid ? couponCode.trim() : undefined,
           paymentMethod,
-          stripePaymentIntentId: paymentMethod === 'ONLINE' ? paymentIntentId : undefined,
+          stripePaymentIntentId: undefined,
         }),
       });
       const data = await res.json();
@@ -430,7 +397,10 @@ export default function ReservationPage() {
       </section>
 
       {/* Progress Steps */}
-      <div className="bg-white py-3 sm:py-5 mb-4 sm:mb-8 border-y border-[var(--color-light-gray)]">
+      <div
+        ref={progressStepsRef}
+        className="bg-white py-3 sm:py-5 mb-4 sm:mb-8 border-y border-[var(--color-light-gray)]"
+      >
         <div className="container-wide">
           <div className="flex items-center justify-center gap-1 sm:gap-3">
             {STEPS.map((s, i) => (
@@ -968,19 +938,19 @@ export default function ReservationPage() {
                     paymentMethod={paymentMethod}
                   />
 
-                  {/* Stripe Payment Element (embedded) */}
-                  {paymentMethod === 'ONLINE' && clientSecret && (
-                    <div className="mt-6 p-5 bg-[var(--color-cream)] border border-[var(--color-light-gray)]">
-                      <StripePayment
-                        clientSecret={clientSecret}
-                        onReady={() => setIsStripeReady(true)}
-                        onError={(msg) => setSubmitError(msg)}
-                      />
+                  {/* Square Payment Element (embedded) */}
+                  {paymentMethod === 'ONLINE' && (
+                    <div className="mt-6 bg-[var(--color-cream)] border border-[var(--color-light-gray)]">
+                      <h3 className="px-3 pt-3 pb-1 sm:px-4 sm:pt-4 flex items-center gap-2 text-sm font-medium text-[var(--color-charcoal)]">
+                        <CreditCard className="w-4 h-4 text-[var(--color-gold)]" />
+                        カード情報の入力
+                      </h3>
+                      <SquarePayment onError={(msg) => setSubmitError(msg)} />
                     </div>
                   )}
 
                   {/* Loading PaymentIntent */}
-                  {paymentMethod === 'ONLINE' && isCreatingPaymentIntent && (
+                  {false && (
                     <div className="mt-6 flex items-center justify-center py-8">
                       <div className="inline-block w-6 h-6 border-2 border-[var(--color-sage)] border-t-transparent rounded-full animate-spin" />
                       <span className="ml-3 text-sm text-[var(--color-warm-gray)]">決済フォームを準備中...</span>
@@ -1013,9 +983,9 @@ export default function ReservationPage() {
                     <button
                       type="button"
                       onClick={handleSubmit}
-                      disabled={isSubmitting || (paymentMethod === 'ONLINE' && !isStripeReady)}
+                      disabled={isSubmitting}
                       className={`flex items-center gap-2 px-10 py-4 text-sm tracking-wider transition-all ${
-                        isSubmitting || (paymentMethod === 'ONLINE' && !isStripeReady)
+                        isSubmitting
                           ? 'bg-gray-400 text-white cursor-wait'
                           : 'rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white hover:shadow-[0_0_20px_rgba(184,149,110,0.3)] hover:-translate-y-0.5'
                       }`}
