@@ -187,11 +187,11 @@ export default function CalendarPicker({
               type="button"
               onClick={() => selectable && onSelect(date)}
               disabled={!selectable}
-              className={`aspect-square flex items-center justify-center text-xs font-medium transition-all rounded relative ${
+              className={`aspect-square flex items-center justify-center text-xs font-medium transition-all rounded-lg relative ${
                 selected
-                  ? 'bg-[var(--color-sage)] text-white'
+                  ? 'bg-gradient-to-br from-[var(--color-gold)] to-[var(--color-gold-light)] text-white shadow-sm'
                   : selectable
-                    ? `hover:bg-[var(--color-sage-light)]/20 ${
+                    ? `hover:bg-[var(--color-gold)]/10 ${
                         today
                           ? 'text-[var(--color-sage)] font-bold'
                           : date.getDay() === 0

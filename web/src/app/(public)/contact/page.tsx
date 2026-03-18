@@ -50,23 +50,23 @@ export default function ContactPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="bg-[var(--color-charcoal)] text-white p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6"
+          className="bg-gradient-to-r from-[var(--color-gold)]/10 to-[var(--color-gold-light)]/10 border border-[var(--color-gold)]/20 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6"
         >
           <div className="text-center md:text-left">
-            <p className="text-lg font-[family-name:var(--font-serif)] mb-1">ご予約はオンラインで承ります</p>
-            <p className="text-sm text-gray-400">お電話でもご予約いただけます: 03-1234-5678</p>
+            <p className="text-lg font-[family-name:var(--font-serif)] text-[var(--color-charcoal)] mb-1">ご予約はオンラインで承ります</p>
+            <p className="text-sm text-[var(--color-warm-gray)]">お電話でもご予約いただけます: 03-1234-5678</p>
           </div>
           <div className="flex gap-4">
             <Link
               href="/reservation"
-              className="flex items-center gap-2 px-8 py-3 bg-[var(--color-sage)] text-white text-sm tracking-wider hover:bg-[var(--color-sage-dark)] transition-all"
+              className="flex items-center gap-2 px-8 py-3 rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white text-sm tracking-wider hover:shadow-[0_0_20px_rgba(184,149,110,0.3)] hover:-translate-y-0.5 transition-all"
             >
               オンライン予約
               <ArrowRight className="w-4 h-4" />
             </Link>
             <a
               href="tel:03-1234-5678"
-              className="flex items-center gap-2 px-8 py-3 bg-white text-[var(--color-charcoal)] text-sm tracking-wider hover:bg-gray-100 transition-all"
+              className="flex items-center gap-2 px-8 py-3 rounded-full border border-[var(--color-gold)] text-[var(--color-charcoal)] text-sm tracking-wider hover:bg-[var(--color-gold)] hover:text-white hover:shadow-[0_0_20px_rgba(184,149,110,0.3)] transition-all"
             >
               <Phone className="w-4 h-4" />
               電話予約
@@ -188,7 +188,7 @@ export default function ContactPage() {
                         disabled={!canSubmit}
                         className={`flex items-center gap-2 px-10 py-4 text-sm tracking-wider transition-all ${
                           canSubmit
-                            ? 'bg-[var(--color-charcoal)] text-white hover:bg-[var(--color-sage)]'
+                            ? 'rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white hover:shadow-[0_0_20px_rgba(184,149,110,0.3)] hover:-translate-y-0.5'
                             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         }`}
                       >

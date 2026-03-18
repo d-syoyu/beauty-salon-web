@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
-  PaymentElement,
+  CardNumberElement,
+  CardExpiryElement,
+  CardCvcElement,
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js';
@@ -13,6 +15,20 @@ import { Lock, AlertCircle } from 'lucide-react';
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
+
+const cardElementStyle = {
+  base: {
+    fontSize: '16px',
+    color: '#2C2C2C',
+    fontFamily: '"Noto Sans JP", system-ui, sans-serif',
+    '::placeholder': {
+      color: '#8B8680',
+    },
+  },
+  invalid: {
+    color: '#ef4444',
+  },
+};
 
 interface StripePaymentFormProps {
   onReady: () => void;
@@ -30,23 +46,26 @@ function StripePaymentForm({ onReady, onError }: StripePaymentFormProps) {
     }
   }, [stripe, elements, onReady]);
 
-  // Expose stripe/elements via a custom event so the parent can trigger confirmation
   useEffect(() => {
     const handler = async (e: Event) => {
       const customEvent = e as CustomEvent;
-      const { resolve, reject } = customEvent.detail;
+      const { resolve, reject, clientSecret } = customEvent.detail;
 
       if (!stripe || !elements) {
         reject('決済の準備ができていません');
         return;
       }
 
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: window.location.origin + '/reservation/complete',
+      const cardNumber = elements.getElement(CardNumberElement);
+      if (!cardNumber) {
+        reject('カード情報が入力されていません');
+        return;
+      }
+
+      const { error } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardNumber,
         },
-        redirect: 'if_required',
       });
 
       if (error) {
@@ -69,15 +88,37 @@ function StripePaymentForm({ onReady, onError }: StripePaymentFormProps) {
           安全な決済（SSL暗号化通信）
         </span>
       </div>
-      <PaymentElement
-        onReady={() => setIsReady(true)}
-        options={{
-          layout: 'tabs',
-        }}
-      />
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-xs text-[var(--color-warm-gray)] mb-2">カード番号</label>
+          <div className="border-2 border-[#F0EDE8] bg-[#FDFBF7] p-3 focus-within:border-[var(--color-gold)] transition-colors">
+            <CardNumberElement
+              onReady={() => setIsReady(true)}
+              options={{ style: cardElementStyle }}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs text-[var(--color-warm-gray)] mb-2">有効期限</label>
+            <div className="border-2 border-[#F0EDE8] bg-[#FDFBF7] p-3 focus-within:border-[var(--color-gold)] transition-colors">
+              <CardExpiryElement options={{ style: cardElementStyle }} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-[var(--color-warm-gray)] mb-2">セキュリティコード</label>
+            <div className="border-2 border-[#F0EDE8] bg-[#FDFBF7] p-3 focus-within:border-[var(--color-gold)] transition-colors">
+              <CardCvcElement options={{ style: cardElementStyle }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {!isReady && (
         <div className="flex items-center justify-center py-4">
-          <div className="inline-block w-5 h-5 border-2 border-[var(--color-sage)] border-t-transparent rounded-full animate-spin" />
+          <div className="inline-block w-5 h-5 border-2 border-[var(--color-gold)] border-t-transparent rounded-full animate-spin" />
           <span className="ml-2 text-sm text-[var(--color-warm-gray)]">決済フォームを読み込み中...</span>
         </div>
       )}
@@ -109,27 +150,12 @@ export default function StripePayment({ clientSecret, onReady, onError }: Stripe
         appearance: {
           theme: 'stripe',
           variables: {
-            colorPrimary: '#6B8E6B',
+            colorPrimary: '#B8956E',
             colorBackground: '#FDFBF7',
             colorText: '#2C2C2C',
             colorDanger: '#ef4444',
             fontFamily: '"Noto Sans JP", system-ui, sans-serif',
             borderRadius: '0px',
-          },
-          rules: {
-            '.Input': {
-              border: '2px solid #F0EDE8',
-              boxShadow: 'none',
-              padding: '12px 16px',
-            },
-            '.Input:focus': {
-              border: '2px solid #6B8E6B',
-              boxShadow: 'none',
-            },
-            '.Label': {
-              fontSize: '12px',
-              color: '#8B8680',
-            },
           },
         },
         locale: 'ja',
@@ -141,10 +167,10 @@ export default function StripePayment({ clientSecret, onReady, onError }: Stripe
 }
 
 // Helper to trigger payment confirmation from outside the Elements context
-export function confirmStripePayment(): Promise<void> {
+export function confirmStripePayment(clientSecret: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const event = new CustomEvent('stripe-confirm-payment', {
-      detail: { resolve, reject },
+      detail: { resolve, reject, clientSecret },
     });
     window.dispatchEvent(event);
   });

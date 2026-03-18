@@ -106,11 +106,11 @@ export default function TimeSlotGrid({
                   type="button"
                   onClick={() => slot.available && onSelect(slot.time)}
                   disabled={!slot.available}
-                  className={`py-2 text-xs sm:text-sm font-medium border transition-all ${
+                  className={`py-2 text-xs sm:text-sm font-medium border rounded-lg transition-all ${
                     selectedTime === slot.time
-                      ? 'bg-[var(--color-sage)] text-white border-[var(--color-sage)]'
+                      ? 'bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white border-[var(--color-gold)] shadow-sm'
                       : slot.available
-                        ? 'border-[var(--color-light-gray)] text-[var(--color-charcoal)] hover:border-[var(--color-sage)] hover:bg-[var(--color-sage)]/5'
+                        ? 'border-[var(--color-light-gray)] text-[var(--color-charcoal)] hover:border-[var(--color-gold-light)] hover:bg-[var(--color-gold)]/5'
                         : 'border-[var(--color-cream-dark)] bg-[var(--color-cream-dark)] text-[var(--color-light-gray)] cursor-not-allowed'
                   }`}
                 >

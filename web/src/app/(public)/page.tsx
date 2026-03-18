@@ -53,7 +53,7 @@ export default function Home() {
     <div ref={containerRef} className="min-h-screen bg-[var(--color-cream)]">
 
       {/* Hero Section */}
-      <section className="relative h-screen flex items-center overflow-hidden hero-noise">
+      <section className="relative h-screen flex items-start pt-[22vh] md:pt-[18vh] overflow-hidden hero-noise">
         {/* === BACKGROUND LAYERS === */}
         <motion.div style={{ scale: heroImageScale }} className="absolute inset-0 z-0">
           {/* Ken Burns animated background */}
@@ -161,7 +161,7 @@ export default function Home() {
             </motion.div>
 
             {/* Heading with clip-path reveal on main word */}
-            <h1 className="mb-12 md:mb-8">
+            <h1 className="mb-6">
               <motion.span
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -190,16 +190,28 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 1.5 }}
-              className="relative inline-block max-w-md mx-auto md:mx-0 mb-10 md:mb-12"
+              className="relative inline-block max-w-md mx-auto md:mx-0 mb-14 md:mb-16"
             >
               <div className="absolute -inset-4 bg-[var(--color-cream)]/75 blur-xl rounded-full md:hidden" />
-              <p className="relative text-[var(--color-warm-gray)] font-light text-sm md:text-base leading-relaxed">
+              <p className="relative text-[var(--color-warm-gray)] font-light text-xs md:text-sm leading-relaxed">
                 自然由来の成分と熟練の技術で<br />
                 心と髪に優しいサロン体験を
               </p>
             </motion.div>
 
-            {/* CTA Buttons - modern style */}
+            {/* CTA accent dots */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 1.6 }}
+              className="flex items-center gap-2 justify-center md:justify-start mb-6"
+            >
+              <div className="w-1 h-1 rounded-full bg-[var(--color-gold)] opacity-30" />
+              <div className="w-1 h-1 rounded-full bg-[var(--color-gold)] opacity-60" />
+              <div className="w-1 h-1 rounded-full bg-[var(--color-gold)] opacity-30" />
+            </motion.div>
+
+            {/* CTA Buttons */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -533,7 +545,7 @@ export default function Home() {
               <motion.div variants={fadeInUp} className="mt-12">
                 <Link
                   href="/contact"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[var(--color-charcoal)] text-sm tracking-[0.2em] uppercase transition-all duration-500 hover:bg-[var(--color-sage)] hover:text-white"
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-full border border-[var(--color-gold)] text-white text-sm tracking-[0.2em] uppercase transition-all duration-500 hover:bg-[var(--color-gold)] hover:text-white hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(184,149,110,0.3)]"
                 >
                   お問い合わせ・ご予約
                   <ArrowRight className="w-4 h-4" />
@@ -554,7 +566,7 @@ export default function Home() {
                   href="https://maps.google.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-3 px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white transition-all duration-300 hover:bg-white hover:text-[var(--color-charcoal)]"
+                  className="group flex items-center gap-3 px-8 py-4 rounded-full bg-white/10 backdrop-blur-sm border border-[var(--color-gold-light)]/50 text-white transition-all duration-300 hover:bg-[var(--color-gold)] hover:border-[var(--color-gold)] hover:text-white hover:shadow-[0_0_20px_rgba(184,149,110,0.3)]"
                 >
                   <MapPin className="w-5 h-5" />
                   <span className="text-sm tracking-[0.15em]">Google Mapsで開く</span>

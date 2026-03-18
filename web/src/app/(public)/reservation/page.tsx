@@ -331,7 +331,7 @@ export default function ReservationPage() {
           return;
         }
         try {
-          await confirmStripePayment();
+          await confirmStripePayment(clientSecret);
         } catch (err) {
           setSubmitError(typeof err === 'string' ? err : '決済に失敗しました');
           setIsSubmitting(false);
@@ -389,39 +389,39 @@ export default function ReservationPage() {
   // Render
   // ---------------------------------------------------------------------------
   return (
-    <div className="min-h-screen bg-[var(--color-cream)] pt-32">
+    <div className="min-h-screen bg-[var(--color-cream)] pt-24 sm:pt-32">
       {/* Hero Header */}
-      <section className="container-wide pb-12">
+      <section className="container-wide pb-6 sm:pb-12">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           className="text-center"
         >
-          <p className="text-subheading mb-4">Reservation</p>
-          <h1 className="text-display mb-6">ご予約</h1>
-          <div className="divider-line mx-auto mb-8" />
-          <p className="text-[var(--color-warm-gray)] max-w-lg mx-auto">
+          <p className="text-subheading mb-2 sm:mb-4">Reservation</p>
+          <h1 className="text-display mb-4 sm:mb-6">ご予約</h1>
+          <div className="divider-line mx-auto mb-4 sm:mb-8" />
+          <p className="text-[var(--color-warm-gray)] max-w-lg mx-auto text-sm sm:text-base">
             複数のメニューを組み合わせてご予約いただけます。
           </p>
         </motion.div>
       </section>
 
       {/* Quick Call CTA */}
-      <section className="container-wide pb-8">
+      <section className="container-wide pb-4 sm:pb-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="bg-[var(--color-charcoal)] text-white p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-4"
+          className="bg-gradient-to-r from-[var(--color-gold)]/10 to-[var(--color-gold-light)]/10 border border-[var(--color-gold)]/20 rounded-2xl p-4 sm:p-6 md:p-8 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4"
         >
-          <div className="text-center md:text-left">
-            <p className="text-sm text-gray-400 mb-1">お急ぎの方・当日予約はお電話で</p>
-            <p className="text-2xl font-light tracking-wider">03-1234-5678</p>
+          <div className="text-center sm:text-left">
+            <p className="text-xs sm:text-sm text-[var(--color-warm-gray)] mb-1">お急ぎの方・当日予約はお電話で</p>
+            <p className="text-xl sm:text-2xl font-light tracking-wider text-[var(--color-charcoal)]">03-1234-5678</p>
           </div>
           <a
             href="tel:03-1234-5678"
-            className="flex items-center gap-2 px-8 py-3 bg-white text-[var(--color-charcoal)] text-sm tracking-wider hover:bg-[var(--color-sage)] hover:text-white transition-all"
+            className="flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white text-sm tracking-wider hover:shadow-[0_0_20px_rgba(184,149,110,0.3)] hover:-translate-y-0.5 transition-all"
           >
             <Phone className="w-4 h-4" />
             今すぐ電話する
@@ -430,7 +430,7 @@ export default function ReservationPage() {
       </section>
 
       {/* Progress Steps */}
-      <div className="bg-white py-5 mb-8 border-y border-[var(--color-light-gray)]">
+      <div className="bg-white py-3 sm:py-5 mb-4 sm:mb-8 border-y border-[var(--color-light-gray)]">
         <div className="container-wide">
           <div className="flex items-center justify-center gap-1 sm:gap-3">
             {STEPS.map((s, i) => (
@@ -439,7 +439,7 @@ export default function ReservationPage() {
                   <div
                     className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium transition-all ${
                       step >= s.num
-                        ? 'bg-[var(--color-sage)] text-white'
+                        ? 'bg-gradient-to-br from-[var(--color-gold)] to-[var(--color-gold-light)] text-white shadow-sm'
                         : 'bg-[var(--color-cream)] text-[var(--color-warm-gray)]'
                     }`}
                   >
@@ -458,7 +458,7 @@ export default function ReservationPage() {
                 {i < STEPS.length - 1 && (
                   <div
                     className={`w-6 sm:w-12 md:w-20 h-[2px] mx-1.5 sm:mx-3 transition-all ${
-                      step > s.num ? 'bg-[var(--color-sage)]' : 'bg-[var(--color-cream)]'
+                      step > s.num ? 'bg-[var(--color-gold)]' : 'bg-[var(--color-cream)]'
                     }`}
                   />
                 )}
@@ -469,7 +469,7 @@ export default function ReservationPage() {
       </div>
 
       {/* Main Content Area */}
-      <div className="container-wide pb-32">
+      <div className="container-wide pb-16 sm:pb-32">
         <div className="max-w-3xl mx-auto">
           <AnimatePresence mode="wait">
             {/* ================================================================ */}
@@ -505,7 +505,7 @@ export default function ReservationPage() {
                       disabled={!canProceedStep1}
                       className={`flex items-center gap-2 px-8 py-3 text-sm tracking-wider transition-all ${
                         canProceedStep1
-                          ? 'bg-[var(--color-charcoal)] text-white hover:bg-[var(--color-sage)]'
+                          ? 'rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white hover:shadow-[0_0_20px_rgba(184,149,110,0.3)] hover:-translate-y-0.5'
                           : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       }`}
                     >
@@ -582,7 +582,7 @@ export default function ReservationPage() {
                       disabled={!canProceedStep2}
                       className={`flex items-center gap-2 px-8 py-3 text-sm tracking-wider transition-all ${
                         canProceedStep2
-                          ? 'bg-[var(--color-charcoal)] text-white hover:bg-[var(--color-sage)]'
+                          ? 'rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white hover:shadow-[0_0_20px_rgba(184,149,110,0.3)] hover:-translate-y-0.5'
                           : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       }`}
                     >
@@ -877,7 +877,7 @@ export default function ReservationPage() {
                           disabled={!couponCode.trim() || isValidatingCoupon}
                           className={`px-5 py-3 text-sm tracking-wider transition-all flex items-center gap-2 ${
                             couponCode.trim()
-                              ? 'bg-[var(--color-charcoal)] text-white hover:bg-[var(--color-sage)]'
+                              ? 'rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white hover:shadow-[0_0_20px_rgba(184,149,110,0.3)] hover:-translate-y-0.5'
                               : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                           }`}
                         >
@@ -918,7 +918,7 @@ export default function ReservationPage() {
                       disabled={!canProceedStep3}
                       className={`flex items-center gap-2 px-8 py-3 text-sm tracking-wider transition-all ${
                         canProceedStep3
-                          ? 'bg-[var(--color-charcoal)] text-white hover:bg-[var(--color-sage)]'
+                          ? 'rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white hover:shadow-[0_0_20px_rgba(184,149,110,0.3)] hover:-translate-y-0.5'
                           : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       }`}
                     >
@@ -1017,7 +1017,7 @@ export default function ReservationPage() {
                       className={`flex items-center gap-2 px-10 py-4 text-sm tracking-wider transition-all ${
                         isSubmitting || (paymentMethod === 'ONLINE' && !isStripeReady)
                           ? 'bg-gray-400 text-white cursor-wait'
-                          : 'bg-[var(--color-sage)] text-white hover:bg-[var(--color-sage-dark)]'
+                          : 'rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white hover:shadow-[0_0_20px_rgba(184,149,110,0.3)] hover:-translate-y-0.5'
                       }`}
                     >
                       {isSubmitting ? (

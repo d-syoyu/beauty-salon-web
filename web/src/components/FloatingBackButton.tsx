@@ -6,15 +6,7 @@ export default function FloatingBackButton() {
       {/* Desktop / Tablet - right edge tab */}
       <a
         href="https://www.soga.ltd/#sample"
-        className="
-          hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-50
-          flex-col items-center gap-3 px-3 py-6
-          bg-charcoal text-cream
-          rounded-l-2xl shadow-xl
-          hover:bg-sage-dark hover:px-5
-          transition-all duration-300 ease-out
-          group
-        "
+        className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-50 flex-col items-center gap-3 px-3 py-6 bg-charcoal text-cream rounded-l-2xl shadow-xl hover:bg-sage-dark hover:px-5 transition-all duration-300 ease-out group"
       >
         {/* X icon */}
         <svg
@@ -41,15 +33,7 @@ export default function FloatingBackButton() {
       {/* Mobile - bottom fixed bar */}
       <a
         href="https://www.soga.ltd/#sample"
-        className="
-          flex md:hidden fixed bottom-0 left-0 right-0 z-50
-          items-center justify-center gap-2
-          py-3 px-6
-          bg-charcoal text-cream
-          shadow-[0_-4px_20px_rgba(0,0,0,0.15)]
-          active:bg-sage-dark
-          transition-colors duration-200
-        "
+        className="flex md:hidden fixed bottom-0 left-0 right-0 z-50 items-center justify-center gap-2 py-3 px-6 bg-charcoal text-cream shadow-[0_-4px_20px_rgba(0,0,0,0.15)] active:bg-sage-dark transition-colors duration-200"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

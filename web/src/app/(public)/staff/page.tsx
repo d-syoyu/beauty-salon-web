@@ -211,7 +211,7 @@ export default function StaffPage() {
           </p>
           <Link
             href="/contact"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[var(--color-charcoal)] text-sm tracking-[0.2em] uppercase transition-all duration-500 hover:bg-[var(--color-sage)] hover:text-white"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-full border border-[var(--color-gold)] text-white text-sm tracking-[0.2em] uppercase transition-all duration-500 hover:bg-[var(--color-gold)] hover:text-white hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(184,149,110,0.3)]"
           >
             ご予約はこちら
             <ArrowRight className="w-4 h-4" />

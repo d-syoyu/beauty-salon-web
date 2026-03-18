@@ -75,12 +75,12 @@ export default function MenuSelector({
               key={category.id}
               type="button"
               onClick={() => setExpandedCategory(isExpanded ? null : category.id)}
-              className={`relative p-4 text-center transition-all duration-300 border ${
+              className={`relative p-4 text-center transition-all duration-300 border rounded-xl ${
                 isExpanded
-                  ? 'border-[var(--color-charcoal)] bg-[var(--color-charcoal)] text-white'
+                  ? 'border-[var(--color-gold)] bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white shadow-[0_0_15px_rgba(184,149,110,0.2)]'
                   : hasSelection
-                    ? 'border-[var(--color-sage)] bg-[var(--color-sage)]/5'
-                    : 'border-[var(--color-light-gray)] hover:border-[var(--color-sage-light)] bg-white'
+                    ? 'border-[var(--color-gold-light)] bg-[var(--color-gold)]/5'
+                    : 'border-[var(--color-light-gray)] hover:border-[var(--color-gold-light)] bg-white'
               }`}
             >
               {/* Category badge */}
@@ -111,7 +111,7 @@ export default function MenuSelector({
 
               {/* Bottom color accent */}
               <div
-                className="absolute bottom-0 left-0 right-0 h-[2px] transition-opacity"
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-[2px] transition-opacity"
                 style={{
                   backgroundColor: color,
                   opacity: hasSelection || isExpanded ? 1 : 0,
@@ -127,13 +127,13 @@ export default function MenuSelector({
         {expandedCategory && (
           <motion.div
             key={expandedCategory}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mb-8 overflow-hidden"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="mb-8"
           >
-            <div className="bg-[var(--color-cream)] p-6">
+            <div className="bg-[var(--color-cream)] p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm tracking-[0.1em] uppercase text-[var(--color-warm-gray)]">
                   {categories.find((c) => c.id === expandedCategory)?.nameEn}
@@ -151,17 +151,16 @@ export default function MenuSelector({
                   .filter((m) => m.categoryId === expandedCategory)
                   .map((menu) => {
                     const isSelected = selectedMenuIds.includes(menu.id);
-                    const color = getCategoryColor(menu.category.name);
 
                     return (
                       <button
                         key={menu.id}
                         type="button"
                         onClick={() => onToggle(menu.id)}
-                        className={`w-full p-4 text-left transition-all duration-200 flex items-center gap-3 ${
+                        className={`w-full p-3 sm:p-4 text-left transition-all duration-200 flex items-center gap-3 rounded-lg ${
                           isSelected
-                            ? 'bg-[var(--color-sage)] text-white'
-                            : 'bg-white hover:bg-[var(--color-sage)]/5 border border-transparent hover:border-[var(--color-sage-light)]'
+                            ? 'bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white shadow-sm'
+                            : 'bg-white hover:bg-[var(--color-gold)]/5 border border-transparent hover:border-[var(--color-gold-light)]'
                         }`}
                       >
                         {/* Checkbox */}

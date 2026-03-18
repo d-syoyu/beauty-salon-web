@@ -80,7 +80,7 @@ const Header = () => {
               <li>
                 <Link
                   href="/reservation"
-                  className="ml-4 px-6 py-3 bg-[var(--color-charcoal)] text-white text-xs tracking-[0.15em] uppercase transition-all duration-300 hover:bg-[var(--color-sage-dark)]"
+                  className="ml-4 px-6 py-3 rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white text-xs tracking-[0.15em] uppercase transition-all duration-300 hover:shadow-[0_0_20px_rgba(184,149,110,0.35)] hover:-translate-y-0.5"
                 >
                   予約する
                 </Link>
