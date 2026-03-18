@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const paymentMethod = searchParams.get("paymentMethod");
+    const staffId = searchParams.get("staffId");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
@@ -30,6 +31,10 @@ export async function GET(request: NextRequest) {
 
     if (paymentMethod) {
       where.paymentMethod = paymentMethod;
+    }
+
+    if (staffId) {
+      where.staffId = staffId;
     }
 
     const sales = await prisma.sale.findMany({
@@ -74,6 +79,9 @@ export async function POST(request: NextRequest) {
       saleDate: bodyDate,
       saleTime: bodyTime,
       taxRate: bodyTaxRate,
+      staffId: bodyStaffId,
+      staffName: bodyStaffName,
+      isNominated,
     } = body;
 
     // Support both: payments array (new) or single paymentMethod (legacy)
@@ -113,43 +121,59 @@ export async function POST(request: NextRequest) {
       ? new Date(new Date(bodyDate).getFullYear(), new Date(bodyDate).getMonth(), new Date(bodyDate).getDate())
       : new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    const sale = await prisma.sale.create({
-      data: {
-        saleNumber,
-        userId: userId || null,
-        customerName: customerName || null,
-        customerPhone: customerPhone || null,
-        reservationId: reservationId || null,
-        subtotal,
-        taxAmount,
-        taxRate,
-        discountAmount: discountAmount || 0,
-        couponId: couponId || null,
-        couponDiscount: couponDiscount || 0,
-        totalAmount,
-        paymentMethod: primaryPaymentMethod,
-        paymentStatus: "PAID",
-        saleDate,
-        saleTime,
-        note: note || null,
-        createdBy: user!.id,
-        items: {
-          create: items.map(
-            (
-              item: {
-                itemType: string;
-                menuId?: string;
-                menuName?: string;
-                categoryId?: string;
-                category?: string;
-                duration?: number;
-                productId?: string;
-                productName?: string;
-                quantity: number;
-                unitPrice: number;
-              },
-              idx: number
-            ) => ({
+    // Auto-fill staff from linked reservation if not provided
+    let resolvedStaffId: string | null = bodyStaffId || null;
+    let resolvedStaffName: string | null = bodyStaffName || null;
+    if (reservationId && !resolvedStaffId) {
+      const linkedReservation = await prisma.reservation.findUnique({
+        where: { id: reservationId },
+        select: { staffId: true, staffName: true },
+      });
+      if (linkedReservation?.staffId) {
+        resolvedStaffId = linkedReservation.staffId;
+        resolvedStaffName = linkedReservation.staffName;
+      }
+    }
+
+    type ItemInput = {
+      itemType: string;
+      menuId?: string;
+      menuName?: string;
+      categoryId?: string;
+      category?: string;
+      duration?: number;
+      productId?: string;
+      productName?: string;
+      quantity: number;
+      unitPrice: number;
+    };
+
+    const sale = await prisma.$transaction(async (tx) => {
+      const created = await tx.sale.create({
+        data: {
+          saleNumber,
+          userId: userId || null,
+          customerName: customerName || null,
+          customerPhone: customerPhone || null,
+          reservationId: reservationId || null,
+          subtotal,
+          taxAmount,
+          taxRate,
+          discountAmount: discountAmount || 0,
+          couponId: couponId || null,
+          couponDiscount: couponDiscount || 0,
+          totalAmount,
+          paymentMethod: primaryPaymentMethod,
+          paymentStatus: "PAID",
+          saleDate,
+          saleTime,
+          note: note || null,
+          createdBy: user!.id,
+          staffId: resolvedStaffId,
+          staffName: resolvedStaffName,
+          isNominated: isNominated ?? false,
+          items: {
+            create: items.map((item: ItemInput, idx: number) => ({
               itemType: item.itemType || "MENU",
               menuId: item.menuId || null,
               menuName: item.menuName || null,
@@ -162,50 +186,63 @@ export async function POST(request: NextRequest) {
               unitPrice: item.unitPrice,
               subtotal: item.unitPrice * (item.quantity || 1),
               orderIndex: idx,
-            })
-          ),
-        },
-        ...(paymentsInput?.length && {
-          payments: {
-            create: paymentsInput.map(
-              (p: { paymentMethod: string; amount: number }, idx: number) => ({
-                paymentMethod: p.paymentMethod,
-                amount: p.amount,
-                orderIndex: idx,
-              })
-            ),
+            })),
           },
-        }),
-      },
-      include: {
-        items: { orderBy: { orderIndex: "asc" } },
-        payments: { orderBy: { orderIndex: "asc" } },
-        user: { select: { name: true } },
-      },
-    });
-
-    // If linked to a reservation, mark it completed
-    if (reservationId) {
-      await prisma.reservation.update({
-        where: { id: reservationId },
-        data: { status: "COMPLETED" },
-      });
-    }
-
-    // Record coupon usage
-    if (couponId) {
-      await prisma.couponUsage.create({
-        data: {
-          couponId,
-          saleId: sale.id,
-          customerId: userId || null,
+          ...(paymentsInput?.length && {
+            payments: {
+              create: paymentsInput.map(
+                (p: { paymentMethod: string; amount: number }, idx: number) => ({
+                  paymentMethod: p.paymentMethod,
+                  amount: p.amount,
+                  orderIndex: idx,
+                })
+              ),
+            },
+          }),
+        },
+        include: {
+          items: { orderBy: { orderIndex: "asc" } },
+          payments: { orderBy: { orderIndex: "asc" } },
+          user: { select: { name: true } },
         },
       });
-      await prisma.coupon.update({
-        where: { id: couponId },
-        data: { usageCount: { increment: 1 } },
-      });
-    }
+
+      // Decrement stock for PRODUCT items
+      const productItems = (items as ItemInput[]).filter(
+        (item) => item.itemType === "PRODUCT" && item.productId
+      );
+      for (const item of productItems) {
+        await tx.product.update({
+          where: { id: item.productId! },
+          data: { stockQuantity: { decrement: item.quantity || 1 } },
+        });
+      }
+
+      // If linked to a reservation, mark it completed
+      if (reservationId) {
+        await tx.reservation.update({
+          where: { id: reservationId },
+          data: { status: "COMPLETED" },
+        });
+      }
+
+      // Record coupon usage
+      if (couponId) {
+        await tx.couponUsage.create({
+          data: {
+            couponId,
+            saleId: created.id,
+            customerId: userId || null,
+          },
+        });
+        await tx.coupon.update({
+          where: { id: couponId },
+          data: { usageCount: { increment: 1 } },
+        });
+      }
+
+      return created;
+    });
 
     return NextResponse.json(sale, { status: 201 });
   } catch (err) {

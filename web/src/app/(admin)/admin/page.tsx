@@ -265,7 +265,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Links */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
           <Link
             href="/admin/reservations"
             className="flex items-center gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
@@ -356,6 +356,7 @@ export default function AdminDashboard() {
               <p className="text-xs text-gray-500 hidden sm:block">メール配信</p>
             </div>
           </Link>
+
         </div>
 
         {/* Today's Reservations */}

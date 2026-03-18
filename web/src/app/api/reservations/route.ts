@@ -312,6 +312,12 @@ export async function POST(request: NextRequest) {
           scheduleOverrides: {
             where: { date: { gte: startOfDay, lte: endOfDay } },
           },
+          leaveRequests: {
+            where: { date: { gte: startOfDay, lte: endOfDay }, status: "approved" },
+          },
+          overtimeRequests: {
+            where: { date: { gte: startOfDay, lte: endOfDay }, status: "approved" },
+          },
           menuAssignments: { select: { menuId: true } },
         },
       });
@@ -332,7 +338,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Check shift
-      const hours = getStaffWorkingHours(staff, date, dayOfWeek);
+      const hours = getStaffWorkingHours(staff, date);
       if (!hours || startTime < hours.startTime || endTime > hours.endTime) {
         return NextResponse.json(
           { error: "このスタイリストはこの時間帯に勤務していません" },
@@ -429,6 +435,7 @@ export async function POST(request: NextRequest) {
           stripePaymentIntentId: stripePaymentIntentId || null,
           staffId: assignedStaffId,
           staffName: assignedStaffName,
+          isFirstVisit: validationResult.data.isFirstVisit ?? null,
         },
       });
 

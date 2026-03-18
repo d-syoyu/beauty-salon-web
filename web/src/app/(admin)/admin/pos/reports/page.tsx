@@ -131,6 +131,8 @@ interface AnalyticsData {
     totalAmount: number;
   };
   dailyTrend: Array<{ date: string; amount: number; count: number }>;
+  staffBreakdown: Array<{ staffId: string; staffName: string; count: number; amount: number }>;
+  firstVisitBreakdown: { firstVisit: number; returning: number; total: number };
 }
 
 export default function ReportsPage() {
@@ -656,6 +658,89 @@ export default function ReportsPage() {
                     </div>
                   </motion.div>
                 )}
+
+                {/* Staff Breakdown & First Visit */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Staff Sales Bar Chart */}
+                  <motion.div initial="hidden" animate="visible" variants={fadeInUp} className="bg-white p-6 rounded-xl shadow-sm">
+                    <h2 className="text-lg font-medium mb-4 flex items-center gap-2"><Users className="w-5 h-5 text-gray-400" />担当者別売上</h2>
+                    {analyticsData.staffBreakdown && analyticsData.staffBreakdown.length > 0 ? (
+                      <>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={analyticsData.staffBreakdown} layout="vertical" margin={{ left: 8, right: 16 }}>
+                              <XAxis type="number" tickFormatter={(v) => formatShortPrice(v)} tick={{ fontSize: 11 }} />
+                              <YAxis type="category" dataKey="staffName" width={72} tick={{ fontSize: 12 }} />
+                              <Tooltip formatter={(v) => [formatPrice(Number(v)), '売上']} />
+                              <Bar dataKey="amount" fill="var(--color-sage)" radius={[0, 4, 4, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="mt-4 divide-y divide-gray-100">
+                          {analyticsData.staffBreakdown.map((s, i) => (
+                            <div key={s.staffId} className="flex items-center justify-between py-2 text-sm">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                                <span>{s.staffName}</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-medium">{formatPrice(s.amount)}</span>
+                                <span className="text-gray-400 ml-2">{s.count}件</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : <p className="text-gray-500 text-center py-8">担当者データがありません</p>}
+                  </motion.div>
+
+                  {/* First Visit Pie Chart */}
+                  <motion.div initial="hidden" animate="visible" variants={fadeInUp} className="bg-white p-6 rounded-xl shadow-sm">
+                    <h2 className="text-lg font-medium mb-4 flex items-center gap-2"><Users className="w-5 h-5 text-gray-400" />新規・リピーター比率</h2>
+                    {analyticsData.firstVisitBreakdown && analyticsData.firstVisitBreakdown.total > 0 ? (
+                      <>
+                        <div className="h-48">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={[
+                                  { name: '新規', value: analyticsData.firstVisitBreakdown.firstVisit },
+                                  { name: 'リピーター', value: analyticsData.firstVisitBreakdown.returning },
+                                ]}
+                                cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={3} dataKey="value"
+                              >
+                                <Cell fill="#4A6B4A" />
+                                <Cell fill="#B8956E" />
+                              </Pie>
+                              <Tooltip formatter={(v, name) => [`${v}件`, name]} />
+                              <Legend wrapperStyle={{ fontSize: '13px' }} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                          <div className="p-3 bg-[var(--color-sage)]/5 rounded-lg text-center">
+                            <p className="text-sm text-gray-500 mb-1">新規</p>
+                            <p className="text-2xl font-light text-[var(--color-sage)]">{analyticsData.firstVisitBreakdown.firstVisit}件</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {analyticsData.firstVisitBreakdown.total > 0
+                                ? Math.round(analyticsData.firstVisitBreakdown.firstVisit / analyticsData.firstVisitBreakdown.total * 100)
+                                : 0}%
+                            </p>
+                          </div>
+                          <div className="p-3 bg-[var(--color-gold)]/5 rounded-lg text-center">
+                            <p className="text-sm text-gray-500 mb-1">リピーター</p>
+                            <p className="text-2xl font-light text-[var(--color-gold)]">{analyticsData.firstVisitBreakdown.returning}件</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {analyticsData.firstVisitBreakdown.total > 0
+                                ? Math.round(analyticsData.firstVisitBreakdown.returning / analyticsData.firstVisitBreakdown.total * 100)
+                                : 0}%
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    ) : <p className="text-gray-500 text-center py-8">予約データがありません</p>}
+                  </motion.div>
+                </div>
               </div>
             )}
           </>

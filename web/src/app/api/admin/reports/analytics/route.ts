@@ -22,13 +22,23 @@ export async function GET(request: NextRequest) {
       : new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
     startDate.setHours(0, 0, 0, 0);
 
-    const sales = await prisma.sale.findMany({
-      where: {
-        saleDate: { gte: startDate, lte: endDate },
-        paymentStatus: "PAID",
-      },
-      include: { items: true, payments: true },
-    });
+    const [sales, reservations] = await Promise.all([
+      prisma.sale.findMany({
+        where: {
+          saleDate: { gte: startDate, lte: endDate },
+          paymentStatus: "PAID",
+        },
+        include: { items: true, payments: true },
+      }),
+      prisma.reservation.findMany({
+        where: {
+          date: { gte: startDate, lte: endDate },
+          status: { not: "CANCELLED" },
+          isFirstVisit: { not: null },
+        },
+        select: { isFirstVisit: true },
+      }),
+    ]);
 
     // Summary
     const totalSales = sales.reduce((sum, sale) => sum + sale.totalAmount, 0);
@@ -125,6 +135,23 @@ export async function GET(request: NextRequest) {
         ? Math.round((categoryData[key].amount / totalMenuAmount) * 1000) / 10 : 0;
     }
 
+    // Staff breakdown
+    const staffData: Record<string, { staffId: string; staffName: string; count: number; amount: number }> = {};
+    for (const sale of sales) {
+      if (sale.staffId) {
+        const key = sale.staffId;
+        if (!staffData[key]) {
+          staffData[key] = { staffId: sale.staffId, staffName: sale.staffName || sale.staffId, count: 0, amount: 0 };
+        }
+        staffData[key].count += 1;
+        staffData[key].amount += sale.totalAmount;
+      }
+    }
+
+    // First visit breakdown
+    const firstVisitCount = reservations.filter((r) => r.isFirstVisit === true).length;
+    const returningCount = reservations.filter((r) => r.isFirstVisit === false).length;
+
     // Daily trend
     const dailyTrend: Record<string, { date: string; amount: number; count: number }> = {};
     for (const sale of sales) {
@@ -177,6 +204,12 @@ export async function GET(request: NextRequest) {
         totalAmount: totalProductAmount,
       },
       dailyTrend: Object.values(dailyTrend).sort((a, b) => a.date.localeCompare(b.date)),
+      staffBreakdown: Object.values(staffData).sort((a, b) => b.amount - a.amount),
+      firstVisitBreakdown: {
+        firstVisit: firstVisitCount,
+        returning: returningCount,
+        total: firstVisitCount + returningCount,
+      },
     });
   } catch (error) {
     console.error("Get analytics error:", error);

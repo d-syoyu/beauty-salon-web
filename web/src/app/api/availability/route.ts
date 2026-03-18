@@ -152,6 +152,12 @@ export async function GET(request: NextRequest) {
         scheduleOverrides: {
           where: { date: { gte: startOfDay, lte: endOfDay } },
         },
+        leaveRequests: {
+          where: { date: { gte: startOfDay, lte: endOfDay }, status: "approved" },
+        },
+        overtimeRequests: {
+          where: { date: { gte: startOfDay, lte: endOfDay }, status: "approved" },
+        },
         menuAssignments: { select: { menuId: true } },
       },
       orderBy: { displayOrder: "asc" },
@@ -240,7 +246,7 @@ export async function GET(request: NextRequest) {
       // A slot is available if ANY qualified staff member is free
       const anyStaffAvailable = targetStaff.some((staff) => {
         // Check if staff works during this time
-        const hours = getStaffWorkingHours(staff, date, dayOfWeek);
+        const hours = getStaffWorkingHours(staff, date);
         if (!hours) return false;
         if (slotTime < hours.startTime || endTime > hours.endTime) return false;
 

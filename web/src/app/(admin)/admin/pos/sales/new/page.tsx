@@ -71,6 +71,8 @@ interface Reservation {
   couponCode: string | null;
   couponDiscount: number;
   paymentMethod: string; // ONLINE | ONSITE
+  staffId: string | null;
+  staffName: string | null;
   user: { id: string; name: string | null; phone: string | null; email: string | null };
   items: { id: string; menuId: string; menuName: string; category: string; price: number; duration: number }[];
 }
@@ -80,6 +82,12 @@ interface Customer {
   name: string | null;
   phone: string | null;
   email: string | null;
+}
+
+interface StaffData {
+  id: string;
+  name: string;
+  isActive: boolean;
 }
 
 interface AppliedCoupon {
@@ -111,7 +119,7 @@ type Step = 1 | 2 | 3 | 4;
 
 const STEPS = [
   { step: 1, label: '会計元・日時', icon: Calendar },
-  { step: 2, label: '施術メニュー', icon: MenuIcon },
+  { step: 2, label: 'メニュー・商品', icon: MenuIcon },
   { step: 3, label: '割引・クーポン', icon: Ticket },
   { step: 4, label: '支払・確認', icon: Receipt },
 ] as const;
@@ -130,6 +138,7 @@ export default function NewSalePage() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodSetting[]>([]);
   const [taxRate, setTaxRate] = useState(10);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [staffList, setStaffList] = useState<StaffData[]>([]);
 
   // Source
   const [sourceType, setSourceType] = useState<SourceType>('walkin');
@@ -137,6 +146,17 @@ export default function NewSalePage() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  // Staff selection
+  const [selectedStaffId, setSelectedStaffId] = useState<string>('');
+  const [selectedStaffName, setSelectedStaffName] = useState<string>('');
+
+  // Products
+  type ProductItem = { productId: string; productName: string; categoryName: string; quantity: number; unitPrice: number };
+  const [productList, setProductList] = useState<(ProductItem & { id: string; stockQuantity: number })[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<ProductItem[]>([]);
+  const [step2Tab, setStep2Tab] = useState<'menu' | 'product'>('menu');
+  const [productSearch, setProductSearch] = useState('');
 
   // Customer search
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
@@ -195,6 +215,13 @@ export default function NewSalePage() {
           setAvailableCoupons(d.filter((c: AvailableCoupon) => c.isActive));
         }
       }),
+      fetch('/api/admin/staff').then(r => r.json()).then(d => {
+        const list = Array.isArray(d) ? d : d.staff || [];
+        setStaffList(list.filter((s: StaffData) => s.isActive));
+      }),
+      fetch('/api/admin/pos/products?isActive=true&limit=200').then(r => r.json()).then(d => {
+        setProductList(d.products || []);
+      }),
     ]).catch(console.error).finally(() => setIsLoading(false));
   }, []);
 
@@ -232,6 +259,8 @@ export default function NewSalePage() {
     setSelectedUserId(reservation.user.id);
     setCustomerName(reservation.user.name || '');
     setCustomerPhone(reservation.user.phone || '');
+    setSelectedStaffId(reservation.staffId || '');
+    setSelectedStaffName(reservation.staffName || '');
     const menuIds = reservation.items.map(item => {
       const dbMenu = menus.find(m => m.name === item.menuName);
       return dbMenu?.id || item.menuId;
@@ -268,6 +297,8 @@ export default function NewSalePage() {
     setDiscountNote('');
     setAppliedCoupon(null);
     setCouponCode('');
+    setSelectedStaffId('');
+    setSelectedStaffName('');
   };
 
   // Helpers
@@ -279,9 +310,11 @@ export default function NewSalePage() {
 
   // Calculations
   const calculateSubtotal = useMemo(() => {
-    return selectedMenuIds.reduce((sum, menuId) => sum + getEffectivePrice(menuId), 0);
+    const menuTotal = selectedMenuIds.reduce((sum, menuId) => sum + getEffectivePrice(menuId), 0);
+    const productTotal = selectedProducts.reduce((sum, p) => sum + p.unitPrice * p.quantity, 0);
+    return menuTotal + productTotal;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMenuIds, menus, priceOverrides]);
+  }, [selectedMenuIds, menus, priceOverrides, selectedProducts]);
 
   const getCouponDiscount = useMemo(() => appliedCoupon?.discountAmount || 0, [appliedCoupon]);
 
@@ -397,7 +430,7 @@ export default function NewSalePage() {
 
     setIsSubmitting(true);
     try {
-      const items = selectedMenuIds.map(menuId => {
+      const menuItems = selectedMenuIds.map(menuId => {
         const menu = menus.find(m => m.id === menuId);
         return menu ? {
           itemType: 'MENU' as const, menuId: menu.id, menuName: menu.name,
@@ -405,6 +438,17 @@ export default function NewSalePage() {
           unitPrice: getEffectivePrice(menuId),
         } : null;
       }).filter(Boolean);
+
+      const productItems = selectedProducts.map(p => ({
+        itemType: 'PRODUCT' as const,
+        productId: p.productId,
+        productName: p.productName,
+        category: p.categoryName,
+        quantity: p.quantity,
+        unitPrice: p.unitPrice,
+      }));
+
+      const items = [...menuItems, ...productItems];
 
       // 備考に割引理由を追記
       let fullNote = note || '';
@@ -425,6 +469,9 @@ export default function NewSalePage() {
           couponId: appliedCoupon?.id,
           couponDiscount: getCouponDiscount,
           saleDate, saleTime, note: fullNote || undefined,
+          staffId: selectedStaffId || undefined,
+          staffName: selectedStaffName || undefined,
+          isNominated: sourceType === 'walkin' && !!selectedStaffId,
         }),
       });
       const data = await res.json();
@@ -446,6 +493,7 @@ export default function NewSalePage() {
 
   const canProceedFromStep = (step: Step): boolean => {
     if (step === 1) return selectedReservation ? true : !!(selectedUserId || customerName.trim());
+    if (step === 2) return selectedMenuIds.length > 0 || selectedProducts.length > 0;
     if (step === 4) return calculateTotal > 0 && paymentTotal === calculateTotal;
     return true;
   };
@@ -619,6 +667,30 @@ export default function NewSalePage() {
                   )}
                 </div>
 
+                {/* Staff selection */}
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+                    <User className="w-5 h-5 text-[var(--color-gold)]" />担当スタイリスト
+                  </h2>
+                  <select
+                    value={selectedStaffId}
+                    onChange={e => {
+                      const staff = staffList.find(s => s.id === e.target.value);
+                      setSelectedStaffId(e.target.value);
+                      setSelectedStaffName(staff?.name || '');
+                    }}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-[var(--color-sage)]"
+                  >
+                    <option value="">指名なし（フリー）</option>
+                    {staffList.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                  {selectedReservation?.staffId && selectedStaffId === selectedReservation.staffId && (
+                    <p className="mt-1 text-xs text-gray-400">予約から自動設定されました</p>
+                  )}
+                </div>
+
                 {/* Date/Time */}
                 <div className="bg-white rounded-xl shadow-sm p-6">
                   <h2 className="text-lg font-medium mb-4 flex items-center gap-2"><Clock className="w-5 h-5 text-[var(--color-gold)]" />日時・備考</h2>
@@ -651,10 +723,22 @@ export default function NewSalePage() {
               </div>
             )}
 
-            {/* Step 2: Menus */}
+            {/* Step 2: Menus & Products */}
             {currentStep === 2 && (
               <div className="space-y-6">
                 <div className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="flex gap-2 mb-4">
+                    <button type="button" onClick={() => setStep2Tab('menu')}
+                      className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-colors ${step2Tab === 'menu' ? 'border-[var(--color-sage)] bg-[var(--color-sage)]/5 text-[var(--color-sage)]' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                      施術メニュー{selectedMenuIds.length > 0 && ` (${selectedMenuIds.length})`}
+                    </button>
+                    <button type="button" onClick={() => setStep2Tab('product')}
+                      className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-colors ${step2Tab === 'product' ? 'border-[var(--color-sage)] bg-[var(--color-sage)]/5 text-[var(--color-sage)]' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                      店販商品{selectedProducts.length > 0 && ` (${selectedProducts.length})`}
+                    </button>
+                  </div>
+
+                  {step2Tab === 'menu' && (<>
                   <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
                     <MenuIcon className="w-5 h-5 text-[var(--color-gold)]" />施術メニュー
                     {selectedMenuIds.length > 0 && <span className="px-2 py-0.5 text-xs bg-[var(--color-gold)] text-white rounded-full">{selectedMenuIds.length}</span>}
@@ -701,6 +785,52 @@ export default function NewSalePage() {
                       });
                     })()}
                   </div>
+
+                  </>)}
+
+                  {step2Tab === 'product' && (
+                    <div>
+                      <h2 className="text-lg font-medium mb-3 flex items-center gap-2">
+                        <Plus className="w-5 h-5 text-[var(--color-gold)]" />店販商品
+                      </h2>
+                      <input type="text" value={productSearch} onChange={e => setProductSearch(e.target.value)}
+                        placeholder="商品名・カテゴリで検索..."
+                        className="w-full mb-3 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-[var(--color-sage)]" />
+                      <div className="space-y-2 max-h-72 overflow-y-auto">
+                        {productList
+                          .filter(p => !productSearch || p.productName.includes(productSearch) || p.categoryName.includes(productSearch))
+                          .map(product => {
+                            const selected = selectedProducts.find(p => p.productId === product.id);
+                            return (
+                              <div key={product.id} className="flex items-center gap-3 p-2 border border-gray-100 rounded-lg hover:border-gray-200">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm truncate">{product.productName}</p>
+                                  <p className="text-xs text-gray-500">{product.categoryName} / 在庫: {product.stockQuantity}</p>
+                                </div>
+                                <p className="text-[var(--color-gold)] font-medium text-sm flex-shrink-0">¥{product.unitPrice.toLocaleString()}</p>
+                                {selected ? (
+                                  <div className="flex items-center gap-1 flex-shrink-0">
+                                    <button type="button" onClick={() => setSelectedProducts(prev => prev.map(p => p.productId === product.id ? { ...p, quantity: Math.max(1, p.quantity - 1) } : p))}
+                                      className="w-6 h-6 flex items-center justify-center border border-gray-200 rounded text-sm hover:bg-gray-50">-</button>
+                                    <span className="w-6 text-center text-sm">{selected.quantity}</span>
+                                    <button type="button" onClick={() => setSelectedProducts(prev => prev.map(p => p.productId === product.id ? { ...p, quantity: p.quantity + 1 } : p))}
+                                      className="w-6 h-6 flex items-center justify-center border border-gray-200 rounded text-sm hover:bg-gray-50">+</button>
+                                    <button type="button" onClick={() => setSelectedProducts(prev => prev.filter(p => p.productId !== product.id))}
+                                      className="p-1 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                                  </div>
+                                ) : (
+                                  <button type="button" onClick={() => setSelectedProducts(prev => [...prev, { productId: product.id, productName: product.productName, categoryName: product.categoryName, quantity: 1, unitPrice: product.unitPrice }])}
+                                    className="p-1.5 border border-gray-200 rounded-lg hover:bg-[var(--color-sage)]/10 flex-shrink-0">
+                                    <Plus className="w-4 h-4 text-gray-500" />
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        {productList.length === 0 && <p className="text-center text-gray-400 py-4 text-sm">商品がありません</p>}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {selectedMenuIds.length > 0 && (
@@ -758,13 +888,36 @@ export default function NewSalePage() {
                   </div>
                 )}
 
+                {selectedProducts.length > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">選択中の店販商品</h3>
+                    <div className="space-y-2">
+                      {selectedProducts.map(p => (
+                        <div key={p.productId} className="flex items-center justify-between p-2 bg-white rounded-lg border border-amber-100">
+                          <p className="text-sm font-medium">{p.productName}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[var(--color-gold)] font-medium text-sm">¥{(p.unitPrice * p.quantity).toLocaleString()}</span>
+                            <span className="text-xs text-gray-400">×{p.quantity}</span>
+                            <button type="button" onClick={() => setSelectedProducts(prev => prev.filter(sp => sp.productId !== p.productId))}
+                              className="p-1 text-gray-400 hover:text-red-500"><X className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-between">
                   <button type="button" onClick={goToPrevStep} className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
                     <ArrowLeft className="w-5 h-5" />戻る
                   </button>
-                  <button type="button" onClick={goToNextStep} className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 font-medium">
-                    次へ：割引・クーポン<ArrowRight className="w-5 h-5" />
-                  </button>
+                  <div className="flex flex-col items-end gap-2">
+                    {!canProceedFromStep(2) && <p className="text-sm text-red-500">メニューまたは商品を選択してください</p>}
+                    <button type="button" onClick={goToNextStep} disabled={!canProceedFromStep(2)}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                      次へ：割引・クーポン<ArrowRight className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

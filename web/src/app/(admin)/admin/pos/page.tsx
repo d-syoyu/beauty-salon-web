@@ -12,6 +12,7 @@ import {
   Clock,
   CreditCard,
   BarChart3,
+  Package,
 } from 'lucide-react';
 
 interface SaleItem {
@@ -150,7 +151,7 @@ export default function POSDashboard() {
         </div>
 
         {/* Quick Links */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
           <Link href="/admin/pos/sales/new" className="flex items-center gap-3 p-4 bg-gray-800 text-white rounded-xl shadow-sm hover:bg-gray-700 transition-colors">
             <div className="p-2 bg-white/10 rounded-lg"><CreditCard className="w-5 h-5" /></div>
             <div><p className="font-medium text-sm">新規会計</p><p className="text-xs text-gray-300">会計を作成</p></div>
@@ -166,6 +167,10 @@ export default function POSDashboard() {
           <Link href="/admin/pos/settings" className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
             <div className="p-2 bg-gray-500/10 rounded-lg"><Settings className="w-5 h-5 text-gray-600" /></div>
             <div><p className="font-medium text-sm">POS設定</p><p className="text-xs text-gray-500">決済・税率</p></div>
+          </Link>
+          <Link href="/admin/pos/products" className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="p-2 bg-purple-500/10 rounded-lg"><Package className="w-5 h-5 text-purple-600" /></div>
+            <div><p className="font-medium text-sm">店販商品</p><p className="text-xs text-gray-500">在庫管理</p></div>
           </Link>
           <Link href="/admin/pos/reports" className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
             <div className="p-2 bg-blue-500/10 rounded-lg"><TrendingUp className="w-5 h-5 text-blue-600" /></div>

@@ -25,6 +25,8 @@ interface Sale {
   id: string;
   saleNumber: string;
   customerName: string | null;
+  staffName: string | null;
+  isNominated: boolean;
   saleDate: string;
   saleTime: string;
   subtotal: number;
@@ -162,6 +164,7 @@ export default function AdminSalesPage() {
                 <p className="text-sm truncate">{sale.items.map(i => i.menuName || i.productName).join(', ')}</p>
                 <p className="text-xs text-gray-500">
                   {sale.customerName || sale.user?.name || 'ウォークイン'}
+                  {sale.staffName && ` / ${sale.staffName}${sale.isNominated ? '（指名）' : ''}`}
                   {' / '}{PAYMENT_METHOD_LABELS[sale.paymentMethod] || sale.paymentMethod}
                   {sale.coupon && ` / クーポン: ${sale.coupon.code}`}
                 </p>
@@ -170,6 +173,9 @@ export default function AdminSalesPage() {
                 <p className="font-medium text-amber-600">¥{sale.totalAmount.toLocaleString()}</p>
                 {sale.discountAmount > 0 && <p className="text-xs text-red-500">-¥{sale.discountAmount.toLocaleString()}</p>}
               </div>
+              <Link href={`/admin/pos/sales/${sale.id}`} className="p-2 text-gray-400 hover:bg-gray-50 rounded-lg flex-shrink-0 text-xs whitespace-nowrap">
+                詳細
+              </Link>
               <button onClick={() => { setDeletingSale(sale); setIsDeleteModalOpen(true); }} className="p-2 text-red-400 hover:bg-red-50 rounded-lg flex-shrink-0">
                 <Trash2 className="w-4 h-4" />
               </button>

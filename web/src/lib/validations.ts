@@ -15,6 +15,7 @@ export const createReservationSchema = z.object({
   paymentMethod: z.enum(["ONLINE", "ONSITE"]).default("ONSITE"),
   stripePaymentIntentId: z.string().optional(),
   staffId: z.string().optional(),
+  isFirstVisit: z.boolean().optional(),
 });
 
 export const cancelReservationSchema = z.object({

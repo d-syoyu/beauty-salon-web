@@ -25,6 +25,7 @@ export async function GET(
         reservation: {
           select: { id: true, date: true, startTime: true, endTime: true, menuSummary: true },
         },
+        staff: { select: { id: true, name: true } },
         createdByUser: { select: { name: true } },
       },
     });
@@ -44,7 +45,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await checkAdminAuth();
+  const { error, user } = await checkAdminAuth();
   if (error) return error;
 
   try {
@@ -56,19 +57,50 @@ export async function PUT(
       return NextResponse.json({ error: "売上が見つかりません" }, { status: 404 });
     }
 
+    const updateData: Record<string, unknown> = {};
+    const auditEntries: Array<{ changedField: string; oldValue: string; newValue: string }> = [];
+
+    const trackField = (
+      field: keyof typeof existing,
+      newVal: string | null | undefined
+    ) => {
+      if (newVal !== undefined && String(newVal) !== String(existing[field] ?? "")) {
+        updateData[field] = newVal;
+        auditEntries.push({
+          changedField: field,
+          oldValue: String(existing[field] ?? ""),
+          newValue: String(newVal ?? ""),
+        });
+      }
+    };
+
+    trackField("paymentMethod", body.paymentMethod);
+    trackField("paymentStatus", body.paymentStatus);
+    trackField("note", body.note);
+    trackField("customerName", body.customerName);
+
     const sale = await prisma.sale.update({
       where: { id },
-      data: {
-        ...(body.paymentMethod !== undefined && { paymentMethod: body.paymentMethod }),
-        ...(body.paymentStatus !== undefined && { paymentStatus: body.paymentStatus }),
-        ...(body.note !== undefined && { note: body.note }),
-        ...(body.customerName !== undefined && { customerName: body.customerName }),
-      },
+      data: updateData,
       include: {
         items: { orderBy: { orderIndex: "asc" } },
         user: { select: { name: true } },
       },
     });
+
+    // Write audit log (best-effort — does not roll back the update)
+    if (auditEntries.length > 0) {
+      await prisma.saleAuditLog.createMany({
+        data: auditEntries.map((e) => ({
+          saleId: id,
+          action: "UPDATE",
+          changedField: e.changedField,
+          oldValue: e.oldValue,
+          newValue: e.newValue,
+          actedBy: user?.id ?? null,
+        })),
+      });
+    }
 
     return NextResponse.json(sale);
   } catch (err) {
@@ -81,7 +113,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await checkAdminAuth();
+  const { error, user } = await checkAdminAuth();
   if (error) return error;
 
   try {
@@ -91,6 +123,15 @@ export async function DELETE(
     if (!existing) {
       return NextResponse.json({ error: "売上が見つかりません" }, { status: 404 });
     }
+
+    // Log before deletion (cascade will remove the log too, but that's acceptable for hard-deletes)
+    await prisma.saleAuditLog.create({
+      data: {
+        saleId: id,
+        action: "DELETE",
+        actedBy: user?.id ?? null,
+      },
+    });
 
     await prisma.sale.delete({ where: { id } });
 

@@ -255,6 +255,7 @@ export default function AdminCustomersPage() {
                   <p className="text-xs text-gray-500">¥{getTotalRevenue(customer.reservations).toLocaleString()}</p>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
+                  <Link href={`/admin/customers/${customer.id}`} onClick={e => e.stopPropagation()} className="px-2.5 py-1.5 text-xs text-gray-500 border border-gray-200 hover:bg-gray-50 rounded-lg">詳細</Link>
                   <button onClick={(e) => { e.stopPropagation(); openEditModal(customer); }} className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg"><Pencil className="w-4 h-4" /></button>
                   <button onClick={(e) => { e.stopPropagation(); setDeletingCustomer(customer); setIsDeleteDialogOpen(true); }} className="p-2 text-red-400 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                   <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${expandedCustomerId === customer.id ? 'rotate-180' : ''}`} />

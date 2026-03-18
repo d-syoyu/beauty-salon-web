@@ -399,12 +399,18 @@ export async function POST(request: NextRequest) {
           update: {
             startTime: row.startTime,
             endTime: row.endTime,
+            breakMinutes: 0,
+            status: "scheduled",
+            source: "csv_import",
           },
           create: {
             staffId: row.staffId!,
             date,
             startTime: row.startTime,
             endTime: row.endTime,
+            breakMinutes: 0,
+            status: "scheduled",
+            source: "csv_import",
           },
         });
       }
