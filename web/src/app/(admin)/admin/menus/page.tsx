@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -89,6 +90,8 @@ const emptyProductForm = () => ({
 });
 
 function AdminMenusPageInner() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>('menus');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -128,7 +131,7 @@ function AdminMenusPageInner() {
     else if (tab === 'categories') setActiveTab('categories');
   }, [searchParams]);
 
-  useEffect(() => { fetchData(); fetchProducts(); }, []);
+  useEffect(() => { if (!canLoad) return; fetchData(); fetchProducts(); }, [canLoad]);
 
   const fetchData = async () => {
     setIsLoading(true);

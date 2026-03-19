@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { ArrowLeft, Check, ClipboardList, RefreshCcw, X } from 'lucide-react';
 import { formatLocalDate } from '@/lib/date-utils';
@@ -62,6 +63,8 @@ function getInitials(name: string): string {
 }
 
 export default function RequestsPage() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const [requests, setRequests] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('全て');
@@ -80,7 +83,7 @@ export default function RequestsPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (!canLoad) return; load(); }, [canLoad, load]);
 
   async function handleApprove(requestKey: string) {
     setProcessingKey(requestKey);

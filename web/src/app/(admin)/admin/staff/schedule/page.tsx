@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { ArrowLeft, CalendarDays, ClipboardList, RefreshCcw, X } from 'lucide-react';
 import { formatLocalDate } from '@/lib/date-utils';
@@ -64,6 +65,8 @@ function AttendanceStatusBadge({ status }: { status: string }) {
 }
 
 export default function StaffSchedulePage() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const [selectedDate, setSelectedDate] = useState(formatLocalDate(new Date()));
   const [dayOps, setDayOps] = useState<{ summary?: Record<string, number>; rows?: DayOpsRow[] } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,7 +84,7 @@ export default function StaffSchedulePage() {
     }
   }, []);
 
-  useEffect(() => { void loadData(selectedDate); }, [loadData, selectedDate]);
+  useEffect(() => { if (!canLoad) return; void loadData(selectedDate); }, [canLoad, loadData, selectedDate]);
 
   async function act(task: () => Promise<void>, successMsg: string) {
     try {

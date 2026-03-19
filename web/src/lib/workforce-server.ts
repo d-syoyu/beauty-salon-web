@@ -187,6 +187,52 @@ export async function getLeaveBalance(tx: Tx, staffId: string, leaveTypeCode = "
   };
 }
 
+export async function getLeaveBalancesForAll(
+  tx: Tx,
+  staffIds: string[],
+  leaveTypeCode = "PAID_LEAVE"
+): Promise<Record<string, { leaveTypeId: string | null; leaveTypeCode: string; leaveTypeName: string; granted: number; used: number; remaining: number }>> {
+  if (staffIds.length === 0) return {};
+
+  const leaveType = await tx.leaveType.findUnique({
+    where: { code: leaveTypeCode },
+    select: { id: true, code: true, name: true },
+  });
+  if (!leaveType) {
+    return Object.fromEntries(
+      staffIds.map((id) => [id, { leaveTypeId: null, leaveTypeCode, leaveTypeName: leaveTypeCode, granted: 0, used: 0, remaining: 0 }])
+    );
+  }
+
+  const allGrants = await tx.leaveGrant.findMany({
+    where: { staffId: { in: staffIds }, leaveTypeId: leaveType.id },
+    orderBy: [{ expireDate: "asc" }, { grantDate: "asc" }],
+  });
+
+  const grantsByStaff = new Map<string, typeof allGrants>();
+  for (const grant of allGrants) {
+    const list = grantsByStaff.get(grant.staffId) ?? [];
+    list.push(grant);
+    grantsByStaff.set(grant.staffId, list);
+  }
+
+  const result: Record<string, { leaveTypeId: string | null; leaveTypeCode: string; leaveTypeName: string; granted: number; used: number; remaining: number }> = {};
+  for (const staffId of staffIds) {
+    const grants = grantsByStaff.get(staffId) ?? [];
+    const granted = grants.reduce((sum, g) => sum + g.grantedDays + g.remainingManualAdjustment, 0);
+    const used = grants.reduce((sum, g) => sum + g.usedDays, 0);
+    result[staffId] = {
+      leaveTypeId: leaveType.id,
+      leaveTypeCode: leaveType.code,
+      leaveTypeName: leaveType.name,
+      granted,
+      used,
+      remaining: Math.max(granted - used, 0),
+    };
+  }
+  return result;
+}
+
 export async function consumeLeaveBalance(
   tx: Tx,
   staffId: string,

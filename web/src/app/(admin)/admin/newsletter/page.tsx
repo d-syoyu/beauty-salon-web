@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -17,6 +18,8 @@ interface SubscriberStats {
 }
 
 export default function NewsletterPage() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isPreview, setIsPreview] = useState(false);
@@ -25,7 +28,7 @@ export default function NewsletterPage() {
   const [subscriberStats, setSubscriberStats] = useState<SubscriberStats | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  useEffect(() => { fetchSubscriberCount(); }, []);
+  useEffect(() => { if (!canLoad) return; fetchSubscriberCount(); }, [canLoad]);
 
   useEffect(() => {
     if (toast) {

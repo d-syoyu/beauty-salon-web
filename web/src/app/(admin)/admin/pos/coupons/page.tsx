@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -38,6 +39,8 @@ interface Coupon {
 }
 
 export default function AdminCouponsPage() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +57,7 @@ export default function AdminCouponsPage() {
     onlyFirstTime: false, onlyReturning: false, isActive: true,
   });
 
-  useEffect(() => { fetchCoupons(); }, []);
+  useEffect(() => { if (!canLoad) return; fetchCoupons(); }, [canLoad]);
 
   const fetchCoupons = async () => {
     setIsLoading(true);

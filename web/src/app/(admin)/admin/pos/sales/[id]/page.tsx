@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, AlertTriangle, Check, X, RotateCcw, Ban, Clock } from 'lucide-react';
@@ -81,6 +82,8 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export default function SaleDetailPage() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const { id } = useParams<{ id: string }>();
   const [sale, setSale] = useState<Sale | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
@@ -100,6 +103,7 @@ export default function SaleDetailPage() {
   const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
+    if (!canLoad) return;
     Promise.all([
       fetch(`/api/admin/sales/${id}`).then(r => r.json()),
       fetch(`/api/admin/sales/${id}/audit`).then(r => r.json()),
@@ -107,7 +111,7 @@ export default function SaleDetailPage() {
       setSale(saleData.error ? null : saleData);
       setAuditLogs(Array.isArray(auditData) ? auditData : []);
     }).finally(() => setIsLoading(false));
-  }, [id]);
+  }, [canLoad, id]);
 
   const handleRefund = async () => {
     if (!refundAmount || !refundReason.trim()) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -53,11 +54,13 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
 export default function POSDashboard() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const [todaySales, setTodaySales] = useState<Sale[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { if (!canLoad) return; fetchData(); }, [canLoad]);
 
   const formatLocalDate = (date: Date) => {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;

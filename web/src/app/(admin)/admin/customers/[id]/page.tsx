@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, User, BookOpen, Plus, Pencil, Trash2, AlertTriangle, X, Check } from 'lucide-react';
@@ -62,6 +63,8 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function CustomerDetailPage() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<'info' | 'karte'>('info');
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -77,6 +80,7 @@ export default function CustomerDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    if (!canLoad) return;
     Promise.all([
       fetch(`/api/admin/customers/${id}`).then(r => r.json()),
       fetch(`/api/admin/customers/${id}/karte`).then(r => r.json()),
@@ -87,7 +91,7 @@ export default function CustomerDetailPage() {
       const list = Array.isArray(sData) ? sData : sData.staff || [];
       setStaffList(list.filter((s: Staff & { isActive: boolean }) => s.isActive));
     }).finally(() => setIsLoading(false));
-  }, [id]);
+  }, [canLoad, id]);
 
   const openCreate = () => {
     setEditingKarte(null);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -114,6 +115,8 @@ interface ConfirmDialog {
 }
 
 function AdminReservationsContent() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const searchParams = useSearchParams();
   const dateParam = searchParams.get('date');
   const highlightId = searchParams.get('highlight');
@@ -153,6 +156,7 @@ function AdminReservationsContent() {
 
   // Fetch staff list once
   useEffect(() => {
+    if (!canLoad) return;
     fetch('/api/admin/staff')
       .then((r) => r.json())
       .then((data) => {
@@ -164,12 +168,13 @@ function AdminReservationsContent() {
         setStaffList(list);
       })
       .catch(() => {});
-  }, []);
+  }, [canLoad]);
 
   useEffect(() => {
+    if (!canLoad) return;
     fetchReservations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, statusFilter, staffFilter, page]);
+  }, [canLoad, selectedDate, statusFilter, staffFilter, page]);
 
   const fetchReservations = async () => {
     setIsLoading(true);

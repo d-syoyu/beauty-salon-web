@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -125,6 +126,8 @@ const STEPS = [
 ] as const;
 
 export default function NewSalePage() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const router = useRouter();
 
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -197,6 +200,7 @@ export default function NewSalePage() {
 
   // Fetch data
   useEffect(() => {
+    if (!canLoad) return;
     Promise.all([
       fetch('/api/admin/menus').then(r => r.json()).then(d => setMenus(Array.isArray(d) ? d.filter((m: MenuData) => m.isActive) : [])),
       fetch('/api/admin/payment-methods').then(r => r.json()).then(d => {
@@ -223,7 +227,7 @@ export default function NewSalePage() {
         setProductList(d.products || []);
       }),
     ]).catch(console.error).finally(() => setIsLoading(false));
-  }, []);
+  }, [canLoad]);
 
   // Customer search
   useEffect(() => {

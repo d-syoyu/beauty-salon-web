@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -136,6 +137,8 @@ interface AnalyticsData {
 }
 
 export default function ReportsPage() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const [activeTab, setActiveTab] = useState<TabType>('daily');
 
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -157,11 +160,12 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!canLoad) return;
     if (activeTab === 'daily') fetchDailyReport();
     else if (activeTab === 'monthly') fetchMonthlyReport();
     else fetchAnalytics();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, selectedDate, selectedYear, selectedMonth, analyticsStartDate, analyticsEndDate]);
+  }, [canLoad, activeTab, selectedDate, selectedYear, selectedMonth, analyticsStartDate, analyticsEndDate]);
 
   const fetchDailyReport = async () => {
     setIsLoading(true);

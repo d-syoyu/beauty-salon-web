@@ -2,15 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkAdminAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatLocalDate, parseLocalDateEnd, parseLocalDateStart } from "@/lib/date-utils";
-import { buildTodayOpsRow, ensureAutoLeaveGrants, getLeaveBalance, loadStaffShiftSubjects } from "@/lib/workforce-server";
+import { buildTodayOpsRow, getLeaveBalancesForAll, loadStaffShiftSubjects } from "@/lib/workforce-server";
 
 export async function GET(request: NextRequest) {
   const { error } = await checkAdminAuth();
   if (error) return error;
 
   try {
-    await ensureAutoLeaveGrants();
-
     const dateStr = request.nextUrl.searchParams.get("date") || formatLocalDate(new Date());
     const date = new Date(`${dateStr}T12:00:00`);
     const start = parseLocalDateStart(dateStr);
@@ -49,18 +47,17 @@ export async function GET(request: NextRequest) {
       pendingCounts.set(requestItem.staffId, (pendingCounts.get(requestItem.staffId) || 0) + 1);
     }
 
-    const rows = await Promise.all(
-      staff.map(async (member) => {
-        const baseRow = buildTodayOpsRow(member, date);
-        const leaveBalance = await getLeaveBalance(prisma, member.id);
-        return {
-          ...baseRow,
-          reservationCount: reservationCounts.get(member.id) || 0,
-          pendingRequestCount: baseRow.pendingRequestCount + (pendingCounts.get(member.id) || 0),
-          leaveBalance,
-        };
-      })
-    );
+    const leaveBalances = await getLeaveBalancesForAll(prisma, staff.map((m) => m.id));
+
+    const rows = staff.map((member) => {
+      const baseRow = buildTodayOpsRow(member, date);
+      return {
+        ...baseRow,
+        reservationCount: reservationCounts.get(member.id) || 0,
+        pendingRequestCount: baseRow.pendingRequestCount + (pendingCounts.get(member.id) || 0),
+        leaveBalance: leaveBalances[member.id],
+      };
+    });
 
     const summary = {
       scheduledCount: rows.filter((row) => row.shift?.isWorking).length,

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, RefreshCcw, Send } from 'lucide-react';
 import { CATEGORY_COLORS } from '@/constants/menu';
@@ -152,6 +153,8 @@ function isToday(date: Date): boolean {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function MonthlyShiftPage() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const today = new Date();
   const [yyyymm, setYyyymm] = useState(toYYYYMM(today.getFullYear(), today.getMonth() + 1));
   const [staff, setStaff] = useState<StaffRow[]>([]);
@@ -182,7 +185,7 @@ export default function MonthlyShiftPage() {
     }
   }, [year, month]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (!canLoad) return; load(); }, [canLoad, load]);
 
   function getShift(staffId: string, date: string, serverShift: Shift | null): Shift | null {
     return localOverrides.get(`${staffId}__${date}`) ?? serverShift;

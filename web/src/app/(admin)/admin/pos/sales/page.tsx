@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -60,6 +61,8 @@ const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string }> = 
 };
 
 export default function AdminSalesPage() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
@@ -70,8 +73,9 @@ export default function AdminSalesPage() {
   const [deletingSale, setDeletingSale] = useState<Sale | null>(null);
 
   useEffect(() => {
+    if (!canLoad) return;
     fetchSales();
-  }, []);
+  }, [canLoad]);
 
   const fetchSales = async () => {
     setIsLoading(true);

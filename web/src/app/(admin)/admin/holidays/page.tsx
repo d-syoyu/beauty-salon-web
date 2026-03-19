@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -36,6 +37,8 @@ interface SpecialOpenDay {
 }
 
 export default function AdminHolidaysPage() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [specialOpenDays, setSpecialOpenDays] = useState<SpecialOpenDay[]>([]);
@@ -106,7 +109,7 @@ export default function AdminHolidaysPage() {
     setIsLoading(false);
   }, [fetchSettings, fetchHolidays, fetchSpecialOpenDays]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { if (!canLoad) return; fetchAll(); }, [canLoad, fetchAll]);
 
   const showSuccess = (msg: string) => { setSuccess(msg); setTimeout(() => setSuccess(null), 3000); };
   const showError = (msg: string) => { setError(msg); setTimeout(() => setError(null), 5000); };

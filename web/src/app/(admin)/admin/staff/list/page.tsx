@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -56,6 +57,8 @@ interface MenuItem {
 }
 
 export default function StaffListPage() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +84,7 @@ export default function StaffListPage() {
     experience: '', specialties: '', socialMedia: '', displayOrder: 0, isActive: true,
   });
 
-  useEffect(() => { fetchStaff(); }, []);
+  useEffect(() => { if (!canLoad) return; fetchStaff(); }, [canLoad]);
 
   const fetchStaff = async () => {
     setIsLoading(true);

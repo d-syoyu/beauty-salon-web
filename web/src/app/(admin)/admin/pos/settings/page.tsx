@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -27,6 +28,8 @@ interface SettingsData {
 }
 
 export default function POSSettingsPage() {
+  const { data: session, status } = useSession();
+  const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [settings, setSettings] = useState<SettingsData>({ taxRate: 10 });
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +49,7 @@ export default function POSSettingsPage() {
   const [editTaxRate, setEditTaxRate] = useState(10);
   const [isSavingTax, setIsSavingTax] = useState(false);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { if (!canLoad) return; fetchAll(); }, [canLoad]);
 
   const fetchAll = async () => {
     setIsLoading(true);
