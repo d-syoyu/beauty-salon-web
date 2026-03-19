@@ -10,7 +10,7 @@ import { isWithinBookingWindow, calculateEndTime } from "@/constants/booking";
 import { parseLocalDate, parseLocalDateStart, parseLocalDateEnd } from "@/lib/date-utils";
 import { validateCoupon } from "@/lib/coupon-validation";
 import { getClosedDays } from "@/lib/business-settings";
-import { autoAssignStaff, getStaffWorkingHours, canStaffHandleMenus } from "@/lib/staff-assignment";
+import { autoAssignStaff, getStaffWorkingSegments, canStaffHandleMenus } from "@/lib/staff-assignment";
 
 // DB Menu type
 interface DbMenu {
@@ -337,9 +337,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Check shift
-      const hours = getStaffWorkingHours(staff, date);
-      if (!hours || startTime < hours.startTime || endTime > hours.endTime) {
+      // Check shift (supports split shifts)
+      const segs = getStaffWorkingSegments(staff, date);
+      if (!segs || !segs.some((seg) => startTime >= seg.startTime && endTime <= seg.endTime)) {
         return NextResponse.json(
           { error: "このスタイリストはこの時間帯に勤務していません" },
           { status: 400 }

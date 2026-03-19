@@ -382,6 +382,7 @@ model StaffScheduleOverride {
   date         DateTime
   startTime    String?
   endTime      String?
+  timeSegments Json?
   breakMinutes Int      @default(0)
   status       String   @default("scheduled")
   note         String?

@@ -19,6 +19,11 @@ export type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
 export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
 export type LeaveUnit = (typeof LEAVE_UNITS)[number];
 
+export interface ShiftSegment {
+  startTime: string;
+  endTime: string;
+}
+
 export interface ShiftLike {
   startTime: string | null;
   endTime: string | null;
@@ -64,12 +69,14 @@ export interface ShiftSubjectLike {
 export interface ShiftLikeWithDate extends ShiftLike {
   date: Date | string;
   patternCode?: string | null;
+  timeSegments?: unknown;
 }
 
 export interface EffectiveShift {
   isWorking: boolean;
   startTime: string | null;
   endTime: string | null;
+  segments?: ShiftSegment[];
   breakMinutes: number;
   status: ShiftStatus;
   note?: string | null;
@@ -115,7 +122,12 @@ export function isSameLocalDate(left: Date | string, right: Date | string): bool
 function pickBaseShift(subject: ShiftSubjectLike, date: Date): EffectiveShift | null {
   const override = subject.scheduleOverrides?.find((item) => isSameLocalDate(item.date, date));
   if (override) {
-    if (!override.startTime || !override.endTime) {
+    const rawSegments = override.timeSegments as ShiftSegment[] | null | undefined;
+    const segments = Array.isArray(rawSegments) && rawSegments.length > 0 ? rawSegments : null;
+    const effectiveStart = segments ? segments[0].startTime : override.startTime;
+    const effectiveEnd = segments ? segments[segments.length - 1].endTime : override.endTime;
+
+    if (!effectiveStart || !effectiveEnd) {
       return {
         isWorking: false,
         startTime: null,
@@ -129,8 +141,9 @@ function pickBaseShift(subject: ShiftSubjectLike, date: Date): EffectiveShift | 
     }
     return {
       isWorking: true,
-      startTime: override.startTime,
-      endTime: override.endTime,
+      startTime: effectiveStart,
+      endTime: effectiveEnd,
+      segments: segments ?? undefined,
       breakMinutes: override.breakMinutes ?? 0,
       status: ((override.status as ShiftStatus) || "scheduled"),
       note: override.note,

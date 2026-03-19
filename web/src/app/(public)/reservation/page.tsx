@@ -198,6 +198,15 @@ export default function ReservationPage() {
     }
   }, [selectedMenuIds]);
 
+  // Auto-select stylist when only one is available for the chosen menus
+  useEffect(() => {
+    if (staffList.length === 1) {
+      setSelectedStylist(staffList[0].id);
+    } else if (staffList.length === 0) {
+      setSelectedStylist('');
+    }
+  }, [staffList]);
+
   // Fetch availability when date, menu, or stylist changes
   useEffect(() => {
     if (selectedDate && selectedMenuIds.length > 0) {
@@ -252,6 +261,13 @@ export default function ReservationPage() {
 
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
+  };
+
+  const handleStylistSelect = (staffId: string) => {
+    setSelectedStylist(staffId);
+    setSelectedDate(null);
+    setSelectedTime(null);
+    setAvailability(null);
   };
 
   const scrollToProgressSteps = () => {
@@ -467,6 +483,74 @@ export default function ReservationPage() {
                     onClearAll={handleClearMenus}
                   />
 
+                  {/* Stylist Selection (shown after menus are selected) */}
+                  {selectedMenuIds.length > 0 && (
+                    <div className="mt-8 pt-8 border-t border-[var(--color-cream)]">
+                      <h3 className="text-sm font-medium mb-1 text-center">
+                        スタイリストを選択
+                      </h3>
+                      <p className="text-xs text-[var(--color-warm-gray)] text-center mb-5">
+                        選択したスタイリストの空き時間から日時を選べます
+                      </p>
+                      {isLoadingStaff ? (
+                        <div className="flex items-center justify-center py-6">
+                          <div className="inline-block w-6 h-6 border-2 border-[var(--color-sage)] border-t-transparent rounded-full animate-spin" />
+                          <span className="ml-3 text-sm text-[var(--color-warm-gray)]">スタッフを読み込み中...</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap justify-center gap-4">
+                          {/* 指名なし — hidden when only one stylist (auto-selected) */}
+                          {staffList.length !== 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleStylistSelect('')}
+                              className={`p-4 text-center transition-all border-2 w-32 ${
+                                selectedStylist === ''
+                                  ? 'border-[var(--color-sage)] bg-[var(--color-sage)]/5'
+                                  : 'border-[var(--color-cream)] hover:border-[var(--color-sage-light)]'
+                              }`}
+                            >
+                              <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-[var(--color-cream)] flex items-center justify-center">
+                                <User className="w-8 h-8 text-[var(--color-warm-gray)]" />
+                              </div>
+                              <p className="text-sm font-medium">指名なし</p>
+                              <p className="text-xs text-[var(--color-warm-gray)]">スタッフにお任せ</p>
+                            </button>
+                          )}
+                          {staffList.map((staff) => (
+                            <button
+                              key={staff.id}
+                              type="button"
+                              onClick={() => handleStylistSelect(staff.id)}
+                              className={`p-4 text-center transition-all border-2 w-32 ${
+                                selectedStylist === staff.id
+                                  ? 'border-[var(--color-sage)] bg-[var(--color-sage)]/5'
+                                  : 'border-[var(--color-cream)] hover:border-[var(--color-sage-light)]'
+                              }`}
+                            >
+                              {staff.image ? (
+                                <div className="relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden">
+                                  <Image
+                                    src={staff.image}
+                                    alt={staff.name}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-[var(--color-cream)] flex items-center justify-center">
+                                  <User className="w-8 h-8 text-[var(--color-warm-gray)]" />
+                                </div>
+                              )}
+                              <p className="text-sm font-medium">{staff.name}</p>
+                              <p className="text-xs text-[var(--color-warm-gray)]">{staff.role}</p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Next Button */}
                   <div className="flex justify-end mt-8">
                     <button
@@ -512,6 +596,17 @@ export default function ReservationPage() {
                     totalPrice={totalPrice}
                     compact
                   />
+
+                  {/* Selected stylist badge */}
+                  {selectedStylist && (() => {
+                    const st = staffList.find(s => s.id === selectedStylist);
+                    return st ? (
+                      <div className="flex items-center justify-center gap-2 mt-3 text-xs text-[var(--color-sage)]">
+                        <User className="w-3.5 h-3.5" />
+                        <span>{st.name} の空き枠を表示しています</span>
+                      </div>
+                    ) : null;
+                  })()}
 
                   <div className="mt-6 space-y-6">
                     {/* Calendar */}
@@ -681,72 +776,6 @@ export default function ReservationPage() {
                         className="w-full px-4 py-3 bg-[var(--color-cream)] border-2 border-transparent focus:border-[var(--color-sage)] outline-none transition-all"
                         placeholder="example@email.com"
                       />
-                    </div>
-
-                    {/* Stylist Selection */}
-                    <div>
-                      <h3 className="text-sm font-medium mb-4">
-                        スタイリストを選択（任意）
-                      </h3>
-                      {isLoadingStaff ? (
-                        <div className="flex items-center justify-center py-6">
-                          <div className="inline-block w-6 h-6 border-2 border-[var(--color-sage)] border-t-transparent rounded-full animate-spin" />
-                          <span className="ml-3 text-sm text-[var(--color-warm-gray)]">スタッフを読み込み中...</span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-wrap justify-center gap-4">
-                          {/* 指名なし option - always first */}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedStylist('')}
-                            className={`p-4 text-center transition-all border-2 w-32 ${
-                              selectedStylist === ''
-                                ? 'border-[var(--color-sage)] bg-[var(--color-sage)]/5'
-                                : 'border-[var(--color-cream)] hover:border-[var(--color-sage-light)]'
-                            }`}
-                          >
-                            <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-[var(--color-cream)] flex items-center justify-center">
-                              <User className="w-8 h-8 text-[var(--color-warm-gray)]" />
-                            </div>
-                            <p className="text-sm font-medium">指名なし</p>
-                            <p className="text-xs text-[var(--color-warm-gray)]">
-                              スタッフにお任せ
-                            </p>
-                          </button>
-                          {/* Dynamic staff from database */}
-                          {staffList.map((staff) => (
-                            <button
-                              key={staff.id}
-                              type="button"
-                              onClick={() => setSelectedStylist(staff.id)}
-                              className={`p-4 text-center transition-all border-2 w-32 ${
-                                selectedStylist === staff.id
-                                  ? 'border-[var(--color-sage)] bg-[var(--color-sage)]/5'
-                                  : 'border-[var(--color-cream)] hover:border-[var(--color-sage-light)]'
-                              }`}
-                            >
-                              {staff.image ? (
-                                <div className="relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden">
-                                  <Image
-                                    src={staff.image}
-                                    alt={staff.name}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-[var(--color-cream)] flex items-center justify-center">
-                                  <User className="w-8 h-8 text-[var(--color-warm-gray)]" />
-                                </div>
-                              )}
-                              <p className="text-sm font-medium">{staff.name}</p>
-                              <p className="text-xs text-[var(--color-warm-gray)]">
-                                {staff.role}
-                              </p>
-                            </button>
-                          ))}
-                        </div>
-                      )}
                     </div>
 
                     {/* Note */}

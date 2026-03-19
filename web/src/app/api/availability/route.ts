@@ -11,7 +11,7 @@ import {
 } from "@/constants/booking";
 import { getClosedDays } from "@/lib/business-settings";
 import { parseLocalDateStart, parseLocalDateEnd } from "@/lib/date-utils";
-import { getStaffWorkingHours, canStaffHandleMenus } from "@/lib/staff-assignment";
+import { getStaffWorkingSegments, canStaffHandleMenus } from "@/lib/staff-assignment";
 
 interface TimeSlot {
   time: string;
@@ -245,10 +245,10 @@ export async function GET(request: NextRequest) {
       // 6. Per-stylist availability check
       // A slot is available if ANY qualified staff member is free
       const anyStaffAvailable = targetStaff.some((staff) => {
-        // Check if staff works during this time
-        const hours = getStaffWorkingHours(staff, date);
-        if (!hours) return false;
-        if (slotTime < hours.startTime || endTime > hours.endTime) return false;
+        // Check if staff works during this time (supports split shifts)
+        const segs = getStaffWorkingSegments(staff, date);
+        if (!segs) return false;
+        if (!segs.some((seg) => slotTime >= seg.startTime && endTime <= seg.endTime)) return false;
 
         // Check for conflicts with this staff's reservations
         const staffReservations = existingReservations.filter(

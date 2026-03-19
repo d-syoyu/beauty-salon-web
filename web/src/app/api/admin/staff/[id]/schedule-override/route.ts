@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkAdminAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { parseLocalDate } from "@/lib/date-utils";
+import { Prisma } from "@prisma/client";
 
 export async function PUT(
   request: NextRequest,
@@ -18,13 +19,27 @@ export async function PUT(
     }
 
     const parsedDate = parseLocalDate(body.date);
+
+    // segments が2件以上の場合はJSONで保存し、startTime/endTimeは先頭・末尾に設定
+    const segments: { startTime: string; endTime: string }[] | null =
+      Array.isArray(body.segments) && body.segments.length >= 2 ? body.segments : null;
+    const primaryStart = segments ? segments[0].startTime : (body.startTime ?? null);
+    const primaryEnd = segments ? segments[segments.length - 1].endTime : (body.endTime ?? null);
+    const isWorking = !!(primaryStart && primaryEnd);
+    const defaultStatus = body.status || (isWorking ? "scheduled" : "off");
+
+    const timeSegmentsValue = segments
+      ? (segments as Prisma.InputJsonValue)
+      : Prisma.JsonNull;
+
     const override = await prisma.staffScheduleOverride.upsert({
       where: { staffId_date: { staffId: id, date: parsedDate } },
       update: {
-        startTime: body.startTime ?? null,
-        endTime: body.endTime ?? null,
+        startTime: primaryStart,
+        endTime: primaryEnd,
+        timeSegments: timeSegmentsValue,
         breakMinutes: body.breakMinutes ?? 0,
-        status: body.status || (body.startTime && body.endTime ? "scheduled" : "off"),
+        status: defaultStatus,
         note: body.note ?? null,
         source: body.source || "manual",
         publishedAt: body.publishedAt ? new Date(body.publishedAt) : undefined,
@@ -33,10 +48,11 @@ export async function PUT(
       create: {
         staffId: id,
         date: parsedDate,
-        startTime: body.startTime ?? null,
-        endTime: body.endTime ?? null,
+        startTime: primaryStart,
+        endTime: primaryEnd,
+        timeSegments: timeSegmentsValue,
         breakMinutes: body.breakMinutes ?? 0,
-        status: body.status || (body.startTime && body.endTime ? "scheduled" : "off"),
+        status: defaultStatus,
         note: body.note ?? null,
         source: body.source || "manual",
         publishedAt: body.publishedAt ? new Date(body.publishedAt) : null,

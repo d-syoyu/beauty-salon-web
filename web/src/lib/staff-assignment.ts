@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { formatLocalDate, parseLocalDateEnd, parseLocalDateStart } from "@/lib/date-utils";
-import { getEffectiveShift } from "@/lib/workforce-core";
+import { getEffectiveShift, ShiftSegment } from "@/lib/workforce-core";
 
 interface StaffWithDetails {
   id: string;
@@ -11,6 +11,7 @@ interface StaffWithDetails {
     date: Date;
     startTime: string | null;
     endTime: string | null;
+    timeSegments?: unknown;
     breakMinutes: number;
     status: string;
     note: string | null;
@@ -42,6 +43,16 @@ export function getStaffWorkingHours(
   const shift = getEffectiveShift(staff, date);
   if (!shift?.isWorking || !shift.startTime || !shift.endTime) return null;
   return { startTime: shift.startTime, endTime: shift.endTime };
+}
+
+export function getStaffWorkingSegments(
+  staff: StaffWithDetails,
+  date: Date
+): ShiftSegment[] | null {
+  const shift = getEffectiveShift(staff, date);
+  if (!shift?.isWorking || !shift.startTime || !shift.endTime) return null;
+  if (shift.segments && shift.segments.length > 0) return shift.segments;
+  return [{ startTime: shift.startTime, endTime: shift.endTime }];
 }
 
 export function canStaffHandleMenus(
@@ -83,9 +94,9 @@ export async function getQualifiedStaff(
   });
 
   return allStaff.filter((staff) => {
-    const hours = getStaffWorkingHours(staff, date);
-    if (!hours) return false;
-    if (startTime < hours.startTime || endTime > hours.endTime) return false;
+    const segs = getStaffWorkingSegments(staff, date);
+    if (!segs) return false;
+    if (!segs.some((seg) => startTime >= seg.startTime && endTime <= seg.endTime)) return false;
     return canStaffHandleMenus(staff, menuIds);
   });
 }

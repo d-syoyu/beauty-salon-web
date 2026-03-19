@@ -8,10 +8,13 @@ import { CATEGORY_COLORS } from '@/constants/menu';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type ShiftSegment = { startTime: string; endTime: string };
+
 type Shift = {
   isWorking: boolean;
   startTime: string | null;
   endTime: string | null;
+  segments?: ShiftSegment[];
   breakMinutes: number;
   status: string;
   note?: string | null;
@@ -126,6 +129,16 @@ function getCellDisplay(shift: Shift | null): { bg: string; text: string; lines:
       return { bg: 'bg-yellow-50', text: 'text-yellow-700 font-semibold', lines: ['休'] };
     }
     return { bg: 'bg-gray-50', text: 'text-gray-300', lines: ['—'] };
+  }
+  const segs = shift.segments && shift.segments.length >= 2 ? shift.segments : null;
+  if (segs) {
+    const first = segs[0].startTime.slice(0, 5);
+    const extra = segs.length - 1;
+    return {
+      bg: shift.status === 'published' ? 'bg-emerald-50' : 'bg-green-50',
+      text: 'text-green-800 text-[11px] leading-tight font-medium',
+      lines: [first, `+${extra}`],
+    };
   }
   const start = shift.startTime?.slice(0, 5) ?? '';
   const end = shift.endTime?.slice(0, 5) ?? '';
@@ -470,8 +483,13 @@ function ShiftEditOverlay({
       ? (cell.shift?.status === 'leave' ? 'leave' : 'off')
       : 'work'
   );
-  const [startTime, setStartTime] = useState(cell.shift?.startTime?.slice(0, 5) ?? '10:00');
-  const [endTime, setEndTime] = useState(cell.shift?.endTime?.slice(0, 5) ?? '19:00');
+
+  const initSegments = (): ShiftSegment[] => {
+    if (cell.shift?.segments && cell.shift.segments.length >= 2) return cell.shift.segments;
+    return [{ startTime: cell.shift?.startTime?.slice(0, 5) ?? '10:00', endTime: cell.shift?.endTime?.slice(0, 5) ?? '19:00' }];
+  };
+
+  const [segments, setSegments] = useState<ShiftSegment[]>(initSegments);
   const [breakMin, setBreakMin] = useState(String(cell.shift?.breakMinutes ?? 60));
   const [saving, setSaving] = useState(false);
 
@@ -482,9 +500,24 @@ function ShiftEditOverlay({
 
   function applyPattern(p: ShiftPattern) {
     setMode('work');
-    setStartTime(p.startTime.slice(0, 5));
-    setEndTime(p.endTime.slice(0, 5));
+    setSegments([{ startTime: p.startTime.slice(0, 5), endTime: p.endTime.slice(0, 5) }]);
     setBreakMin(String(p.breakMinutes));
+  }
+
+  function addSegment() {
+    const last = segments[segments.length - 1];
+    const lastEndHour = parseInt(last.endTime.split(':')[0], 10);
+    const newStart = `${String(Math.min(lastEndHour + 1, 22)).padStart(2, '0')}:00`;
+    const newEnd = `${String(Math.min(lastEndHour + 3, 23)).padStart(2, '0')}:00`;
+    setSegments(prev => [...prev, { startTime: newStart, endTime: newEnd }]);
+  }
+
+  function removeSegment(idx: number) {
+    setSegments(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  function updateSegment(idx: number, field: 'startTime' | 'endTime', value: string) {
+    setSegments(prev => prev.map((seg, i) => i === idx ? { ...seg, [field]: value } : seg));
   }
 
   async function handleSave() {
@@ -492,7 +525,16 @@ function ShiftEditOverlay({
     try {
       let body: Record<string, unknown>;
       if (mode === 'work') {
-        body = { date: cell.date, startTime, endTime, breakMinutes: Number(breakMin), status: 'scheduled', source: 'manual' };
+        const useSegments = segments.length >= 2 ? segments : null;
+        body = {
+          date: cell.date,
+          segments: useSegments,
+          startTime: segments[0].startTime,
+          endTime: segments[0].endTime,
+          breakMinutes: Number(breakMin),
+          status: 'scheduled',
+          source: 'manual',
+        };
       } else if (mode === 'leave') {
         body = { date: cell.date, startTime: null, endTime: null, breakMinutes: 0, status: 'leave', source: 'manual' };
       } else {
@@ -506,10 +548,12 @@ function ShiftEditOverlay({
       });
 
       if (res.ok) {
+        const useSegments = mode === 'work' && segments.length >= 2 ? segments : undefined;
         const newShift: Shift = {
           isWorking: mode === 'work',
-          startTime: mode === 'work' ? startTime : null,
-          endTime: mode === 'work' ? endTime : null,
+          startTime: mode === 'work' ? segments[0].startTime : null,
+          endTime: mode === 'work' ? segments[segments.length - 1].endTime : null,
+          segments: useSegments,
           breakMinutes: mode === 'work' ? Number(breakMin) : 0,
           status: mode === 'work' ? 'scheduled' : mode === 'leave' ? 'leave' : 'off',
           source: 'manual',
@@ -524,7 +568,7 @@ function ShiftEditOverlay({
   }
 
   const overlayContent = (
-    <div className={`bg-white rounded-2xl shadow-2xl border border-gray-200 w-72 ${isMobile ? 'w-full rounded-b-none' : ''}`}>
+    <div className={`bg-white rounded-2xl shadow-2xl border border-gray-200 w-80 ${isMobile ? 'w-full rounded-b-none' : ''}`}>
       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
         <div>
           <p className="text-xs text-gray-500">{cell.staffName}</p>
@@ -568,19 +612,45 @@ function ShiftEditOverlay({
         )}
 
         {mode === 'work' && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-500 w-12 flex-shrink-0">開始</label>
-              <select value={startTime} onChange={e => setStartTime(e.target.value)} className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300">
-                {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-500 w-12 flex-shrink-0">終了</label>
-              <select value={endTime} onChange={e => setEndTime(e.target.value)} className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300">
-                {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
+          <div className="space-y-3">
+            {segments.map((seg, idx) => (
+              <div key={idx} className="space-y-1.5">
+                {segments.length > 1 && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-gray-500">時間帯 {idx + 1}</p>
+                    <button
+                      onClick={() => removeSegment(idx)}
+                      className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                    >
+                      削除
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 flex-shrink-0">開始</label>
+                  <select value={seg.startTime} onChange={e => updateSegment(idx, 'startTime', e.target.value)} className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300">
+                    {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 flex-shrink-0">終了</label>
+                  <select value={seg.endTime} onChange={e => updateSegment(idx, 'endTime', e.target.value)} className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300">
+                    {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                {idx < segments.length - 1 && <div className="border-b border-dashed border-gray-200 mt-1" />}
+              </div>
+            ))}
+
+            {segments.length < 4 && (
+              <button
+                onClick={addSegment}
+                className="w-full py-1.5 text-xs text-indigo-600 border border-dashed border-indigo-300 rounded-lg hover:bg-indigo-50 transition-colors"
+              >
+                ＋ 時間帯を追加
+              </button>
+            )}
+
             <div className="flex items-center gap-2">
               <label className="text-xs text-gray-500 w-12 flex-shrink-0">休憩</label>
               <select value={breakMin} onChange={e => setBreakMin(e.target.value)} className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300">
