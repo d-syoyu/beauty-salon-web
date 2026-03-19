@@ -71,19 +71,26 @@ export async function GET() {
     const weekStartStr = `${weekStart.getMonth() + 1}/${weekStart.getDate()}`;
     const weekEndStr = `${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`;
 
-    return NextResponse.json({
-      todayCount,
-      weekCount,
-      totalReservations,
-      weekStartStr,
-      weekEndStr,
-      sales: {
-        today: todaySales._sum.totalAmount || 0,
-        todayCount: todaySales._count || 0,
-        week: weekSales._sum.totalAmount || 0,
-        month: monthSales._sum.totalAmount || 0,
+    return NextResponse.json(
+      {
+        todayCount,
+        weekCount,
+        totalReservations,
+        weekStartStr,
+        weekEndStr,
+        sales: {
+          today: todaySales._sum.totalAmount || 0,
+          todayCount: todaySales._count || 0,
+          week: weekSales._sum.totalAmount || 0,
+          month: monthSales._sum.totalAmount || 0,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "private, max-age=60, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (err) {
     console.error("Analytics error:", err);
     return NextResponse.json({ error: "統計情報の取得に失敗しました" }, { status: 500 });

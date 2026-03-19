@@ -56,13 +56,25 @@ export async function GET(request: NextRequest) {
       prisma.user.count({ where }),
     ]);
 
+    // Count completed reservations for all fetched customers in one query
+    const customerIds = customers.map((c) => c.id);
+    const completedCounts = await prisma.reservation.groupBy({
+      by: ["userId"],
+      where: {
+        userId: { in: customerIds },
+        status: "COMPLETED",
+      },
+      _count: { id: true },
+    });
+    const completedMap = new Map(
+      completedCounts.map((c) => [c.userId, c._count.id])
+    );
+
     const result = customers.map((c) => ({
       ...c,
       _count: {
         reservations: c._count.reservations,
-        completedReservations: c.reservations.filter(
-          (r) => r.status === "COMPLETED"
-        ).length,
+        completedReservations: completedMap.get(c.id) ?? 0,
       },
     }));
 

@@ -107,10 +107,20 @@ export default function AdminDashboard() {
       try {
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
 
-        // Fetch today's reservations
-        const res = await fetch(`/api/admin/reservations?date=${todayStr}&limit=100`);
-        const data = await res.json();
+        // Fetch all data in parallel
+        const [res, analyticsRes, holidayRes] = await Promise.all([
+          fetch(`/api/admin/reservations?date=${todayStr}&limit=100`),
+          fetch('/api/admin/analytics'),
+          fetch(`/api/admin/holidays?year=${year}&month=${month}`),
+        ]);
+        const [data, analyticsData, holidayData] = await Promise.all([
+          res.json(),
+          analyticsRes.json(),
+          holidayRes.json(),
+        ]);
 
         const confirmedToday = (data.reservations || []).filter(
           (r: Reservation) => r.status === 'CONFIRMED'
@@ -120,9 +130,6 @@ export default function AdminDashboard() {
         );
         setTodayReservations(confirmedToday);
 
-        // Fetch analytics
-        const analyticsRes = await fetch('/api/admin/analytics');
-        const analyticsData = await analyticsRes.json();
         setStats({
           todayCount: analyticsData.todayCount,
           weekCount: analyticsData.weekCount,
@@ -131,11 +138,6 @@ export default function AdminDashboard() {
           weekEndStr: analyticsData.weekEndStr,
         });
 
-        // Fetch today's holidays
-        const year = today.getFullYear();
-        const month = today.getMonth() + 1;
-        const holidayRes = await fetch(`/api/admin/holidays?year=${year}&month=${month}`);
-        const holidayData = await holidayRes.json();
         const holidaysArray = Array.isArray(holidayData) ? holidayData : [];
         const todayHols = holidaysArray.filter((h: Holiday) => {
           const holidayDateStr = typeof h.date === 'string' ? h.date.slice(0, 10) : '';
