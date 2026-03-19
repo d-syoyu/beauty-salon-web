@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         date: { gte: startOfDay, lte: endOfDay },
         status: { in: ["CONFIRMED", "PENDING"] },
       },
-      select: { id: true, startTime: true, endTime: true, guestName: true },
+      select: { id: true, startTime: true, endTime: true, staffName: true },
     });
 
     if (existingReservations.length > 0) {
