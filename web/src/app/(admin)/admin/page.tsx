@@ -287,8 +287,8 @@ export default function AdminDashboard() {
               <Menu className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <p className="font-medium text-sm">メニュー管理</p>
-              <p className="text-xs text-gray-500 hidden sm:block">メニュー・カテゴリ</p>
+              <p className="font-medium text-sm">メニュー・商品管理</p>
+              <p className="text-xs text-gray-500 hidden sm:block">メニュー・店販商品</p>
             </div>
           </Link>
 

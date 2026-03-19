@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Plus,
@@ -10,6 +11,8 @@ import {
   X,
   Check,
   AlertTriangle,
+  Pencil,
+  Package,
 } from 'lucide-react';
 
 const PRESET_COLORS = [
@@ -63,9 +66,30 @@ interface Menu {
   };
 }
 
-type TabType = 'categories' | 'menus';
+interface Product {
+  id: string;
+  name: string;
+  categoryName: string;
+  unitPrice: number;
+  stockQuantity: number;
+  sku: string | null;
+  description: string | null;
+  isActive: boolean;
+}
 
-export default function AdminMenusPage() {
+type TabType = 'menus' | 'products' | 'categories';
+
+const emptyProductForm = () => ({
+  name: '',
+  categoryName: '',
+  unitPrice: 0,
+  stockQuantity: 0,
+  sku: '',
+  description: '',
+});
+
+function AdminMenusPageInner() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>('menus');
   const [categories, setCategories] = useState<Category[]>([]);
   const [menus, setMenus] = useState<Menu[]>([]);
@@ -88,7 +112,23 @@ export default function AdminMenusPage() {
     name: '', categoryId: '', price: 0, priceVariable: false, duration: 60, lastBookingTime: '19:00', displayOrder: 0, isActive: true,
   });
 
-  useEffect(() => { fetchData(); }, []);
+  // Products state
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productSearch, setProductSearch] = useState('');
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [productForm, setProductForm] = useState(emptyProductForm());
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [stockAdjustId, setStockAdjustId] = useState<string | null>(null);
+  const [stockAdjust, setStockAdjust] = useState(0);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'products') setActiveTab('products');
+    else if (tab === 'categories') setActiveTab('categories');
+  }, [searchParams]);
+
+  useEffect(() => { fetchData(); fetchProducts(); }, []);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -105,6 +145,16 @@ export default function AdminMenusPage() {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch('/api/admin/pos/products?limit=200');
+      const data = await res.json();
+      setProducts(data.products || []);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -177,6 +227,75 @@ export default function AdminMenusPage() {
     } catch (err) { showError(err instanceof Error ? err.message : 'エラーが発生しました'); }
   };
 
+  // Product handlers
+  const openProductModal = (product?: Product) => {
+    if (product) {
+      setEditingProduct(product);
+      setProductForm({ name: product.name, categoryName: product.categoryName, unitPrice: product.unitPrice, stockQuantity: product.stockQuantity, sku: product.sku || '', description: product.description || '' });
+    } else {
+      setEditingProduct(null);
+      setProductForm(emptyProductForm());
+    }
+    setIsProductModalOpen(true);
+  };
+
+  const handleProductSubmit = async () => {
+    if (!productForm.name || !productForm.categoryName || !productForm.unitPrice) {
+      showError('商品名、カテゴリ、単価は必須です');
+      return;
+    }
+    setIsSavingProduct(true);
+    try {
+      const url = editingProduct ? `/api/admin/pos/products/${editingProduct.id}` : '/api/admin/pos/products';
+      const method = editingProduct ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...productForm, unitPrice: Number(productForm.unitPrice), stockQuantity: Number(productForm.stockQuantity) }),
+      });
+      if (!res.ok) { const d = await res.json(); showError(d.error || '保存に失敗しました'); return; }
+      showSuccess(editingProduct ? '商品を更新しました' : '商品を追加しました');
+      setIsProductModalOpen(false);
+      fetchProducts();
+    } finally {
+      setIsSavingProduct(false);
+    }
+  };
+
+  const handleProductDelete = async (id: string) => {
+    if (!confirm('この商品を無効化しますか？')) return;
+    await fetch(`/api/admin/pos/products/${id}`, { method: 'DELETE' });
+    fetchProducts();
+  };
+
+  const handleStockAdjust = async (id: string) => {
+    if (!stockAdjust) return;
+    await fetch(`/api/admin/pos/products/${id}/stock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adjustment: Number(stockAdjust) }),
+    });
+    setStockAdjustId(null);
+    setStockAdjust(0);
+    fetchProducts();
+  };
+
+  const filteredProducts = products.filter(p =>
+    !productSearch || p.name.includes(productSearch) || p.categoryName.includes(productSearch) || (p.sku || '').includes(productSearch)
+  );
+
+  const getAddButtonLabel = () => {
+    if (activeTab === 'categories') return 'カテゴリ追加';
+    if (activeTab === 'products') return '商品追加';
+    return 'メニュー追加';
+  };
+
+  const handleAddClick = () => {
+    if (activeTab === 'categories') openCategoryModal();
+    else if (activeTab === 'products') openProductModal();
+    else openMenuModal();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -187,16 +306,16 @@ export default function AdminMenusPage() {
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </Link>
             <div>
-              <h1 className="text-2xl font-medium">メニュー管理</h1>
-              <p className="text-sm text-gray-500 mt-1">カテゴリ・メニューの登録・編集</p>
+              <h1 className="text-2xl font-medium">メニュー・商品管理</h1>
+              <p className="text-sm text-gray-500 mt-1">施術メニュー・店販商品・カテゴリの登録・編集</p>
             </div>
           </div>
           <button
-            onClick={() => activeTab === 'categories' ? openCategoryModal() : openMenuModal()}
+            onClick={handleAddClick}
             className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            {activeTab === 'categories' ? 'カテゴリ追加' : 'メニュー追加'}
+            {getAddButtonLabel()}
           </button>
         </div>
 
@@ -206,21 +325,18 @@ export default function AdminMenusPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 mb-6 bg-white rounded-lg p-1 shadow-sm w-fit">
-          <button
-            onClick={() => setActiveTab('menus')}
-            className={`px-4 py-2 text-sm rounded-md transition-colors ${activeTab === 'menus' ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-          >
-            メニュー
-          </button>
-          <button
-            onClick={() => setActiveTab('categories')}
-            className={`px-4 py-2 text-sm rounded-md transition-colors ${activeTab === 'categories' ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-          >
-            カテゴリ
-          </button>
+          {(['menus', 'products', 'categories'] as TabType[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-sm rounded-md transition-colors ${activeTab === tab ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              {tab === 'menus' ? 'メニュー' : tab === 'products' ? '店販商品' : 'カテゴリ'}
+            </button>
+          ))}
         </div>
 
-        {isLoading ? (
+        {isLoading && activeTab !== 'products' ? (
           <div className="p-12 text-center text-gray-500">読み込み中...</div>
         ) : activeTab === 'categories' ? (
           /* Categories List */
@@ -244,6 +360,72 @@ export default function AdminMenusPage() {
                 </div>
               </div>
             ))}
+          </div>
+        ) : activeTab === 'products' ? (
+          /* Products List */
+          <div>
+            <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+              <input type="text" value={productSearch} onChange={e => setProductSearch(e.target.value)}
+                placeholder="商品名・カテゴリ・SKUで検索..."
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400" />
+            </div>
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              {filteredProducts.length === 0 ? (
+                <div className="p-12 text-center text-gray-500">
+                  <Package className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+                  商品がありません
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">商品名</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600 hidden sm:table-cell">カテゴリ</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">単価</th>
+                      <th className="px-4 py-3 text-center font-medium text-gray-600">在庫</th>
+                      <th className="px-4 py-3 text-center font-medium text-gray-600">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredProducts.map(product => (
+                      <tr key={product.id} className={product.isActive ? '' : 'opacity-40'}>
+                        <td className="px-4 py-3">
+                          <p className="font-medium">{product.name}</p>
+                          {product.sku && <p className="text-xs text-gray-400">SKU: {product.sku}</p>}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{product.categoryName}</td>
+                        <td className="px-4 py-3 text-right font-medium text-amber-600">¥{product.unitPrice.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-center">
+                          {stockAdjustId === product.id ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <input type="number" value={stockAdjust} onChange={e => setStockAdjust(Number(e.target.value))}
+                                className="w-16 px-2 py-1 border border-gray-200 rounded text-center text-sm" />
+                              <button onClick={() => handleStockAdjust(product.id)} className="p-1 text-green-600 hover:bg-green-50 rounded"><Check className="w-4 h-4" /></button>
+                              <button onClick={() => setStockAdjustId(null)} className="p-1 text-gray-400 hover:bg-gray-50 rounded"><X className="w-4 h-4" /></button>
+                            </div>
+                          ) : (
+                            <button onClick={() => { setStockAdjustId(product.id); setStockAdjust(0); }}
+                              className={`px-2 py-1 rounded text-sm font-medium hover:bg-gray-50 ${product.stockQuantity <= 0 ? 'text-red-500' : 'text-gray-700'}`}>
+                              {product.stockQuantity}
+                            </button>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-center gap-2">
+                            <button onClick={() => openProductModal(product)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded">
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleProductDelete(product.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         ) : (
           /* Menus List */
@@ -399,6 +581,58 @@ export default function AdminMenusPage() {
         </div>
       )}
 
+      {/* Product Modal */}
+      {isProductModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsProductModalOpen(false)} />
+          <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setIsProductModalOpen(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+            <h3 className="text-xl font-medium mb-6">{editingProduct ? '商品編集' : '新規商品登録'}</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">商品名 <span className="text-red-500">*</span></label>
+                <input type="text" value={productForm.name} onChange={e => setProductForm(f => ({ ...f, name: e.target.value }))}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">カテゴリ <span className="text-red-500">*</span></label>
+                <input type="text" value={productForm.categoryName} onChange={e => setProductForm(f => ({ ...f, categoryName: e.target.value }))}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400"
+                  placeholder="例: シャンプー、トリートメント" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">単価（円）<span className="text-red-500">*</span></label>
+                  <input type="number" min="0" value={productForm.unitPrice} onChange={e => setProductForm(f => ({ ...f, unitPrice: Number(e.target.value) }))}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">初期在庫</label>
+                  <input type="number" min="0" value={productForm.stockQuantity} onChange={e => setProductForm(f => ({ ...f, stockQuantity: Number(e.target.value) }))}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">SKU（任意）</label>
+                <input type="text" value={productForm.sku || ''} onChange={e => setProductForm(f => ({ ...f, sku: e.target.value }))}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">説明（任意）</label>
+                <textarea value={productForm.description || ''} onChange={e => setProductForm(f => ({ ...f, description: e.target.value }))} rows={2}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setIsProductModalOpen(false)} className="flex-1 py-3 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">キャンセル</button>
+              <button onClick={handleProductSubmit} disabled={isSavingProduct} className="flex-1 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50">
+                {isSavingProduct ? '保存中...' : <><Check className="w-4 h-4 inline mr-1" />{editingProduct ? '更新' : '追加'}</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Modal */}
       {isDeleteModalOpen && deletingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -417,5 +651,13 @@ export default function AdminMenusPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminMenusPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500">読み込み中...</div>}>
+      <AdminMenusPageInner />
+    </Suspense>
   );
 }
