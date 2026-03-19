@@ -85,12 +85,31 @@ interface Holiday {
   reason: string | null;
 }
 
+async function ensureResponseOk(response: Response, fallbackMessage: string) {
+  if (response.ok) return;
+
+  try {
+    const data = await response.json();
+    if (typeof data?.error === 'string' && data.error.trim().length > 0) {
+      throw new Error(data.error);
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+  }
+
+  throw new Error(fallbackMessage);
+}
+
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [todayReservations, setTodayReservations] = useState<Reservation[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [todayHolidays, setTodayHolidays] = useState<Holiday[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({
     isOpen: false,
@@ -99,11 +118,17 @@ export default function AdminDashboard() {
     customerName: '',
     action: 'CANCELLED',
   });
+  const canLoadDashboard = status === 'authenticated' && session?.user?.role === 'ADMIN';
 
   useEffect(() => {
-    if (status !== 'authenticated') return;
+    if (!canLoadDashboard) return;
+
+    let cancelled = false;
 
     const fetchData = async () => {
+      setIsLoading(true);
+      setFetchError(null);
+
       try {
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -116,11 +141,20 @@ export default function AdminDashboard() {
           fetch('/api/admin/analytics'),
           fetch(`/api/admin/holidays?year=${year}&month=${month}`),
         ]);
+
+        await Promise.all([
+          ensureResponseOk(res, '本日の予約データの取得に失敗しました。'),
+          ensureResponseOk(analyticsRes, '管理画面の集計データ取得に失敗しました。'),
+          ensureResponseOk(holidayRes, '休日データの取得に失敗しました。'),
+        ]);
+
         const [data, analyticsData, holidayData] = await Promise.all([
           res.json(),
           analyticsRes.json(),
           holidayRes.json(),
         ]);
+
+        if (cancelled) return;
 
         const confirmedToday = (data.reservations || []).filter(
           (r: Reservation) => r.status === 'CONFIRMED'
@@ -145,14 +179,30 @@ export default function AdminDashboard() {
         });
         setTodayHolidays(todayHols);
       } catch (err) {
+        if (cancelled) return;
+
         console.error('Failed to fetch data:', err);
+        setTodayReservations([]);
+        setTodayHolidays([]);
+        setStats(null);
+        setFetchError(
+          err instanceof Error
+            ? err.message
+            : '管理画面ホームのデータ取得に失敗しました。'
+        );
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
-    fetchData();
-  }, [status, session]);
+    void fetchData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canLoadDashboard, reloadKey]);
 
   const openConfirmDialog = (
     reservation: Reservation,
@@ -208,7 +258,7 @@ export default function AdminDashboard() {
 
   const today = new Date();
 
-  if (status === 'loading' || (status === 'authenticated' && session?.user?.role !== 'ADMIN')) {
+  if (!canLoadDashboard) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-gray-500">読み込み中...</p>
@@ -369,6 +419,27 @@ export default function AdminDashboard() {
 
           {isLoading ? (
             <div className="p-12 md:p-16 text-center text-lg text-gray-500">読み込み中...</div>
+          ) : fetchError ? (
+            <div className="p-8 md:p-10">
+              <div className="rounded-xl border border-red-100 bg-red-50 p-5 md:p-6">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm md:text-base font-medium text-red-700">
+                      データの読み込みに失敗しました
+                    </p>
+                    <p className="mt-1 text-sm text-red-600">{fetchError}</p>
+                    <button
+                      type="button"
+                      onClick={() => setReloadKey((current) => current + 1)}
+                      className="mt-4 inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 transition-colors"
+                    >
+                      再読み込み
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : (
             <>
               {/* Holiday notice */}
