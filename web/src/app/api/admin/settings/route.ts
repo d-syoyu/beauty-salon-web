@@ -36,6 +36,44 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
 
     if (body.closedDays !== undefined) {
+      // Check if any new days are being added to closed days
+      const currentSetting = await prisma.settings.findUnique({ where: { key: "closed_days" } });
+      const currentClosed: number[] = currentSetting ? JSON.parse(currentSetting.value) : [1];
+      const newlyClosed: number[] = (body.closedDays as number[]).filter(
+        (d) => !currentClosed.includes(d)
+      );
+
+      if (newlyClosed.length > 0) {
+        // Check for reservations in the next 60 days that fall on newly closed weekdays
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const future = new Date(today);
+        future.setDate(future.getDate() + 60);
+        future.setHours(23, 59, 59, 999);
+
+        const upcomingReservations = await prisma.reservation.findMany({
+          where: {
+            date: { gte: today, lte: future },
+            status: { in: ["CONFIRMED", "PENDING"] },
+          },
+          select: { date: true, id: true },
+        });
+
+        const conflicting = upcomingReservations.filter((r) =>
+          newlyClosed.includes(new Date(r.date).getDay())
+        );
+
+        if (conflicting.length > 0) {
+          return NextResponse.json(
+            {
+              error: `新しい定休日の設定により、今後60日以内の${conflicting.length}件の予約と競合します。該当する予約をキャンセル後に定休日を変更してください。`,
+              count: conflicting.length,
+            },
+            { status: 409 }
+          );
+        }
+      }
+
       await prisma.settings.upsert({
         where: { key: "closed_days" },
         update: { value: JSON.stringify(body.closedDays) },

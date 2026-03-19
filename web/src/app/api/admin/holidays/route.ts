@@ -56,6 +56,39 @@ export async function POST(request: NextRequest) {
     // Use noon local time to prevent UTC date shift
     const parsedDate = parseLocalDate(date);
 
+    // Check for existing reservations that would conflict with this holiday
+    const startOfDay = new Date(parsedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(parsedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingReservations = await prisma.reservation.findMany({
+      where: {
+        date: { gte: startOfDay, lte: endOfDay },
+        status: { in: ["CONFIRMED", "PENDING"] },
+      },
+      select: { id: true, startTime: true, endTime: true, guestName: true },
+    });
+
+    if (existingReservations.length > 0) {
+      const conflicting =
+        startTime && endTime
+          ? existingReservations.filter(
+              (r) => r.startTime < endTime && r.endTime > startTime
+            )
+          : existingReservations;
+
+      if (conflicting.length > 0) {
+        return NextResponse.json(
+          {
+            error: `この日には${conflicting.length}件の予約があります。休業日を設定する前に予約をキャンセルしてください。`,
+            reservations: conflicting,
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     const holiday = await prisma.holiday.create({
       data: {
         date: parsedDate,

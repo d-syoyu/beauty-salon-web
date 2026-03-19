@@ -112,7 +112,7 @@ export default function AdminHolidaysPage() {
   useEffect(() => { if (!canLoad) return; fetchAll(); }, [canLoad, fetchAll]);
 
   const showSuccess = (msg: string) => { setSuccess(msg); setTimeout(() => setSuccess(null), 3000); };
-  const showError = (msg: string) => { setError(msg); setTimeout(() => setError(null), 5000); };
+  const showError = (msg: string) => { setError(msg); setTimeout(() => setError(null), 8000); };
 
   const handleSaveClosedDays = async () => {
     setIsSavingClosedDays(true);
@@ -122,7 +122,10 @@ export default function AdminHolidaysPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ closedDays }),
       });
-      if (!res.ok) throw new Error('保存に失敗しました');
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || '保存に失敗しました');
+      }
       showSuccess('定休日を保存しました');
     } catch (err) { showError(err instanceof Error ? err.message : 'エラーが発生しました'); } finally { setIsSavingClosedDays(false); }
   };
