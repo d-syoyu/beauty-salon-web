@@ -5,6 +5,8 @@ import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "./db";
+import { ADMIN_AUTH_DISABLED } from "./admin-access";
+import { getDemoAdminUser } from "./admin-demo";
 
 declare module "next-auth" {
   interface Session {
@@ -92,6 +94,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 });
 
 export async function getCurrentUser() {
+  if (ADMIN_AUTH_DISABLED) {
+    return await getDemoAdminUser();
+  }
+
   const session = await auth();
   return session?.user;
 }
@@ -116,6 +122,20 @@ export async function checkAdminAuth(): Promise<{
   error: Response | null;
   user: { id: string; name?: string | null; email?: string | null; role: string } | null;
 }> {
+  if (ADMIN_AUTH_DISABLED) {
+    const { NextResponse } = await import("next/server");
+    const user = await getDemoAdminUser();
+
+    if (!user) {
+      return {
+        error: NextResponse.json({ error: "Demo admin user not found" }, { status: 503 }),
+        user: null,
+      };
+    }
+
+    return { error: null, user };
+  }
+
   const session = await auth();
 
   if (!session?.user) {
