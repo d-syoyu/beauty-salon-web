@@ -3,8 +3,6 @@
 export default function FloatingBackButton() {
   return (
     <>
-      {/* TODO: スクショ後に戻す */}
-      {false && <>
       {/* Desktop / Tablet - right edge tab */}
       <a
         href="https://www.soga.ltd/#sample"
@@ -54,7 +52,6 @@ export default function FloatingBackButton() {
           サンプルを終了する
         </span>
       </a>
-    </>}
     </>
   );
 }
