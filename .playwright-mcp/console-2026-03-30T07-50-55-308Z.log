@@ -6,3 +6,20 @@
 [    7387ms] [WARNING] Image with src "/treatments.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:2287
 [   21771ms] [WARNING] Image with src "/goods.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:2287
 [  330947ms] [WARNING] Image with src "/hairset.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:2287
+[  527520ms] [ERROR] ./src/components/FloatingBackButton.tsx:10:13
+Parsing ecmascript source code failed
+   8 |       {/* Desktop / Tablet - right edge tab */}
+   9 |       <
+> 10 |         href="https://www.soga.ltd/#sample"
+     |             ^
+  11 |         className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-50 flex-col items-center gap-3 px-3 py-6 bg-charcoal text-cream rounded-l-2xl shadow-xl hover:bg-sage-dark hover:px-5 transition-all duration-300 ease-out group"
+  12 |       >
+  13 |         {/* X icon */}
+
+Expected '</', got '='
+
+Import trace:
+  Server Component:
+    ./src/components/FloatingBackButton.tsx
+    ./src/app/(public)/layout.tsx @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[  711762ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=E7uqCJpVcbfsRXOHlv1nc' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_aaee43fe._.js:10116
