@@ -3,8 +3,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { ArrowLeft, CalendarDays, ClipboardList, RefreshCcw, X } from 'lucide-react';
+import { CalendarDays, ClipboardList, RefreshCcw } from 'lucide-react';
 import { formatLocalDate } from '@/lib/date-utils';
+import { toast } from 'sonner';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 type Shift = {
   isWorking: boolean;
@@ -51,16 +62,16 @@ function shiftLabel(shift: Shift | null | undefined) {
 
 function AttendanceStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
-    late: { label: '遅刻', cls: 'bg-amber-100 text-amber-700' },
-    overtime: { label: '残業', cls: 'bg-violet-100 text-violet-700' },
-    on_break: { label: '休憩中', cls: 'bg-sky-100 text-sky-700' },
-    working: { label: '出勤中', cls: 'bg-emerald-100 text-emerald-700' },
-    completed: { label: '退勤済', cls: 'bg-gray-100 text-gray-600' },
+    late: { label: '遅刻', cls: 'bg-amber-100 text-amber-700 border-amber-200' },
+    overtime: { label: '残業', cls: 'bg-violet-100 text-violet-700 border-violet-200' },
+    on_break: { label: '休憩中', cls: 'bg-sky-100 text-sky-700 border-sky-200' },
+    working: { label: '出勤中', cls: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+    completed: { label: '退勤済', cls: 'bg-muted text-muted-foreground' },
   };
   const info = map[status];
   if (!info) return null;
   return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${info.cls}`}>{info.label}</span>
+    <Badge variant="outline" className={info.cls}>{info.label}</Badge>
   );
 }
 
@@ -71,7 +82,6 @@ export default function StaffSchedulePage() {
   const [dayOps, setDayOps] = useState<{ summary?: Record<string, number>; rows?: DayOpsRow[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [editor, setEditor] = useState<EditorState | null>(null);
 
   const loadData = useCallback(async (date: string) => {
@@ -89,12 +99,11 @@ export default function StaffSchedulePage() {
   async function act(task: () => Promise<void>, successMsg: string) {
     try {
       setBusy(true);
-      setMessage(null);
       await task();
-      setMessage({ text: successMsg, ok: true });
+      toast.success(successMsg);
       await loadData(selectedDate);
     } catch (err) {
-      setMessage({ text: err instanceof Error ? err.message : '操作に失敗しました', ok: false });
+      toast.error(err instanceof Error ? err.message : '操作に失敗しました');
     } finally {
       setBusy(false);
     }
@@ -104,99 +113,101 @@ export default function StaffSchedulePage() {
   const rows = dayOps?.rows ?? [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="px-4 py-3 max-w-5xl mx-auto">
-          <div className="flex items-center gap-3">
-            <Link href="/admin/staff" className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </Link>
-            <div className="flex-1">
-              <h1 className="text-base font-semibold text-gray-900">今日の勤怠</h1>
-              <p className="text-xs text-gray-500">スタッフ管理 › 今日の勤怠</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link
-                href="/admin/staff/monthly"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
-              >
-                <CalendarDays className="w-3.5 h-3.5" />
-                月次シフト
-              </Link>
-              <Link
-                href="/admin/requests"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-rose-700 bg-rose-50 rounded-lg hover:bg-rose-100 transition-colors"
-              >
-                <ClipboardList className="w-3.5 h-3.5" />
-                申請承認
-              </Link>
-              <button
-                onClick={() => void loadData(selectedDate)}
-                disabled={loading}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-40"
-              >
-                <RefreshCcw className={`w-4 h-4 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-          </div>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={e => setSelectedDate(e.target.value)}
+          className="text-sm border border-input rounded-lg px-3 py-1.5 bg-background outline-none focus:ring-2 focus:ring-ring/50"
+        />
+        <Link href="/admin/staff/monthly" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+          <CalendarDays />
+          月次シフト
+        </Link>
+        <Link href="/admin/requests" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+          <ClipboardList />
+          申請承認
+        </Link>
+        <Button variant="ghost" size="icon-sm" onClick={() => void loadData(selectedDate)} disabled={loading}>
+          <RefreshCcw className={loading ? 'animate-spin' : ''} />
+        </Button>
+      </div>
 
-          {/* Date picker row */}
-          <div className="mt-3 flex items-center gap-3">
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={e => setSelectedDate(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300"
-            />
-            {message && (
-              <span className={`text-xs px-3 py-1 rounded-full ${message.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
-                {message.text}
-              </span>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-5xl mx-auto px-4 py-5 space-y-4">
-        {/* Summary stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: '予定出勤', value: summary.scheduledCount ?? 0, color: 'text-gray-900' },
-            { label: '出勤中', value: summary.clockedInCount ?? 0, color: 'text-emerald-700' },
-            { label: '休憩中', value: summary.onBreakCount ?? 0, color: 'text-amber-700' },
-            { label: '要確認', value: summary.alertCount ?? 0, color: 'text-rose-700' },
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} size="sm">
+              <CardContent>
+                <Skeleton className="h-3 w-14 mb-2" />
+                <Skeleton className="h-7 w-10" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          [
+            { label: '予定出勤', value: summary.scheduledCount ?? 0, color: 'text-foreground' },
+            { label: '出勤中', value: summary.clockedInCount ?? 0, color: 'text-emerald-600' },
+            { label: '休憩中', value: summary.onBreakCount ?? 0, color: 'text-amber-600' },
+            { label: '要確認', value: summary.alertCount ?? 0, color: 'text-destructive' },
           ].map(({ label, value, color }) => (
-            <div key={label} className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-400">{label}</p>
-              <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
-            </div>
-          ))}
-        </div>
+            <Card key={label} size="sm">
+              <CardContent>
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
 
-        {/* Staff rows */}
-        <div className="space-y-3">
-          {loading && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
-              読み込み中...
-            </div>
-          )}
-          {!loading && rows.length === 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
+      {/* Staff rows */}
+      <div className="space-y-3">
+        {loading && Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent>
+              <div className="flex items-center gap-3 mb-4">
+                <Skeleton className="w-9 h-9 rounded-full flex-shrink-0" />
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-24 mb-1.5" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-3 mb-4">
+                {Array.from({ length: 4 }).map((_, j) => (
+                  <Skeleton key={j} className="h-8" />
+                ))}
+              </div>
+              <div className="flex gap-2">
+                {Array.from({ length: 4 }).map((_, j) => (
+                  <Skeleton key={j} className="h-7 w-16" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {!loading && rows.length === 0 && (
+          <Card>
+            <CardContent className="py-8 text-center text-sm text-muted-foreground">
               本日のスタッフ情報がありません
-            </div>
-          )}
-          {rows.map(row => (
-            <div key={row.staffId} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            </CardContent>
+          </Card>
+        )}
+
+        {!loading && rows.map(row => (
+          <Card key={row.staffId}>
+            <CardContent className="p-0">
               {/* Staff info bar */}
-              <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
+              <div className="px-4 py-3 flex items-center justify-between border-b border-border">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-semibold text-indigo-700">{row.staffName.slice(0, 2)}</span>
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-semibold text-primary">{row.staffName.slice(0, 2)}</span>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{row.staffName}</p>
-                    <p className="text-xs text-gray-400">{row.role}</p>
+                    <p className="text-sm font-semibold text-foreground">{row.staffName}</p>
+                    <p className="text-xs text-muted-foreground">{row.role}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -204,40 +215,42 @@ export default function StaffSchedulePage() {
                     <AttendanceStatusBadge status={row.attendance.status} />
                   )}
                   {row.pendingRequestCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full text-xs bg-rose-100 text-rose-700">
+                    <Badge variant="destructive" className="text-xs">
                       未処理申請 {row.pendingRequestCount}
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </div>
 
               {/* Shift details */}
-              <div className="px-4 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div className="px-4 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm border-b border-border">
                 <div>
-                  <p className="text-xs text-gray-400 mb-0.5">予定シフト</p>
-                  <p className="font-medium text-gray-800">{shiftLabel(row.shift)}</p>
+                  <p className="text-xs text-muted-foreground mb-0.5">予定シフト</p>
+                  <p className="font-medium text-foreground">{shiftLabel(row.shift)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-0.5">実績</p>
-                  <p className="text-gray-700">
+                  <p className="text-xs text-muted-foreground mb-0.5">実績</p>
+                  <p className="text-foreground">
                     {row.attendance?.actualStartTime?.slice(0, 5) || '--:--'}
                     {' / '}
                     {row.attendance?.actualEndTime?.slice(0, 5) || '--:--'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-0.5">予約数</p>
-                  <p className="text-gray-700">{row.reservationCount} 件</p>
+                  <p className="text-xs text-muted-foreground mb-0.5">予約数</p>
+                  <p className="text-foreground">{row.reservationCount} 件</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-0.5">有休残</p>
-                  <p className="text-gray-700">{row.leaveBalance.remaining.toFixed(1)} 日</p>
+                  <p className="text-xs text-muted-foreground mb-0.5">有休残</p>
+                  <p className="text-foreground">{row.leaveBalance.remaining.toFixed(1)} 日</p>
                 </div>
               </div>
 
               {/* Action buttons */}
-              <div className="px-4 pb-3 flex flex-wrap gap-2">
-                <button
+              <div className="px-4 py-3 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 text-white hover:bg-emerald-700 border-transparent"
                   onClick={() => void act(async () => {
                     const res = await fetch('/api/admin/attendance/clock', {
                       method: 'POST',
@@ -247,11 +260,12 @@ export default function StaffSchedulePage() {
                     if (!res.ok) throw new Error('出勤打刻に失敗しました');
                   }, `${row.staffName} 出勤を記録`)}
                   disabled={busy}
-                  className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
                 >
                   出勤
-                </button>
-                <button
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-amber-500 text-white hover:bg-amber-600 border-transparent"
                   onClick={() => void act(async () => {
                     const res = await fetch('/api/admin/attendance/break', {
                       method: 'POST',
@@ -261,11 +275,12 @@ export default function StaffSchedulePage() {
                     if (!res.ok) throw new Error('休憩更新に失敗しました');
                   }, row.activeBreak ? `${row.staffName} 休憩終了` : `${row.staffName} 休憩開始`)}
                   disabled={busy}
-                  className="px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50"
                 >
                   {row.activeBreak ? '休憩終了' : '休憩開始'}
-                </button>
-                <button
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-foreground text-background hover:bg-foreground/80 border-transparent"
                   onClick={() => void act(async () => {
                     const res = await fetch('/api/admin/attendance/clock', {
                       method: 'POST',
@@ -275,11 +290,12 @@ export default function StaffSchedulePage() {
                     if (!res.ok) throw new Error('退勤打刻に失敗しました');
                   }, `${row.staffName} 退勤を記録`)}
                   disabled={busy}
-                  className="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50"
                 >
                   退勤
-                </button>
-                <button
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
                   onClick={() => setEditor({
                     staffId: row.staffId,
                     staffName: row.staffName,
@@ -290,96 +306,114 @@ export default function StaffSchedulePage() {
                     status: row.shift?.status || 'scheduled',
                     note: row.shift?.note || '',
                   })}
-                  className="px-4 py-2 border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   日別修正
-                </button>
+                </Button>
               </div>
-            </div>
-          ))}
-        </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Shift edit modal */}
-      {editor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-base font-semibold text-gray-900">{editor.staffName}</h3>
-                <p className="text-xs text-gray-500">{editor.date} 日別シフト修正</p>
-              </div>
-              <button onClick={() => setEditor(null)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* Shift edit dialog */}
+      <Dialog open={!!editor} onOpenChange={(open: boolean) => !open && setEditor(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{editor?.staffName}</DialogTitle>
+            <p className="text-sm text-muted-foreground">{editor?.date} 日別シフト修正</p>
+          </DialogHeader>
+          {editor && (
             <div className="space-y-3">
-              <select
-                value={editor.status}
-                onChange={e => setEditor(prev => prev ? { ...prev, status: e.target.value } : prev)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
-              >
-                <option value="scheduled">勤務</option>
-                <option value="off">休み</option>
-                <option value="leave">休暇</option>
-                <option value="published">公開済み</option>
-              </select>
-              <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">ステータス</label>
                 <select
-                  value={editor.startTime}
-                  onChange={e => setEditor(prev => prev ? { ...prev, startTime: e.target.value } : prev)}
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
+                  value={editor.status}
+                  onChange={e => setEditor(prev => prev ? { ...prev, status: e.target.value } : prev)}
+                  className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background outline-none focus:ring-2 focus:ring-ring/50"
                 >
-                  {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <select
-                  value={editor.endTime}
-                  onChange={e => setEditor(prev => prev ? { ...prev, endTime: e.target.value } : prev)}
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
-                >
-                  {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                  <option value="scheduled">勤務</option>
+                  <option value="off">休み</option>
+                  <option value="leave">休暇</option>
+                  <option value="published">公開済み</option>
                 </select>
               </div>
-              <input
-                type="number"
-                value={editor.breakMinutes}
-                onChange={e => setEditor(prev => prev ? { ...prev, breakMinutes: Number(e.target.value) } : prev)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
-                placeholder="休憩分"
-              />
-              <textarea
-                value={editor.note}
-                onChange={e => setEditor(prev => prev ? { ...prev, note: e.target.value } : prev)}
-                rows={2}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
-                placeholder="メモ"
-              />
-              <button
-                onClick={() => void act(async () => {
-                  const res = await fetch(`/api/admin/staff/${editor.staffId}/schedule-override`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      date: editor.date,
-                      startTime: editor.status === 'off' ? null : editor.startTime,
-                      endTime: editor.status === 'off' ? null : editor.endTime,
-                      breakMinutes: editor.breakMinutes,
-                      status: editor.status,
-                      note: editor.note,
-                    }),
-                  });
-                  if (!res.ok) throw new Error('日別シフトの保存に失敗しました');
-                  setEditor(null);
-                }, '日別シフトを更新しました')}
-                disabled={busy}
-                className="w-full py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50"
-              >
-                {busy ? '保存中...' : '保存'}
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">開始</label>
+                  <select
+                    value={editor.startTime}
+                    onChange={e => setEditor(prev => prev ? { ...prev, startTime: e.target.value } : prev)}
+                    className="w-full border border-input rounded-lg px-2.5 py-2 text-sm bg-background outline-none focus:ring-2 focus:ring-ring/50"
+                  >
+                    {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">終了</label>
+                  <select
+                    value={editor.endTime}
+                    onChange={e => setEditor(prev => prev ? { ...prev, endTime: e.target.value } : prev)}
+                    className="w-full border border-input rounded-lg px-2.5 py-2 text-sm bg-background outline-none focus:ring-2 focus:ring-ring/50"
+                  >
+                    {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">休憩（分）</label>
+                <input
+                  type="number"
+                  value={editor.breakMinutes}
+                  onChange={e => setEditor(prev => prev ? { ...prev, breakMinutes: Number(e.target.value) } : prev)}
+                  className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background outline-none focus:ring-2 focus:ring-ring/50"
+                  placeholder="休憩分"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">メモ</label>
+                <textarea
+                  value={editor.note}
+                  onChange={e => setEditor(prev => prev ? { ...prev, note: e.target.value } : prev)}
+                  rows={2}
+                  className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background outline-none focus:ring-2 focus:ring-ring/50 resize-none"
+                  placeholder="メモ"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setEditor(null)}
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => void act(async () => {
+                    const res = await fetch(`/api/admin/staff/${editor.staffId}/schedule-override`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        date: editor.date,
+                        startTime: editor.status === 'off' ? null : editor.startTime,
+                        endTime: editor.status === 'off' ? null : editor.endTime,
+                        breakMinutes: editor.breakMinutes,
+                        status: editor.status,
+                        note: editor.note,
+                      }),
+                    });
+                    if (!res.ok) throw new Error('日別シフトの保存に失敗しました');
+                    setEditor(null);
+                  }, '日別シフトを更新しました')}
+                  disabled={busy}
+                >
+                  {busy ? '保存中...' : '保存'}
+                </Button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

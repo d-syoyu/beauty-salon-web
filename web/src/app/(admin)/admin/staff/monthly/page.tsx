@@ -2,9 +2,12 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import Link from 'next/link';
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, RefreshCcw, Send, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, RefreshCcw, Send, Settings } from 'lucide-react';
 import { CATEGORY_COLORS } from '@/constants/menu';
+import { toast } from 'sonner';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -228,6 +231,9 @@ export default function MonthlyShiftPage() {
   // Pattern manager
   const [patternManagerOpen, setPatternManagerOpen] = useState(false);
 
+  // Publish confirmation
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
+
   const { year, month } = fromYYYYMM(yyyymm);
   const days = getDaysInMonth(year, month);
 
@@ -355,83 +361,66 @@ export default function MonthlyShiftPage() {
   const csvUrl = `/api/admin/staff/schedule-overview?year=${year}&month=${month}&format=csv`;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
-        <div className="px-4 py-3 flex items-center gap-2">
-          <Link href="/admin/staff" className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0">
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-          </Link>
-          <div className="flex items-center gap-1 flex-1">
-            <button onClick={prevMonth} className="p-1.5 rounded hover:bg-gray-100 transition-colors">
-              <ChevronLeft className="w-4 h-4 text-gray-500" />
-            </button>
-            <input
-              type="month"
-              value={yyyymm}
-              onChange={e => setYyyymm(e.target.value)}
-              className="text-base font-semibold text-gray-900 bg-transparent border-none outline-none cursor-pointer"
-            />
-            <button onClick={nextMonth} className="p-1.5 rounded hover:bg-gray-100 transition-colors">
-              <ChevronRight className="w-4 h-4 text-gray-500" />
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPatternManagerOpen(true)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              title="シフトパターン管理"
-            >
-              <Settings className="w-4 h-4 text-gray-600" />
-            </button>
-            <button
-              onClick={load}
-              disabled={loading}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-40"
-              title="更新"
-            >
-              <RefreshCcw className={`w-4 h-4 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <a
-              href={csvUrl}
-              download
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">CSV</span>
-            </a>
-            <button
-              onClick={handlePublishWeek}
-              disabled={publishing}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-            >
-              <Send className="w-4 h-4" />
-              <span className="hidden sm:inline">公開</span>
-            </button>
-          </div>
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 0px)' }}>
+      {/* Toolbar: month nav + legend + actions (single row) */}
+      <div className="flex-shrink-0 bg-background border-b border-border px-3 py-1.5 flex items-center gap-1.5">
+        <Button variant="ghost" size="icon-sm" onClick={prevMonth}>
+          <ChevronLeft />
+        </Button>
+        <input
+          type="month"
+          value={yyyymm}
+          onChange={e => setYyyymm(e.target.value)}
+          className="text-sm font-semibold text-foreground bg-transparent border-none outline-none cursor-pointer"
+        />
+        <Button variant="ghost" size="icon-sm" onClick={nextMonth}>
+          <ChevronRight />
+        </Button>
+        <div className="hidden md:flex items-center gap-3 text-xs text-muted-foreground ml-2">
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-green-100 inline-block" /> 勤務</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-emerald-100 inline-block" /> 公開済</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-yellow-100 inline-block" /> 休暇</span>
         </div>
-      </header>
-
-      {/* Legend */}
-      <div className="px-4 py-2 flex items-center gap-4 text-xs text-gray-500 bg-white border-b border-gray-100">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-100 inline-block" /> 勤務</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-100 inline-block" /> 公開済</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-100 inline-block" /> 休暇</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-100 inline-block" /> OFF</span>
-        <span className="ml-auto text-gray-400">日付をタップ→ラインシフト</span>
+        <div className="flex items-center gap-1 ml-auto">
+          <Button variant="ghost" size="icon-sm" onClick={() => setPatternManagerOpen(true)} title="シフトパターン管理">
+            <Settings />
+          </Button>
+          <Button variant="ghost" size="icon-sm" onClick={load} disabled={loading} title="更新">
+            <RefreshCcw className={loading ? 'animate-spin' : ''} />
+          </Button>
+          <a href={csvUrl} download className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+            <Download />
+            <span className="hidden sm:inline">CSV</span>
+          </a>
+          <Button size="sm" onClick={() => setPublishConfirmOpen(true)} disabled={publishing}>
+            <Send />
+            <span className="hidden sm:inline">公開</span>
+          </Button>
+        </div>
       </div>
 
       {/* Grid */}
-      <div className={`flex-1 overflow-auto ${selectedDay ? 'pb-72' : ''}`}>
+      <div className={`flex-1 overflow-auto bg-muted/20 ${selectedDay ? 'pb-72' : ''}`}>
         {loading ? (
-          <div className="py-20 text-center text-gray-400 text-sm">読み込み中...</div>
+          <div className="p-4 space-y-2">
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-40 flex-shrink-0" />
+              {Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-10 flex-1" />)}
+            </div>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex gap-2">
+                <Skeleton className="h-14 w-40 flex-shrink-0" />
+                {Array.from({ length: 10 }).map((_, j) => <Skeleton key={j} className="h-14 flex-1" />)}
+              </div>
+            ))}
+          </div>
         ) : (
           <div
             className="relative"
             style={{
               display: 'grid',
-              gridTemplateColumns: `160px repeat(${days.length}, minmax(48px, 1fr))`,
-              minWidth: `${160 + days.length * 48}px`,
+              gridTemplateColumns: `120px repeat(${days.length}, minmax(44px, 1fr))`,
+              minWidth: `${120 + days.length * 44}px`,
             }}
           >
             {/* Top-left corner */}
@@ -448,7 +437,7 @@ export default function MonthlyShiftPage() {
                 <button
                   key={dateStr}
                   onClick={() => handleDayClick(dateStr)}
-                  className={`sticky top-0 z-10 border-b-2 border-r border-gray-100 text-center py-1.5 transition-colors ${
+                  className={`sticky top-0 z-10 border-b-2 border-r border-gray-100 text-center py-2.5 transition-colors ${
                     isSelected
                       ? 'bg-indigo-500 border-indigo-500'
                       : isT
@@ -545,6 +534,21 @@ export default function MonthlyShiftPage() {
           onChanged={load}
         />
       )}
+
+      {/* Publish confirmation */}
+      <ConfirmDialog
+        open={publishConfirmOpen}
+        onOpenChange={setPublishConfirmOpen}
+        title="シフトを公開しますか？"
+        description="現在の月のシフトをスタッフに公開します。公開後もシフトの修正は可能です。"
+        confirmLabel="公開する"
+        cancelLabel="キャンセル"
+        variant="default"
+        onConfirm={() => {
+          setPublishConfirmOpen(false);
+          void handlePublishWeek();
+        }}
+      />
     </div>
   );
 }
@@ -577,7 +581,7 @@ function ShiftEditOverlay({
   const [breakMin, setBreakMin] = useState(String(cell.shift?.breakMinutes ?? 60));
   const [saving, setSaving] = useState(false);
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
 
   const dateObj = new Date(cell.date + 'T12:00:00');
   const dateLabel = `${dateObj.getMonth() + 1}/${dateObj.getDate()}(${['日','月','火','水','木','金','土'][dateObj.getDay()]})`;
@@ -643,8 +647,9 @@ function ShiftEditOverlay({
           source: 'manual',
         };
         onSave(cell.staffId, cell.date, newShift);
+        toast.success('シフトを保存しました');
       } else {
-        alert('保存に失敗しました');
+        toast.error('保存に失敗しました');
       }
     } finally {
       setSaving(false);
@@ -818,8 +823,7 @@ function DayTimelinePanel({
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-indigo-300 shadow-2xl flex flex-col"
-      style={{ height: '48vh', minHeight: 240 }}
+      className="day-timeline-panel fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-indigo-300 shadow-2xl flex flex-col"
     >
       {/* Panel header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 flex-shrink-0 bg-white">
@@ -957,7 +961,7 @@ function StaffShiftLane({
     setPaint(prev => prev ? { ...prev, current: min } : null);
   }
 
-  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+  function handlePointerUp(_e: React.PointerEvent<HTMLDivElement>) {
     if (!paint) return;
     const { anchor, mode } = paint;
     const start = Math.min(anchor, paint.current);
@@ -1007,6 +1011,7 @@ function StaffShiftLane({
       <div
         ref={laneRef}
         className={`flex-1 relative h-12 select-none touch-none ${isPainting && paint?.mode === 'erase' ? 'cursor-cell' : 'cursor-crosshair'}`}
+        style={{ touchAction: 'none' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -1141,6 +1146,7 @@ function PatternManagerModal({
   const [form, setForm] = useState<PatternForm>(emptyForm());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const fetchPatterns = useCallback(async (staffId: string) => {
     setLoadingPatterns(true);
@@ -1223,10 +1229,10 @@ function PatternManagerModal({
   }
 
   async function handleDelete(patternId: string) {
-    if (!confirm('このパターンを削除しますか？')) return;
     await fetch(`/api/admin/staff/${selectedStaffId}/shift-patterns/${patternId}`, { method: 'DELETE' });
     await fetchPatterns(selectedStaffId);
     onChanged();
+    toast.success('パターンを削除しました');
   }
 
   const selectedStaff = staff.find(s => s.id === selectedStaffId);
@@ -1286,7 +1292,7 @@ function PatternManagerModal({
                   編集
                 </button>
                 <button
-                  onClick={() => handleDelete(p.id)}
+                  onClick={() => setDeleteConfirmId(p.id)}
                   className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors"
                 >
                   削除
@@ -1388,6 +1394,19 @@ function PatternManagerModal({
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteConfirmId}
+        onOpenChange={(open) => !open && setDeleteConfirmId(null)}
+        title="パターンを削除しますか？"
+        description="この操作は取り消せません。"
+        confirmLabel="削除"
+        variant="destructive"
+        onConfirm={() => {
+          if (deleteConfirmId) void handleDelete(deleteConfirmId);
+          setDeleteConfirmId(null);
+        }}
+      />
     </div>
   );
 }

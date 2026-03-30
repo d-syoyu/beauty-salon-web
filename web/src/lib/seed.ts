@@ -289,7 +289,7 @@ export async function seedDatabase(prisma: PrismaClient) {
 
       const assignedStaffId = staffIds[i % staffIds.length];
       const assignedStaff = staffMembers.find(s => s.id === assignedStaffId)!;
-      const reservation = await prisma.reservation.create({
+      await prisma.reservation.create({
         data: {
           userId: customer,
           totalPrice: menu.price,
@@ -301,17 +301,16 @@ export async function seedDatabase(prisma: PrismaClient) {
           status: "COMPLETED",
           staffId: assignedStaffId,
           staffName: assignedStaff.name,
-        },
-      });
-      await prisma.reservationItem.create({
-        data: {
-          reservationId: reservation.id,
-          menuId: menu.id,
-          menuName: menu.name,
-          category: menu.category.name,
-          price: menu.price,
-          duration: menu.duration,
-          orderIndex: 0,
+          items: {
+            create: {
+              menuId: menu.id,
+              menuName: menu.name,
+              category: menu.category.name,
+              price: menu.price,
+              duration: menu.duration,
+              orderIndex: 0,
+            },
+          },
         },
       });
     }
@@ -337,7 +336,7 @@ export async function seedDatabase(prisma: PrismaClient) {
       const isOnlinePayment = i === 0 && dayOffset % 2 === 0;
       const assignedStaffId = staffIds[i % staffIds.length];
       const assignedStaff = staffMembers.find(s => s.id === assignedStaffId)!;
-      const reservation = await prisma.reservation.create({
+      await prisma.reservation.create({
         data: {
           userId: customer,
           totalPrice: menu.price,
@@ -351,17 +350,16 @@ export async function seedDatabase(prisma: PrismaClient) {
           stripePaymentIntentId: isOnlinePayment ? `pi_demo_${dateStr}_${i}` : null,
           staffId: assignedStaffId,
           staffName: assignedStaff.name,
-        },
-      });
-      await prisma.reservationItem.create({
-        data: {
-          reservationId: reservation.id,
-          menuId: menu.id,
-          menuName: menu.name,
-          category: menu.category.name,
-          price: menu.price,
-          duration: menu.duration,
-          orderIndex: 0,
+          items: {
+            create: {
+              menuId: menu.id,
+              menuName: menu.name,
+              category: menu.category.name,
+              price: menu.price,
+              duration: menu.duration,
+              orderIndex: 0,
+            },
+          },
         },
       });
     }

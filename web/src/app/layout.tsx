@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Zen_Kaku_Gothic_New } from "next/font/google";
+import { Cormorant_Garamond, Zen_Kaku_Gothic_New, Geist } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "../components/providers/session-provider";
+import { cn } from "@/lib/utils";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -11,12 +12,7 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
-const zenKaku = Zen_Kaku_Gothic_New({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "700"],
-  variable: "--font-sans",
-  display: "swap",
-});
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "LUMINA HAIR STUDIO | 表参道の美容室",
@@ -29,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={`scroll-smooth ${cormorant.variable} ${zenKaku.variable}`}>
+    <html lang="ja" className={cn("scroll-smooth", cormorant.variable, "font-sans", geist.variable)}>
       <body className="flex flex-col min-h-screen">
         <SessionProvider>
           {children}

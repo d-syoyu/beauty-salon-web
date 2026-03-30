@@ -1,40 +1,6 @@
-'use client';
-
-import { useRef } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
-import { motion, useInView, type Variants } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-
-const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.8 } }
-};
-
-const staggerContainer: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
-  }
-};
-
-function AnimatedSection({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-50px' });
-
-  return (
-    <motion.section
-      ref={ref}
-      initial="hidden"
-      animate={isInView ? 'visible' : 'hidden'}
-      variants={staggerContainer}
-      className={className}
-    >
-      {children}
-    </motion.section>
-  );
-}
+import MenuCategories from '@/components/menu/MenuCategories';
 
 const menuCategories = [
   {
@@ -168,11 +134,9 @@ export default function MenuPage() {
     <div className="min-h-screen bg-[var(--color-cream)] pt-32">
       {/* Hero */}
       <section className="container-wide pb-20">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+        <div
           className="text-center"
+          style={{ animation: 'fadeInUp 0.8s ease both' }}
         >
           <p className="text-subheading mb-4">Price List</p>
           <h1 className="text-display mb-6">Menu</h1>
@@ -181,69 +145,11 @@ export default function MenuPage() {
             すべての施術にシャンプー・ブローが含まれております。<br />
             ご不明な点はお気軽にお問い合わせください。
           </p>
-        </motion.div>
+        </div>
       </section>
 
       {/* Menu Categories */}
-      {menuCategories.map((category, index) => (
-        <AnimatedSection
-          key={category.id}
-          className={`py-20 ${index % 2 === 1 ? 'bg-[var(--color-cream-dark)]' : ''}`}
-        >
-          <div className="container-wide">
-            <div className={`grid grid-cols-1 lg:grid-cols-2 gap-16 items-center ${index % 2 === 1 ? 'lg:flex-row-reverse' : ''}`}>
-              {/* Image */}
-              <motion.div
-                variants={fadeInUp}
-                className={`relative ${index % 2 === 1 ? 'lg:order-2' : ''}`}
-              >
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  <Image
-                    src={category.image}
-                    alt={category.titleJa}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                {index % 2 === 0 && (
-                  <div className="absolute -bottom-4 -right-4 w-full h-full border border-[var(--color-gold)] -z-10" />
-                )}
-                {index % 2 === 1 && (
-                  <div className="absolute -bottom-4 -left-4 w-full h-full border border-[var(--color-sage)] -z-10" />
-                )}
-              </motion.div>
-
-              {/* Content */}
-              <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
-                <motion.p variants={fadeInUp} className="text-subheading mb-2">
-                  {category.title}
-                </motion.p>
-                <motion.h2 variants={fadeInUp} className="text-heading mb-6">
-                  {category.titleJa}
-                </motion.h2>
-                <motion.div variants={fadeInUp} className="divider-line mb-6" />
-                <motion.p variants={fadeInUp} className="text-[var(--color-warm-gray)] mb-10 leading-relaxed">
-                  {category.description}
-                </motion.p>
-
-                {/* Price List */}
-                <div className="space-y-4">
-                  {category.items.map((item) => (
-                    <motion.div
-                      key={item.name}
-                      variants={fadeInUp}
-                      className="flex justify-between items-center py-3 border-b border-[var(--color-light-gray)]"
-                    >
-                      <span className="text-[var(--color-charcoal)]">{item.name}</span>
-                      <span className="text-[var(--color-gold)] font-light text-lg">{item.price}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </AnimatedSection>
-      ))}
+      <MenuCategories categories={menuCategories} />
 
       {/* Note */}
       <section className="py-20 bg-[var(--color-charcoal)] text-white">

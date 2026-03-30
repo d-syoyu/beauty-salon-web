@@ -3,7 +3,9 @@
 
 import SessionProvider from "@/components/providers/session-provider";
 import AdminAutoAuth from "@/components/admin/AdminAutoAuth";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import FloatingBackButton from "@/components/FloatingBackButton";
+import { Toaster } from "@/components/ui/sonner";
 import { ADMIN_AUTH_DISABLED } from "@/lib/admin-access";
 import { getDemoAdminSession } from "@/lib/admin-demo";
 
@@ -19,8 +21,12 @@ export default async function AdminLayout({
   const demoSession = ADMIN_AUTH_DISABLED ? await getDemoAdminSession() : null;
   const content = (
     <>
-      <div className="admin-page bg-gray-50 min-h-screen text-gray-900 overflow-x-hidden pb-12 md:pb-0">
-        {children}
+      <div className="min-h-screen bg-muted/40 text-foreground">
+        <AdminSidebar />
+        <main className="min-w-0 overflow-x-hidden lg:pl-14">
+          {children}
+        </main>
+        <Toaster richColors position="top-right" />
       </div>
       <FloatingBackButton />
     </>
