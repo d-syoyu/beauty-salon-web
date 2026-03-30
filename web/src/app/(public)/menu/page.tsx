@@ -34,7 +34,7 @@ const menuCategories = [
     title: 'Perm',
     titleJa: 'パーマ',
     description: 'ダメージを最小限に抑えながら、理想のカールを長持ちさせます。',
-    image: '/treatments.png',
+    image: '/perm.png',
     items: [
       { name: 'パーマ', price: '¥8,800' },
       { name: 'デジタルパーマ', price: '¥13,200' },
@@ -47,7 +47,7 @@ const menuCategories = [
     title: 'Straightening',
     titleJa: '縮毛矯正',
     description: 'くせ毛やうねりを根本から改善し、自然でまっすぐなストレートヘアを実現します。',
-    image: '/treatments.png',
+    image: '/straight.png',
     items: [
       { name: '縮毛矯正', price: '¥17,600〜' },
       { name: 'ポイント縮毛矯正（前髪）', price: '¥5,500' },
@@ -59,7 +59,7 @@ const menuCategories = [
     title: 'Hair Improvement',
     titleJa: '髪質改善',
     description: '最新の技術で髪の内部構造を整え、本来の美しさを取り戻します。',
-    image: '/treatments.png',
+    image: '/blog4.png',
     items: [
       { name: '髪質改善トリートメント', price: '¥11,000' },
       { name: '酸熱トリートメント', price: '¥16,500' },
@@ -95,7 +95,7 @@ const menuCategories = [
     title: 'Hair Arrange',
     titleJa: 'ヘアセット',
     description: '特別な日を彩るヘアセット。結婚式やパーティー、成人式などに。',
-    image: '/color.png',
+    image: '/hairset.png',
     items: [
       { name: 'ヘアセット', price: '¥5,500' },
       { name: '成人式ヘアセット', price: '¥8,800' },
