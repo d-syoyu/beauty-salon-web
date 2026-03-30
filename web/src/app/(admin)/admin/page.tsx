@@ -1,6 +1,8 @@
 // src/app/(admin)/admin/page.tsx
 // RSC: fetches today's reservations, analytics, and holidays via Prisma
 
+export const dynamic = 'force-dynamic';
+
 import { prisma } from '@/lib/db';
 import DashboardClient, {
   type Reservation,
