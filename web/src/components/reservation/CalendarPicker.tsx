@@ -137,7 +137,7 @@ export default function CalendarPicker({
         >
           <ChevronLeft className="w-4 h-4 text-[var(--color-charcoal)]" />
         </button>
-        <div className="flex items-center gap-2 text-base font-[family-name:var(--font-serif)]">
+        <div className="flex items-center gap-2 text-base">
           <Calendar className="w-4 h-4 text-[var(--color-sage)]" />
           {currentMonth.getFullYear()}年{currentMonth.getMonth() + 1}月
         </div>

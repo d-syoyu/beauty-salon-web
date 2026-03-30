@@ -944,13 +944,16 @@ export default function ReservationWizard({ initialMenus, initialCategories }: R
 
                   {/* Square Payment Element (embedded) */}
                   {paymentMethod === 'ONLINE' && (
-                    <div className="mt-6 bg-[var(--color-cream)] border border-[var(--color-light-gray)]">
-                      <h3 className="px-3 pt-3 pb-1 sm:px-4 sm:pt-4 flex items-center gap-2 text-sm font-medium text-[var(--color-charcoal)]">
-                        <CreditCard className="w-4 h-4 text-[var(--color-gold)]" />
-                        カード情報の入力
-                      </h3>
-                      <SquarePayment onError={(msg) => setSubmitError(msg)} />
-                    </div>
+                    <>
+                      <div className="mt-6 bg-[var(--color-cream)] border border-[var(--color-light-gray)]">
+                        <h3 className="px-3 pt-3 pb-2 sm:px-4 sm:pt-4 flex items-center gap-2 text-sm font-medium text-[var(--color-charcoal)] border-b border-[var(--color-light-gray)]">
+                          <CreditCard className="w-4 h-4 text-[var(--color-gold)]" />
+                          カード情報の入力
+                        </h3>
+                        <SquarePayment onError={(msg) => setSubmitError(msg)} />
+                      </div>
+                      <p className="mt-2 text-xs text-[var(--color-warm-gray)]">実際の決済は行われません</p>
+                    </>
                   )}
 
                   {/* Error message */}

@@ -28,8 +28,21 @@ type SquareCard = {
   destroy?: () => Promise<void> | void;
 };
 
+type CardStyleRule = {
+  backgroundColor?: string;
+  borderColor?: string;
+  borderRadius?: string;
+  borderWidth?: string;
+  color?: string;
+  fontSize?: string;
+};
+
+type CardOptions = {
+  style?: Record<string, CardStyleRule>;
+};
+
 type SquarePayments = {
-  card: () => Promise<SquareCard>;
+  card: (options?: CardOptions) => Promise<SquareCard>;
 };
 
 type SquareGlobal = {
@@ -44,6 +57,35 @@ declare global {
 
 const appId = process.env.NEXT_PUBLIC_SQUARE_APP_ID?.trim() ?? '';
 const locationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID?.trim() ?? '';
+
+const CARD_STYLE: CardOptions = {
+  style: {
+    '.input-container': {
+      borderColor: '#E5E0DB',
+      borderRadius: '0px',
+    },
+    '.input-container.is-focus': {
+      borderColor: '#B8956E',
+    },
+    '.input-container.is-error': {
+      borderColor: '#c72b2b',
+    },
+    'input': {
+      backgroundColor: '#FDFCFA',
+      color: '#1A1A1A',
+      fontSize: '14px',
+    },
+    'input::placeholder': {
+      color: '#B5AFA9',
+    },
+    '.message-text': {
+      color: '#5A5550',
+    },
+    '.message-icon': {
+      color: '#5A5550',
+    },
+  },
+};
 
 export default function SquareSandboxDemo() {
   const cardRef = useRef<SquareCard | null>(null);
@@ -71,7 +113,7 @@ export default function SquareSandboxDemo() {
         }
 
         const payments = window.Square.payments(appId, locationId);
-        const card = await payments.card();
+        const card = await payments.card(CARD_STYLE);
 
         if (cancelled) {
           await card.destroy?.();
@@ -185,7 +227,7 @@ export default function SquareSandboxDemo() {
             <p className="mb-3 text-sm font-medium text-[var(--color-charcoal)]">カード入力欄</p>
             <div
               id="square-card-container"
-              className="min-h-24 rounded-xl border border-[var(--color-light-gray)] bg-white px-4 py-3"
+              className="min-h-24 px-2 py-3"
             />
             {isInitializing && (
               <div className="mt-3 flex items-center gap-2 text-sm text-[var(--color-warm-gray)]">

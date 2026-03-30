@@ -9,8 +9,21 @@ type SquareCard = {
   destroy?: () => Promise<void> | void;
 };
 
+type CardStyleRule = {
+  backgroundColor?: string;
+  borderColor?: string;
+  borderRadius?: string;
+  borderWidth?: string;
+  color?: string;
+  fontSize?: string;
+};
+
+type CardOptions = {
+  style?: Record<string, CardStyleRule>;
+};
+
 type SquarePayments = {
-  card: () => Promise<SquareCard>;
+  card: (options?: CardOptions) => Promise<SquareCard>;
 };
 
 type SquareGlobal = {
@@ -24,6 +37,35 @@ const squareScriptUrl =
   squareEnvironment === 'production'
     ? 'https://web.squarecdn.com/v1/square.js'
     : 'https://sandbox.web.squarecdn.com/v1/square.js';
+
+const CARD_STYLE: CardOptions = {
+  style: {
+    '.input-container': {
+      borderColor: '#E5E0DB',
+      borderRadius: '0px',
+    },
+    '.input-container.is-focus': {
+      borderColor: '#B8956E',
+    },
+    '.input-container.is-error': {
+      borderColor: '#c72b2b',
+    },
+    'input': {
+      backgroundColor: '#FDFCFA',
+      color: '#1A1A1A',
+      fontSize: '14px',
+    },
+    'input::placeholder': {
+      color: '#B5AFA9',
+    },
+    '.message-text': {
+      color: '#5A5550',
+    },
+    '.message-icon': {
+      color: '#5A5550',
+    },
+  },
+};
 
 interface SquarePaymentProps {
   onReady?: () => void;
@@ -91,7 +133,7 @@ export default function SquarePayment({ onReady, onError }: SquarePaymentProps) 
         }
 
         const payments = Square.payments(squareAppId, squareLocationId);
-        const card = await payments.card();
+        const card = await payments.card(CARD_STYLE);
 
         if (isCancelled) {
           await card.destroy?.();
@@ -141,7 +183,7 @@ export default function SquarePayment({ onReady, onError }: SquarePaymentProps) 
           <FallbackPaymentForm />
         </div>
       ) : (
-        <div className="square-payment-shell">
+        <div className="square-payment-shell px-3 pt-4 pb-1 sm:px-4 sm:pt-5 sm:pb-1">
           <div
             id={containerIdRef.current}
             className="square-payment-container"
@@ -155,7 +197,6 @@ export default function SquarePayment({ onReady, onError }: SquarePaymentProps) 
         </div>
       )}
 
-      <p className="px-3 pb-2 pt-0 text-xs leading-5 text-[var(--color-warm-gray)] sm:px-4">実際の決済は行われません</p>
     </div>
   );
 }

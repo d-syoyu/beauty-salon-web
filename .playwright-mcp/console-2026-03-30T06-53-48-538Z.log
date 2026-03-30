@@ -1,0 +1,26 @@
+[   16448ms] [WARNING] Image with src "/person2.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:2287
+[   16477ms] [WARNING] Image with src "/person1.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:2287
+[  188861ms] [ERROR] Loading the font 'https://cash-f.squarecdn.com/static/fonts/cashsans/woff2/CashSans-Regular.woff2' violates the following Content Security Policy directive: "font-src https://square-fonts-production-f.squarecdn.com https://d1g145x70srn7h.cloudfront.net/fonts/sqmarket/ 'report-sample'". The action has been blocked. @ https://sandbox.web.squarecdn.com/1.83.0/single-card-element-iframe.html:0
+[  188862ms] [ERROR] Loading the font 'https://cash-f.squarecdn.com/static/fonts/cashsans/woff2/CashSans-Semibold.woff2' violates the following Content Security Policy directive: "font-src https://square-fonts-production-f.squarecdn.com https://d1g145x70srn7h.cloudfront.net/fonts/sqmarket/ 'report-sample'". The action has been blocked. @ https://sandbox.web.squarecdn.com/1.83.0/single-card-element-iframe.html:0
+[  188863ms] [ERROR] Loading the font 'https://cash-f.squarecdn.com/static/fonts/cashsans/woff2/CashSans-Regular.woff2' violates the following Content Security Policy directive: "font-src https://square-fonts-production-f.squarecdn.com https://d1g145x70srn7h.cloudfront.net/fonts/sqmarket/ 'report-sample'". The action has been blocked. @ https://sandbox.web.squarecdn.com/1.83.0/single-card-element-iframe.html:0
+[  188863ms] [ERROR] Loading the font 'https://cash-f.squarecdn.com/static/fonts/cashsans/woff2/CashSans-Semibold.woff2' violates the following Content Security Policy directive: "font-src https://square-fonts-production-f.squarecdn.com https://d1g145x70srn7h.cloudfront.net/fonts/sqmarket/ 'report-sample'". The action has been blocked. @ https://sandbox.web.squarecdn.com/1.83.0/single-card-element-iframe.html:0
+[  188863ms] [ERROR] Loading the font 'https://cash-f.squarecdn.com/static/fonts/cashsans/woff2/CashSans-Regular.woff2' violates the following Content Security Policy directive: "font-src https://square-fonts-production-f.squarecdn.com https://d1g145x70srn7h.cloudfront.net/fonts/sqmarket/ 'report-sample'". The action has been blocked. @ https://sandbox.web.squarecdn.com/1.83.0/single-card-element-iframe.html:0
+[  188864ms] [ERROR] Loading the font 'https://cash-f.squarecdn.com/static/fonts/cashsans/woff2/CashSans-Semibold.woff2' violates the following Content Security Policy directive: "font-src https://square-fonts-production-f.squarecdn.com https://d1g145x70srn7h.cloudfront.net/fonts/sqmarket/ 'report-sample'". The action has been blocked. @ https://sandbox.web.squarecdn.com/1.83.0/single-card-element-iframe.html:0
+[  188864ms] [ERROR] Loading the font 'https://cash-f.squarecdn.com/static/fonts/cashsans/woff2/CashSans-Regular.woff2' violates the following Content Security Policy directive: "font-src https://square-fonts-production-f.squarecdn.com https://d1g145x70srn7h.cloudfront.net/fonts/sqmarket/ 'report-sample'". The action has been blocked. @ https://sandbox.web.squarecdn.com/1.83.0/single-card-element-iframe.html:0
+[  188864ms] [ERROR] Loading the font 'https://cash-f.squarecdn.com/static/fonts/cashsans/woff2/CashSans-Semibold.woff2' violates the following Content Security Policy directive: "font-src https://square-fonts-production-f.squarecdn.com https://d1g145x70srn7h.cloudfront.net/fonts/sqmarket/ 'report-sample'". The action has been blocked. @ https://sandbox.web.squarecdn.com/1.83.0/single-card-element-iframe.html:0
+[  235938ms] [ERROR] ./src/components/reservation/ReservationWizard.tsx:954:24
+Parsing ecmascript source code failed
+  952 |                       <SquarePayment onError={(msg) => setSubmitError(msg)} />
+  953 |                     </div>
+> 954 |                     <p className="mt-2 text-xs text-[var(--color-warm-gray)]">実際の決済は行われません</p>
+      |                        ^^^^^^^^^
+  955 |                   )}
+  956 |
+  957 |                   {/* Error message */}
+
+Expected '</', got 'className'
+
+Import trace:
+  Server Component:
+    ./src/components/reservation/ReservationWizard.tsx
+    ./src/app/(public)/reservation/page.tsx @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
