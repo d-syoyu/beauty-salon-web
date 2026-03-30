@@ -215,7 +215,7 @@ export default function DashboardClient({
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
         {quickLinks.map(({ href, icon: Icon, label, sub, color }) => (
           <Link key={href} href={href}>
             <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">

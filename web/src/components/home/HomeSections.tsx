@@ -95,7 +95,7 @@ export default function HomeSections() {
                 titleJa: '髪質改善',
                 price: '¥11,000〜',
                 description: '酸熱トリートメント・TOKIOで美髪へ導く',
-                image: '/treatments.png'
+                image: '/blog4.png'
               }
             ].map((service) => (
               <motion.div
