@@ -6,7 +6,7 @@ export default function FloatingBackButton() {
   return (
     <>
       {/* Desktop / Tablet - right edge tab */}
-      <
+      <a
         href="https://www.soga.ltd/#sample"
         className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-50 flex-col items-center gap-3 px-3 py-6 bg-charcoal text-cream rounded-l-2xl shadow-xl hover:bg-sage-dark hover:px-5 transition-all duration-300 ease-out group"
       >
