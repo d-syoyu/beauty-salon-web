@@ -90,7 +90,7 @@ export default function NewsletterPage() {
     <div style="font-family: 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; background: #FDFCFA; padding: 40px 30px;">
       <h1 style="color: #1A1A1A; font-size: 24px; text-align: center; letter-spacing: 0.1em;">LUMINA HAIR STUDIO</h1>
       <div style="width: 40px; height: 1px; background: #B8956E; margin: 20px auto;"></div>
-      <h2 style="color: #1A1A1A; font-size: 20px;">${title}</h2>
+      <h2 style="color: #1A1A1A; font-size: 20px; font-family: 'Helvetica Neue', sans-serif;">${title}</h2>
       <div style="color: #5A5550; line-height: 1.8; white-space: pre-wrap;">${content}</div>
       <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #E5E0DB;">
         <p style="color: #A89686; font-size: 12px;">LUMINA HAIR STUDIO<br/>東京都渋谷区神宮前1-2-3</p>
