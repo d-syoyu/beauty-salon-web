@@ -74,28 +74,28 @@ export default function HomeSections() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
             {[
               {
-                icon: <Leaf className="w-8 h-8" />,
-                title: 'Cut',
-                titleJa: 'カット',
-                price: '¥5,500〜',
-                description: '骨格や髪質を見極め、似合うスタイルをご提案',
-                image: '/cut.png'
-              },
-              {
-                icon: <Sparkles className="w-8 h-8" />,
-                title: 'Color',
-                titleJa: 'カラー',
-                price: '¥6,600〜',
-                description: 'イルミナカラー・バレイヤージュなど豊富なメニュー',
-                image: '/color.png'
-              },
-              {
                 icon: <Sparkles className="w-8 h-8" />,
                 title: 'Hair Improvement',
                 titleJa: '髪質改善',
                 price: '¥11,000〜',
                 description: '酸熱トリートメント・TOKIOで美髪へ導く',
                 image: '/blog4.png'
+              },
+              {
+                icon: <Leaf className="w-8 h-8" />,
+                title: 'Perm',
+                titleJa: 'パーマ',
+                price: '¥8,800〜',
+                description: 'デジタルパーマ・コールドパーマで理想のカールを',
+                image: '/perm.png'
+              },
+              {
+                icon: <Sparkles className="w-8 h-8" />,
+                title: 'Straight',
+                titleJa: '縮毛矯正',
+                price: '¥16,500〜',
+                description: 'くせ毛・うねりを根本から改善。自然なストレートへ',
+                image: '/straight.png'
               }
             ].map((service) => (
               <motion.div
