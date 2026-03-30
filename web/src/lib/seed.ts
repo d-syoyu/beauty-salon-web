@@ -379,8 +379,6 @@ export async function seedDatabase(prisma: PrismaClient) {
     const subtotal = res.totalPrice - taxAmount;
     const pm = paymentMethodCodes[saleNum % paymentMethodCodes.length];
     const saleNumber = `S${String(saleNum++).padStart(6, "0")}`;
-    const saleDate = new Date(res.date);
-    const saleTime = res.endTime;
 
     const sale = await prisma.sale.create({
       data: {
@@ -393,14 +391,16 @@ export async function seedDatabase(prisma: PrismaClient) {
         totalAmount: res.totalPrice,
         paymentMethod: pm,
         paymentStatus: "PAID",
-        saleDate,
-        saleTime,
+        saleDate: res.date,
+        saleTime: res.endTime,
+        staffId: res.staffId,
+        staffName: res.staffName,
       },
     });
 
-    for (const item of res.items) {
-      await prisma.saleItem.create({
-        data: {
+    await Promise.all([
+      prisma.saleItem.createMany({
+        data: res.items.map((item) => ({
           saleId: sale.id,
           itemType: "MENU",
           menuId: item.menuId,
@@ -411,18 +411,17 @@ export async function seedDatabase(prisma: PrismaClient) {
           unitPrice: item.price,
           subtotal: item.price,
           orderIndex: item.orderIndex,
+        })),
+      }),
+      prisma.payment.create({
+        data: {
+          saleId: sale.id,
+          paymentMethod: pm,
+          amount: res.totalPrice,
+          orderIndex: 0,
         },
-      });
-    }
-
-    await prisma.payment.create({
-      data: {
-        saleId: sale.id,
-        paymentMethod: pm,
-        amount: res.totalPrice,
-        orderIndex: 0,
-      },
-    });
+      }),
+    ]);
   }
 
   // デモ用クーポン

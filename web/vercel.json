@@ -7,10 +7,10 @@
   ],
   "functions": {
     "src/app/api/cron/demo-reset/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 300
     },
     "src/app/api/admin/demo-reset/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 300
     }
   }
 }
