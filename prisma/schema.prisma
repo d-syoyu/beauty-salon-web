@@ -1,0 +1,728 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String    @id @default(cuid())
+  name             String?
+  email            String?   @unique
+  emailVerified    DateTime?
+  image            String?
+  phone            String?
+  password         String?
+  role             String    @default("CUSTOMER")
+  newsletterOptOut Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+  reservations Reservation[]
+  sales        Sale[]
+  createdSales Sale[]          @relation("CreatedSales")
+  kartes       CustomerKarte[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Reservation {
+  id                    String   @id @default(cuid())
+  userId                String
+  couponId              String?
+  couponCode            String?
+  couponDiscount        Int      @default(0)
+  totalPrice            Int
+  totalDuration         Int
+  menuSummary           String
+  date                  DateTime
+  startTime             String
+  endTime               String
+  status                String   @default("CONFIRMED")
+  paymentMethod         String   @default("ONSITE")
+  stripePaymentIntentId String?
+  note                  String?
+  isFirstVisit          Boolean?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  staffId               String?
+  staffName             String?
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coupon Coupon? @relation(fields: [couponId], references: [id])
+  staff  Staff?   @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  items  ReservationItem[]
+  sale   Sale?
+
+  @@index([date])
+  @@index([userId])
+  @@index([status])
+  @@index([date, status])
+  @@index([couponId])
+  @@index([staffId])
+}
+
+model ReservationItem {
+  id            String @id @default(cuid())
+  reservationId String
+  menuId        String
+  menuName      String
+  category      String
+  price         Int
+  duration      Int
+  orderIndex    Int
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@index([reservationId])
+  @@unique([reservationId, orderIndex])
+}
+
+model Category {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  nameEn       String
+  color        String
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  menus Menu[]
+
+  @@index([isActive])
+}
+
+model Menu {
+  id              String   @id @default(cuid())
+  name            String
+  categoryId      String
+  price           Int
+  priceVariable   Boolean  @default(false)
+  duration        Int
+  lastBookingTime String
+  displayOrder    Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  category         Category    @relation(fields: [categoryId], references: [id])
+  staffAssignments StaffMenu[]
+
+  @@index([categoryId])
+  @@index([isActive])
+}
+
+model Holiday {
+  id        String   @id @default(cuid())
+  date      DateTime
+  startTime String?
+  endTime   String?
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@unique([date, startTime, endTime])
+  @@index([date])
+}
+
+model SpecialOpenDay {
+  id        String   @id @default(cuid())
+  date      DateTime
+  startTime String?
+  endTime   String?
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@unique([date, startTime, endTime])
+  @@index([date])
+}
+
+model Sale {
+  id             String   @id @default(cuid())
+  saleNumber     String   @unique
+  userId         String?
+  customerName   String?
+  customerPhone  String?
+  reservationId  String?  @unique
+  subtotal       Int
+  taxAmount      Int
+  taxRate        Int
+  discountAmount Int      @default(0)
+  couponId       String?
+  couponDiscount Int      @default(0)
+  totalAmount    Int
+  paymentMethod  String
+  paymentStatus  String   @default("PENDING")
+  saleDate       DateTime
+  saleTime       String
+  note           String?
+  createdBy      String?
+  staffId        String?
+  staffName      String?
+  isNominated    Boolean  @default(false)
+  cancelledAt    DateTime?
+  cancelReason   String?
+  refundAmount   Int      @default(0)
+  refundedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  reservation   Reservation?  @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  coupon        Coupon?       @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  staff         Staff?        @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  items         SaleItem[]
+  payments      Payment[]
+  createdByUser User?         @relation("CreatedSales", fields: [createdBy], references: [id], onDelete: SetNull)
+  auditLogs     SaleAuditLog[]
+  karte         CustomerKarte?
+
+  @@index([saleDate])
+  @@index([userId])
+  @@index([reservationId])
+  @@index([couponId])
+  @@index([paymentMethod])
+  @@index([staffId])
+  @@index([createdAt])
+}
+
+model SaleItem {
+  id          String @id @default(cuid())
+  saleId      String
+  itemType    String
+  menuId      String?
+  menuName    String?
+  categoryId  String?
+  category    String?
+  duration    Int?
+  productId   String?
+  productName String?
+  quantity    Int    @default(1)
+  unitPrice   Int
+  subtotal    Int
+  orderIndex  Int
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@index([categoryId])
+  @@unique([saleId, orderIndex])
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  saleId        String
+  paymentMethod String
+  amount        Int
+  orderIndex    Int
+  note          String?
+  createdAt     DateTime @default(now())
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@unique([saleId, orderIndex])
+}
+
+model Coupon {
+  id                    String   @id @default(cuid())
+  code                  String   @unique
+  name                  String
+  type                  String
+  value                 Int
+  description           String?
+  applicableMenuIds     String   @default("[]")
+  applicableCategoryIds String   @default("[]")
+  applicableWeekdays    String   @default("[]")
+  startTime             String?
+  endTime               String?
+  onlyFirstTime         Boolean  @default(false)
+  onlyReturning         Boolean  @default(false)
+  validFrom             DateTime
+  validUntil            DateTime
+  usageLimit            Int?
+  usageLimitPerCustomer Int?
+  usageCount            Int      @default(0)
+  minimumAmount         Int?
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  usages        CouponUsage[]
+  sales         Sale[]
+  reservations  Reservation[]
+
+  @@index([code])
+  @@index([isActive])
+}
+
+model CouponUsage {
+  id         String   @id @default(cuid())
+  couponId   String
+  saleId     String?  @unique
+  customerId String?
+  usedAt     DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@index([couponId])
+  @@index([customerId])
+}
+
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentMethodSetting {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  displayName  String
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([code])
+}
+
+model Staff {
+  id                  String   @id @default(cuid())
+  name                String
+  nameEn              String?
+  role                String
+  image               String?
+  bio                 String?
+  specialties         String   @default("[]")
+  experience          String?
+  socialMedia         String   @default("{}")
+  displayOrder        Int      @default(0)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  schedules           StaffSchedule[]
+  scheduleOverrides   StaffScheduleOverride[]
+  menuAssignments     StaffMenu[]
+  reservations        Reservation[]
+  shiftPatterns       ShiftPattern[]
+  employmentProfile   StaffEmploymentProfile?
+  attendanceRecords   AttendanceRecord[]
+  correctionRequests  AttendanceCorrectionRequest[]
+  leaveGrants         LeaveGrant[]
+  leaveRequests       LeaveRequest[]
+  overtimeRequests    OvertimeRequest[]
+  approvalLogs        ApprovalActionLog[]
+  monthlyClosures     AttendanceMonthlyClosure[]
+  sales               Sale[]
+  kartes              CustomerKarte[]
+
+  @@index([isActive])
+}
+
+model StaffSchedule {
+  id        String   @id @default(cuid())
+  staffId   String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, dayOfWeek])
+  @@index([staffId])
+}
+
+model StaffScheduleOverride {
+  id           String   @id @default(cuid())
+  staffId      String
+  date         DateTime
+  startTime    String?
+  endTime      String?
+  timeSegments Json?
+  breakMinutes Int      @default(0)
+  status       String   @default("scheduled")
+  note         String?
+  source       String   @default("manual")
+  publishedAt  DateTime?
+  patternCode  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, date])
+  @@index([staffId])
+  @@index([date])
+  @@index([status])
+}
+
+model StaffMenu {
+  id      String @id @default(cuid())
+  staffId String
+  menuId  String
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  menu  Menu  @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, menuId])
+  @@index([staffId])
+  @@index([menuId])
+}
+
+model ShiftPattern {
+  id           String   @id @default(cuid())
+  staffId      String
+  code         String
+  name         String
+  startTime    String
+  endTime      String
+  breakMinutes Int      @default(0)
+  color        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, code])
+  @@index([staffId])
+  @@index([isActive])
+}
+
+model LeavePolicy {
+  id                String   @id @default(cuid())
+  name              String
+  grantMode         String   @default("hire_date")
+  fixedGrantMonth   Int?
+  fixedGrantDay     Int?
+  isActive          Boolean  @default(true)
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  employmentProfiles StaffEmploymentProfile[]
+  leaveGrants        LeaveGrant[]
+
+  @@index([isActive])
+}
+
+model StaffEmploymentProfile {
+  id                   String   @id @default(cuid())
+  staffId              String   @unique
+  hireDate             DateTime?
+  employmentType       String   @default("full_time")
+  prescribedWeeklyDays Int?
+  prescribedAnnualDays Int?
+  leavePolicyId        String?
+  warningNote          String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  staff       Staff       @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  leavePolicy LeavePolicy? @relation(fields: [leavePolicyId], references: [id], onDelete: SetNull)
+
+  @@index([leavePolicyId])
+}
+
+model LeaveType {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  name           String
+  unit           String   @default("full")
+  deductsBalance Boolean  @default(true)
+  color          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  leaveGrants   LeaveGrant[]
+  leaveRequests LeaveRequest[]
+
+  @@index([isActive])
+}
+
+model LeaveGrant {
+  id                        String   @id @default(cuid())
+  staffId                   String
+  leavePolicyId             String?
+  leaveTypeId               String?
+  grantDate                 DateTime
+  expireDate                DateTime?
+  grantedDays               Float
+  usedDays                  Float    @default(0)
+  remainingManualAdjustment Float    @default(0)
+  source                    String   @default("auto")
+  note                      String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  staff       Staff       @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  leavePolicy LeavePolicy? @relation(fields: [leavePolicyId], references: [id], onDelete: SetNull)
+  leaveType   LeaveType?   @relation(fields: [leaveTypeId], references: [id], onDelete: SetNull)
+
+  @@index([staffId])
+  @@index([grantDate])
+  @@index([expireDate])
+}
+
+model LeaveRequest {
+  id               String   @id @default(cuid())
+  staffId          String
+  leaveTypeId      String
+  date             DateTime
+  unit             String   @default("full")
+  startTime        String?
+  endTime          String?
+  requestedDays    Float    @default(1)
+  status           String   @default("submitted")
+  note             String?
+  adminComment     String?
+  approvedAt       DateTime?
+  approvedByUserId String?
+  createdByUserId  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  staff     Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+
+  @@index([staffId])
+  @@index([date])
+  @@index([status])
+}
+
+model AttendanceRecord {
+  id                 String   @id @default(cuid())
+  staffId            String
+  date               DateTime
+  scheduledStartTime String?
+  scheduledEndTime   String?
+  actualStartTime    String?
+  actualEndTime      String?
+  totalWorkMinutes   Int      @default(0)
+  totalBreakMinutes  Int      @default(0)
+  lateMinutes        Int      @default(0)
+  earlyLeaveMinutes  Int      @default(0)
+  overtimeMinutes    Int      @default(0)
+  status             String   @default("not_started")
+  note               String?
+  isClosed           Boolean  @default(false)
+  closedAt           DateTime?
+  createdByUserId    String?
+  updatedByUserId    String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  staff              Staff                        @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  breaks             AttendanceBreak[]
+  correctionRequests AttendanceCorrectionRequest[]
+
+  @@unique([staffId, date])
+  @@index([staffId])
+  @@index([date])
+  @@index([status])
+}
+
+model AttendanceBreak {
+  id                 String   @id @default(cuid())
+  attendanceRecordId String
+  startTime          String
+  endTime            String?
+  startedAt          DateTime @default(now())
+  endedAt            DateTime?
+  durationMinutes    Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  attendanceRecord AttendanceRecord @relation(fields: [attendanceRecordId], references: [id], onDelete: Cascade)
+
+  @@index([attendanceRecordId])
+}
+
+model AttendanceCorrectionRequest {
+  id                    String   @id @default(cuid())
+  staffId               String
+  attendanceRecordId    String?
+  date                  DateTime
+  requestedStartTime    String?
+  requestedEndTime      String?
+  requestedBreakMinutes Int?
+  requestCategory       String   @default("correction")
+  status                String   @default("submitted")
+  note                  String?
+  adminComment          String?
+  approvedAt            DateTime?
+  approvedByUserId      String?
+  createdByUserId       String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  staff            Staff             @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  attendanceRecord AttendanceRecord? @relation(fields: [attendanceRecordId], references: [id], onDelete: SetNull)
+
+  @@index([staffId])
+  @@index([date])
+  @@index([status])
+}
+
+model OvertimeRequest {
+  id                 String   @id @default(cuid())
+  staffId            String
+  date               DateTime
+  requestedStartTime String?
+  requestedEndTime   String
+  requestCategory    String   @default("overtime")
+  isHolidayWork      Boolean  @default(false)
+  status             String   @default("submitted")
+  note               String?
+  adminComment       String?
+  approvedAt         DateTime?
+  approvedByUserId   String?
+  createdByUserId    String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+  @@index([date])
+  @@index([status])
+}
+
+model ApprovalActionLog {
+  id            String   @id @default(cuid())
+  requestType   String
+  requestId     String
+  action        String
+  actedByUserId String?
+  comment       String?
+  staffId       String?
+  createdAt     DateTime @default(now())
+
+  staff Staff? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([requestType, requestId])
+  @@index([staffId])
+}
+
+model AttendanceMonthlyClosure {
+  id             String   @id @default(cuid())
+  staffId        String
+  year           Int
+  month          Int
+  status         String   @default("open")
+  blockedReason  String?
+  closedAt       DateTime?
+  closedByUserId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, year, month])
+  @@index([year, month])
+  @@index([status])
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  name          String
+  categoryName  String
+  unitPrice     Int
+  stockQuantity Int      @default(0)
+  sku           String?  @unique
+  barcode       String?
+  description   String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([categoryName])
+}
+
+model CustomerKarte {
+  id              String   @id @default(cuid())
+  userId          String
+  staffId         String?
+  staffName       String?
+  visitDate       DateTime
+  treatmentNote   String?
+  chemicalFormula String?
+  hairCondition   String?
+  photos          String   @default("[]")
+  nextVisitNote   String?
+  ngNotes         String?
+  saleId          String?  @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  staff Staff? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  sale  Sale?  @relation(fields: [saleId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([visitDate])
+  @@index([staffId])
+}
+
+model SaleAuditLog {
+  id           String   @id @default(cuid())
+  saleId       String
+  action       String
+  changedField String?
+  oldValue     String?
+  newValue     String?
+  reason       String?
+  actedBy      String?
+  createdAt    DateTime @default(now())
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@index([action])
+}

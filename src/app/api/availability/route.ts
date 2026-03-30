@@ -1,0 +1,282 @@
+// src/app/api/availability/route.ts
+// LUMINA HAIR STUDIO - Availability API (スタイリスト別対応)
+
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { getBusinessHours } from "@/constants/salon";
+import {
+  generateTimeSlots,
+  isWithinBookingWindow,
+  calculateEndTime,
+} from "@/constants/booking";
+import { getClosedDays } from "@/lib/business-settings";
+import { parseLocalDateStart, parseLocalDateEnd } from "@/lib/date-utils";
+import { getStaffWorkingSegments, canStaffHandleMenus } from "@/lib/staff-assignment";
+
+interface TimeSlot {
+  time: string;
+  available: boolean;
+}
+
+interface AvailabilityResponse {
+  date: string;
+  dayOfWeek: number;
+  isClosed: boolean;
+  slots: TimeSlot[];
+  totalDuration?: number;
+  totalPrice?: number;
+}
+
+// GET /api/availability?date=2026-01-15&menuIds=id1,id2&staffId=xxx
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const dateStr = searchParams.get("date");
+    const menuIdsParam = searchParams.get("menuIds");
+    const staffIdParam = searchParams.get("staffId");
+
+    if (!dateStr) {
+      return NextResponse.json(
+        { error: "日付を指定してください" },
+        { status: 400 }
+      );
+    }
+
+    // Parse the date - use noon to prevent UTC date shift
+    const date = new Date(dateStr + "T12:00:00");
+    if (isNaN(date.getTime())) {
+      return NextResponse.json(
+        { error: "日付の形式が正しくありません" },
+        { status: 400 }
+      );
+    }
+
+    const dayOfWeek = date.getDay();
+
+    // Check regular closed days (from DB settings, default Monday)
+    const closedDays = await getClosedDays();
+    const isClosedDay = closedDays.includes(dayOfWeek);
+
+    const startOfDay = parseLocalDateStart(dateStr);
+    const endOfDay = parseLocalDateEnd(dateStr);
+
+    // Check for special open days (override closed days)
+    if (isClosedDay) {
+      const specialOpenDays = await prisma.specialOpenDay.findMany({
+        where: {
+          date: { gte: startOfDay, lte: endOfDay },
+        },
+      });
+
+      if (specialOpenDays.length === 0) {
+        return NextResponse.json<AvailabilityResponse>({
+          date: dateStr,
+          dayOfWeek,
+          isClosed: true,
+          slots: [],
+        });
+      }
+    }
+
+    const holidays = await prisma.holiday.findMany({
+      where: {
+        date: { gte: startOfDay, lte: endOfDay },
+      },
+    });
+
+    const hasAllDayHoliday = holidays.some((h) => !h.startTime && !h.endTime);
+    if (hasAllDayHoliday) {
+      return NextResponse.json<AvailabilityResponse>({
+        date: dateStr,
+        dayOfWeek,
+        isClosed: true,
+        slots: [],
+      });
+    }
+
+    const timeRangeHolidays = holidays.filter(
+      (h) => h.startTime && h.endTime
+    );
+
+    if (!isWithinBookingWindow(date)) {
+      return NextResponse.json<AvailabilityResponse>({
+        date: dateStr,
+        dayOfWeek,
+        isClosed: false,
+        slots: [],
+      });
+    }
+
+    // Fetch menu information
+    let totalDuration = 60;
+    let totalPrice = 0;
+    let menuIds: string[] = [];
+
+    const businessHours = getBusinessHours(date);
+    const earliestLastBookingTime: string = businessHours.lastBooking;
+
+    if (menuIdsParam) {
+      menuIds = menuIdsParam.split(",").filter(Boolean);
+
+      const menus = await prisma.menu.findMany({
+        where: {
+          id: { in: menuIds },
+          isActive: true,
+        },
+        select: {
+          id: true,
+          price: true,
+          duration: true,
+          lastBookingTime: true,
+        },
+      });
+
+      if (menus.length !== menuIds.length) {
+        const foundIds = new Set(menus.map((m) => m.id));
+        const invalidMenuId = menuIds.find((id) => !foundIds.has(id));
+        return NextResponse.json(
+          { error: `指定されたメニューが見つかりません: ${invalidMenuId}` },
+          { status: 400 }
+        );
+      }
+
+      totalDuration = menus.reduce((sum, menu) => sum + menu.duration, 0);
+      totalPrice = menus.reduce((sum, menu) => sum + menu.price, 0);
+    }
+
+    // Fetch qualified staff with schedules and overrides
+    const allStaff = await prisma.staff.findMany({
+      where: { isActive: true },
+      include: {
+        schedules: { where: { isActive: true } },
+        scheduleOverrides: {
+          where: { date: { gte: startOfDay, lte: endOfDay } },
+        },
+        leaveRequests: {
+          where: { date: { gte: startOfDay, lte: endOfDay }, status: "approved" },
+        },
+        overtimeRequests: {
+          where: { date: { gte: startOfDay, lte: endOfDay }, status: "approved" },
+        },
+        menuAssignments: { select: { menuId: true } },
+      },
+      orderBy: { displayOrder: "asc" },
+    });
+
+    // Filter to staff who can handle the requested menus
+    const qualifiedStaff = allStaff.filter((staff) => {
+      if (menuIds.length === 0) return true;
+      return canStaffHandleMenus(staff, menuIds);
+    });
+
+    // If a specific staff is requested, filter to just them
+    const targetStaff = staffIdParam
+      ? qualifiedStaff.filter((s) => s.id === staffIdParam)
+      : qualifiedStaff;
+
+    if (targetStaff.length === 0) {
+      // No qualified staff available at all
+      return NextResponse.json<AvailabilityResponse>({
+        date: dateStr,
+        dayOfWeek,
+        isClosed: false,
+        slots: generateTimeSlots()
+          .filter((s) => s >= businessHours.open)
+          .map((time) => ({ time, available: false })),
+        totalDuration,
+        totalPrice,
+      });
+    }
+
+    // Fetch existing reservations for this day WITH staffId
+    const existingReservations = await prisma.reservation.findMany({
+      where: {
+        date: { gte: startOfDay, lte: endOfDay },
+        status: "CONFIRMED",
+      },
+      select: {
+        staffId: true,
+        startTime: true,
+        endTime: true,
+      },
+    });
+
+    // Generate time slots
+    const allSlots = generateTimeSlots();
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+
+    const filteredSlots = allSlots.filter(
+      (slotTime) => slotTime >= businessHours.open
+    );
+
+    const slots: TimeSlot[] = filteredSlots.map((slotTime) => {
+      // 1. Check against last booking time
+      if (slotTime > earliestLastBookingTime) {
+        return { time: slotTime, available: false };
+      }
+
+      // 2. If today, exclude past time slots
+      if (isToday) {
+        const [hours, minutes] = slotTime.split(":").map(Number);
+        const slotDate = new Date(date);
+        slotDate.setHours(hours, minutes, 0, 0);
+        if (slotDate <= now) {
+          return { time: slotTime, available: false };
+        }
+      }
+
+      // 3. Calculate service end time
+      const endTime = calculateEndTime(slotTime, totalDuration);
+
+      // 4. Check if service would end after closing time
+      if (endTime > businessHours.close) {
+        return { time: slotTime, available: false };
+      }
+
+      // 5. Check for conflicts with time-range holidays
+      const hasHolidayConflict = timeRangeHolidays.some((holiday) => {
+        return slotTime < holiday.endTime! && endTime > holiday.startTime!;
+      });
+      if (hasHolidayConflict) {
+        return { time: slotTime, available: false };
+      }
+
+      // 6. Per-stylist availability check
+      // A slot is available if ANY qualified staff member is free
+      const anyStaffAvailable = targetStaff.some((staff) => {
+        // Check if staff works during this time (supports split shifts)
+        const segs = getStaffWorkingSegments(staff, date);
+        if (!segs) return false;
+        if (!segs.some((seg) => slotTime >= seg.startTime && endTime <= seg.endTime)) return false;
+
+        // Check for conflicts with this staff's reservations
+        const staffReservations = existingReservations.filter(
+          (r) => r.staffId === staff.id
+        );
+        const hasConflict = staffReservations.some(
+          (r) => slotTime < r.endTime && endTime > r.startTime
+        );
+
+        return !hasConflict;
+      });
+
+      return { time: slotTime, available: anyStaffAvailable };
+    });
+
+    return NextResponse.json<AvailabilityResponse>({
+      date: dateStr,
+      dayOfWeek,
+      isClosed: false,
+      slots,
+      totalDuration,
+      totalPrice,
+    });
+  } catch (error) {
+    console.error("Availability API error:", error);
+    return NextResponse.json(
+      { error: "空き状況の取得に失敗しました" },
+      { status: 500 }
+    );
+  }
+}
