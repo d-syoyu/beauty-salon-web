@@ -1,6 +1,8 @@
 "use client";
 
 export default function FloatingBackButton() {
+  return null;
+  // eslint-disable-next-line no-unreachable
   return (
     <>
       {/* Desktop / Tablet - right edge tab */}
