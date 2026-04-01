@@ -96,6 +96,9 @@ const TIMELINE_START_HOUR = 9;
 const TIMELINE_END_HOUR = 20;
 const TIMELINE_HOURS = TIMELINE_END_HOUR - TIMELINE_START_HOUR;
 const TIMELINE_TOTAL_MIN = TIMELINE_HOURS * 60;
+const TIMELINE_LABEL_WIDTH_PX = 64;
+const TIMELINE_HOUR_WIDTH_PX = 64;
+const TIMELINE_MIN_WIDTH_PX = TIMELINE_LABEL_WIDTH_PX + TIMELINE_HOURS * TIMELINE_HOUR_WIDTH_PX;
 
 const timeToMinutes = (time: string): number => {
   const [h, m] = time.split(':').map(Number);
@@ -370,7 +373,7 @@ export default function ReservationsClient({
         </div>
 
         {/* Reservations List */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 min-w-0">
           {/* Filters */}
           <Card className="mb-4">
             <CardContent className="p-4">
@@ -428,144 +431,146 @@ export default function ReservationsClient({
 
           {/* Per-Stylist Lane Timeline */}
           {parsedDate && reservations.filter((r) => r.status !== 'CANCELLED').length > 0 && (
-            <Card className="mb-4 overflow-x-auto">
+            <Card className="mb-4">
               <CardContent className="p-2 sm:p-4 md:p-6">
-                <div className="min-w-[360px] px-1 sm:px-2 lg:px-4">
-                  {(() => {
-                    const active = reservations.filter((r) => r.status !== 'CANCELLED');
-                    const staffLanes = new Map<string, { name: string; reservations: Reservation[] }>();
-                    const unassigned: Reservation[] = [];
-                    for (const r of active) {
-                      const sid = r.staffId || r.staff?.id;
-                      const sname = r.staffName || r.staff?.name;
-                      if (sid && sname) {
-                        if (!staffLanes.has(sid)) staffLanes.set(sid, { name: sname, reservations: [] });
-                        staffLanes.get(sid)!.reservations.push(r);
-                      } else {
-                        unassigned.push(r);
+                <div className="overflow-x-auto">
+                  <div className="min-w-max px-1 sm:px-2 lg:px-4" style={{ minWidth: `${TIMELINE_MIN_WIDTH_PX}px` }}>
+                    {(() => {
+                      const active = reservations.filter((r) => r.status !== 'CANCELLED');
+                      const staffLanes = new Map<string, { name: string; reservations: Reservation[] }>();
+                      const unassigned: Reservation[] = [];
+                      for (const r of active) {
+                        const sid = r.staffId || r.staff?.id;
+                        const sname = r.staffName || r.staff?.name;
+                        if (sid && sname) {
+                          if (!staffLanes.has(sid)) staffLanes.set(sid, { name: sname, reservations: [] });
+                          staffLanes.get(sid)!.reservations.push(r);
+                        } else {
+                          unassigned.push(r);
+                        }
                       }
-                    }
-                    if (unassigned.length > 0) staffLanes.set('__unassigned', { name: '未割当', reservations: unassigned });
+                      if (unassigned.length > 0) staffLanes.set('__unassigned', { name: '未割当', reservations: unassigned });
 
-                    const lanes = Array.from(staffLanes.entries());
-                    const ROW_HEIGHT = 44;
+                      const lanes = Array.from(staffLanes.entries());
+                      const ROW_HEIGHT = 44;
 
-                    return (
-                      <div>
-                        {/* Time labels */}
-                        <div className="relative h-7 mb-2 ml-14 sm:ml-20">
-                          {Array.from({ length: TIMELINE_HOURS + 1 }, (_, i) => {
-                            const left = (i / TIMELINE_HOURS) * 100;
-                            const translateClass = i === 0 ? 'translate-x-0' : i === TIMELINE_HOURS ? '-translate-x-full' : '-translate-x-1/2';
-                            return (
-                              <div
-                                key={i}
-                                className={`absolute text-[10px] sm:text-xs text-gray-400 ${translateClass} ${i % 2 !== 0 ? 'hidden sm:block' : ''}`}
-                                style={{ left: `${left}%` }}
-                              >
-                                {TIMELINE_START_HOUR + i}:00
+                      return (
+                        <div>
+                          {/* Time labels */}
+                          <div className="relative h-7 mb-2 ml-14 sm:ml-20">
+                            {Array.from({ length: TIMELINE_HOURS + 1 }, (_, i) => {
+                              const left = (i / TIMELINE_HOURS) * 100;
+                              const translateClass = i === 0 ? 'translate-x-0' : i === TIMELINE_HOURS ? '-translate-x-full' : '-translate-x-1/2';
+                              return (
+                                <div
+                                  key={i}
+                                  className={`absolute text-[10px] sm:text-xs text-gray-400 ${translateClass} ${i % 2 !== 0 ? 'hidden sm:block' : ''}`}
+                                  style={{ left: `${left}%` }}
+                                >
+                                  {TIMELINE_START_HOUR + i}:00
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Staff lanes */}
+                          {lanes.map(([staffId, lane]) => (
+                            <div key={staffId} className="flex items-stretch mb-1">
+                              <div className="w-14 sm:w-20 flex-shrink-0 flex items-center pr-1 sm:pr-2">
+                                <span className="text-[10px] sm:text-xs font-medium text-gray-600 truncate">{lane.name}</span>
                               </div>
-                            );
-                          })}
-                        </div>
+                              <div className="flex-1 relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: `${ROW_HEIGHT}px` }}>
+                                {/* Grid lines */}
+                                <div className="absolute inset-0">
+                                  {Array.from({ length: TIMELINE_HOURS * 3 + 1 }, (_, i) => {
+                                    const isHourLine = i % 3 === 0;
+                                    const left = (i / (TIMELINE_HOURS * 3)) * 100;
+                                    return (
+                                      <div
+                                        key={i}
+                                        className={`absolute top-0 bottom-0 ${isHourLine ? 'border-l border-gray-300' : 'border-l border-gray-200/60'}`}
+                                        style={{ left: `${left}%` }}
+                                      />
+                                    );
+                                  })}
+                                </div>
 
-                        {/* Staff lanes */}
-                        {lanes.map(([staffId, lane]) => (
-                          <div key={staffId} className="flex items-stretch mb-1">
-                            <div className="w-14 sm:w-20 flex-shrink-0 flex items-center pr-1 sm:pr-2">
-                              <span className="text-[10px] sm:text-xs font-medium text-gray-600 truncate">{lane.name}</span>
-                            </div>
-                            <div className="flex-1 relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: `${ROW_HEIGHT}px` }}>
-                              {/* Grid lines */}
-                              <div className="absolute inset-0">
-                                {Array.from({ length: TIMELINE_HOURS * 3 + 1 }, (_, i) => {
-                                  const isHourLine = i % 3 === 0;
-                                  const left = (i / (TIMELINE_HOURS * 3)) * 100;
+                                {/* Current time indicator */}
+                                {parsedDate.toDateString() === new Date().toDateString() && (() => {
+                                  const now = new Date();
+                                  const nowMin = now.getHours() * 60 + now.getMinutes();
+                                  const startMin = TIMELINE_START_HOUR * 60;
+                                  const endMin = TIMELINE_END_HOUR * 60;
+                                  if (nowMin >= startMin && nowMin <= endMin) {
+                                    const leftPos = ((nowMin - startMin) / TIMELINE_TOTAL_MIN) * 100;
+                                    return (
+                                      <div className="absolute top-0 bottom-0 z-20" style={{ left: `${leftPos}%` }}>
+                                        <div className="h-full border-l-2 border-red-500" />
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+
+                                {/* Reservation blocks */}
+                                {lane.reservations.map((r) => {
+                                  const startMin = timeToMinutes(r.startTime) - TIMELINE_START_HOUR * 60;
+                                  const endMin = timeToMinutes(r.endTime) - TIMELINE_START_HOUR * 60;
+                                  const left = (startMin / TIMELINE_TOTAL_MIN) * 100;
+                                  const width = ((endMin - startMin) / TIMELINE_TOTAL_MIN) * 100;
+                                  const isFaded = r.status === 'NO_SHOW';
+                                  const isOnline = r.paymentMethod === 'ONLINE';
+
                                   return (
                                     <div
-                                      key={i}
-                                      className={`absolute top-0 bottom-0 ${isHourLine ? 'border-l border-gray-300' : 'border-l border-gray-200/60'}`}
-                                      style={{ left: `${left}%` }}
-                                    />
+                                      key={r.id}
+                                      className={`absolute top-1 bottom-1 flex rounded-md overflow-hidden shadow-sm hover:shadow-md transition-all cursor-default ${
+                                        isFaded ? 'opacity-40' : ''
+                                      } ${highlightId === r.id ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
+                                      style={{
+                                        left: `${left}%`,
+                                        width: `${Math.max(width, 3)}%`,
+                                      }}
+                                      title={`${r.startTime}〜${r.endTime} ${r.menuSummary} - ${r.user.name || '名前未登録'}${isOnline ? ' (Web決済済み)' : ''}`}
+                                    >
+                                      {r.items.length > 0 ? (
+                                        r.items.map((item, idx) => {
+                                          const segmentWidth = (item.duration / r.totalDuration) * 100;
+                                          return (
+                                            <div
+                                              key={item.id}
+                                              className={`h-full flex items-center justify-center ${idx === 0 ? 'rounded-l-md' : ''} ${idx === r.items.length - 1 ? 'rounded-r-md' : ''}`}
+                                              style={{
+                                                backgroundColor: getReservationItemColor(item, menuCategoryColors, categoryColors),
+                                                width: `${segmentWidth}%`,
+                                              }}
+                                            >
+                                              {segmentWidth > 25 && (
+                                                <span
+                                                  className="text-[10px] font-medium truncate px-1"
+                                                  style={{ color: getReadableTextColor(getReservationItemColor(item, menuCategoryColors, categoryColors)) }}
+                                                >
+                                                  {item.menuName.split('（')[0]}
+                                                </span>
+                                              )}
+                                            </div>
+                                          );
+                                        })
+                                      ) : (
+                                        <div className="h-full w-full bg-blue-500 flex items-center px-2">
+                                          <span className="text-white text-[10px] font-medium truncate">{r.menuSummary}</span>
+                                        </div>
+                                      )}
+                                    </div>
                                   );
                                 })}
                               </div>
-
-                              {/* Current time indicator */}
-                              {parsedDate.toDateString() === new Date().toDateString() && (() => {
-                                const now = new Date();
-                                const nowMin = now.getHours() * 60 + now.getMinutes();
-                                const startMin = TIMELINE_START_HOUR * 60;
-                                const endMin = TIMELINE_END_HOUR * 60;
-                                if (nowMin >= startMin && nowMin <= endMin) {
-                                  const leftPos = ((nowMin - startMin) / TIMELINE_TOTAL_MIN) * 100;
-                                  return (
-                                    <div className="absolute top-0 bottom-0 z-20" style={{ left: `${leftPos}%` }}>
-                                      <div className="h-full border-l-2 border-red-500" />
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              })()}
-
-                              {/* Reservation blocks */}
-                              {lane.reservations.map((r) => {
-                                const startMin = timeToMinutes(r.startTime) - TIMELINE_START_HOUR * 60;
-                                const endMin = timeToMinutes(r.endTime) - TIMELINE_START_HOUR * 60;
-                                const left = (startMin / TIMELINE_TOTAL_MIN) * 100;
-                                const width = ((endMin - startMin) / TIMELINE_TOTAL_MIN) * 100;
-                                const isFaded = r.status === 'NO_SHOW';
-                                const isOnline = r.paymentMethod === 'ONLINE';
-
-                                return (
-                                  <div
-                                    key={r.id}
-                                    className={`absolute top-1 bottom-1 flex rounded-md overflow-hidden shadow-sm hover:shadow-md transition-all cursor-default ${
-                                      isFaded ? 'opacity-40' : ''
-                                    } ${highlightId === r.id ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
-                                    style={{
-                                      left: `${left}%`,
-                                      width: `${Math.max(width, 3)}%`,
-                                    }}
-                                    title={`${r.startTime}〜${r.endTime} ${r.menuSummary} - ${r.user.name || '名前未登録'}${isOnline ? ' (Web決済済み)' : ''}`}
-                                  >
-                                    {r.items.length > 0 ? (
-                                      r.items.map((item, idx) => {
-                                        const segmentWidth = (item.duration / r.totalDuration) * 100;
-                                        return (
-                                          <div
-                                            key={item.id}
-                                            className={`h-full flex items-center justify-center ${idx === 0 ? 'rounded-l-md' : ''} ${idx === r.items.length - 1 ? 'rounded-r-md' : ''}`}
-                                            style={{
-                                              backgroundColor: getReservationItemColor(item, menuCategoryColors, categoryColors),
-                                              width: `${segmentWidth}%`,
-                                            }}
-                                          >
-                                            {segmentWidth > 25 && (
-                                              <span
-                                                className="text-[10px] font-medium truncate px-1"
-                                                style={{ color: getReadableTextColor(getReservationItemColor(item, menuCategoryColors, categoryColors)) }}
-                                              >
-                                                {item.menuName.split('（')[0]}
-                                              </span>
-                                            )}
-                                          </div>
-                                        );
-                                      })
-                                    ) : (
-                                      <div className="h-full w-full bg-blue-500 flex items-center px-2">
-                                        <span className="text-white text-[10px] font-medium truncate">{r.menuSummary}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               </CardContent>
             </Card>
