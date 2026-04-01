@@ -31,7 +31,7 @@ export default function POSSettingsPage() {
   const { data: session, status } = useSession();
   const canLoad = status === 'authenticated' && session?.user?.role === 'ADMIN';
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [settings, setSettings] = useState<SettingsData>({ taxRate: 10 });
+  const [, setSettings] = useState<SettingsData>({ taxRate: 10 });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);

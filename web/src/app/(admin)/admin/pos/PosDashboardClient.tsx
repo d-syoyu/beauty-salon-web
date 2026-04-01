@@ -49,8 +49,6 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   OTHER: 'その他',
 };
 
-const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
-
 const formatPrice = (price: number) => `¥${price.toLocaleString()}`;
 
 export default function PosDashboardClient({

@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import BlogCards from '@/components/blog/BlogCards';
 import { newsPosts } from '@/data/blog-posts';

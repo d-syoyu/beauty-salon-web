@@ -961,7 +961,7 @@ function StaffShiftLane({
     setPaint(prev => prev ? { ...prev, current: min } : null);
   }
 
-  function handlePointerUp(_e: React.PointerEvent<HTMLDivElement>) {
+  function handlePointerUp() {
     if (!paint) return;
     const { anchor, mode } = paint;
     const start = Math.min(anchor, paint.current);

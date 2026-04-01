@@ -75,6 +75,7 @@ export default function AdminSalesPage() {
   useEffect(() => {
     if (!canLoad) return;
     fetchSales();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canLoad]);
 
   const fetchSales = async () => {

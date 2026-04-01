@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
@@ -244,7 +245,7 @@ export default function StaffListPage() {
               <div key={staff.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col">
                 <div className="flex items-start gap-4">
                   {staff.image ? (
-                    <img src={staff.image} alt={staff.name} className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+                    <Image src={staff.image} alt={staff.name} width={56} height={56} className="w-14 h-14 rounded-full object-cover flex-shrink-0" unoptimized />
                   ) : (
                     <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
                       <span className="text-sm font-semibold text-indigo-600">{getInitials(staff.name)}</span>

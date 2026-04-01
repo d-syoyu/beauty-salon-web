@@ -235,7 +235,6 @@ export default function NewSalePage() {
       if (customerSearchQuery) searchCustomers(customerSearchQuery);
     }, 300);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerSearchQuery]);
 
   const searchCustomers = async (query: string) => {

@@ -89,8 +89,8 @@ export default function ReservationWizard({ initialMenus, initialCategories }: R
   const [step, setStep] = useState(1);
 
   // ---- Step 1: Menu ----
-  const [menus, setMenus] = useState<MenuItem[]>(initialMenus);
-  const [categories, setCategories] = useState<MenuCategory[]>(initialCategories);
+  const [menus] = useState<MenuItem[]>(initialMenus);
+  const [categories] = useState<MenuCategory[]>(initialCategories);
   const [selectedMenuIds, setSelectedMenuIds] = useState<string[]>([]);
 
   // ---- Step 2: Date & Time ----
@@ -135,7 +135,6 @@ export default function ReservationWizard({ initialMenus, initialCategories }: R
     .filter((m): m is MenuItem => m !== undefined);
 
   const totalPrice = selectedMenus.reduce((sum, m) => sum + m.price, 0);
-  const totalDuration = selectedMenus.reduce((sum, m) => sum + m.duration, 0);
   const couponDiscount = couponResult?.valid ? (couponResult.discountAmount ?? 0) : 0;
 
   // ---------------------------------------------------------------------------
@@ -201,7 +200,6 @@ export default function ReservationWizard({ initialMenus, initialCategories }: R
     if (selectedDate && selectedMenuIds.length > 0) {
       fetchAvailability(selectedDate, selectedMenuIds, selectedStylist);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, selectedMenuIds, selectedStylist]);
 
   const fetchAvailability = async (date: Date, menuIds: string[], staffId?: string) => {

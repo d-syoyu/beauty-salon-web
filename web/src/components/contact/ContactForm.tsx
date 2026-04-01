@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { MapPin, Phone, Mail, Clock, Send, Check, ArrowRight } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, Check } from 'lucide-react';
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({

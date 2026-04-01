@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Zen_Kaku_Gothic_New, Geist } from "next/font/google";
+import { Cormorant_Garamond, Geist } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "../components/providers/session-provider";
 import { cn } from "@/lib/utils";

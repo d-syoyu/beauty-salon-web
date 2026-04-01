@@ -96,9 +96,10 @@ const TIMELINE_START_HOUR = 9;
 const TIMELINE_END_HOUR = 20;
 const TIMELINE_HOURS = TIMELINE_END_HOUR - TIMELINE_START_HOUR;
 const TIMELINE_TOTAL_MIN = TIMELINE_HOURS * 60;
-const TIMELINE_LABEL_WIDTH_PX = 64;
+const TIMELINE_LABEL_WIDTH_PX = 80;
 const TIMELINE_HOUR_WIDTH_PX = 64;
-const TIMELINE_MIN_WIDTH_PX = TIMELINE_LABEL_WIDTH_PX + TIMELINE_HOURS * TIMELINE_HOUR_WIDTH_PX;
+const TIMELINE_AREA_MIN_WIDTH_PX = TIMELINE_HOURS * TIMELINE_HOUR_WIDTH_PX;
+const TIMELINE_MIN_WIDTH_PX = TIMELINE_LABEL_WIDTH_PX + TIMELINE_AREA_MIN_WIDTH_PX;
 
 const timeToMinutes = (time: string): number => {
   const [h, m] = time.split(':').map(Number);
@@ -457,29 +458,41 @@ export default function ReservationsClient({
                       return (
                         <div>
                           {/* Time labels */}
-                          <div className="relative h-7 mb-2 ml-14 sm:ml-20">
-                            {Array.from({ length: TIMELINE_HOURS + 1 }, (_, i) => {
-                              const left = (i / TIMELINE_HOURS) * 100;
-                              const translateClass = i === 0 ? 'translate-x-0' : i === TIMELINE_HOURS ? '-translate-x-full' : '-translate-x-1/2';
-                              return (
-                                <div
-                                  key={i}
-                                  className={`absolute text-[10px] sm:text-xs text-gray-400 ${translateClass} ${i % 2 !== 0 ? 'hidden sm:block' : ''}`}
-                                  style={{ left: `${left}%` }}
-                                >
-                                  {TIMELINE_START_HOUR + i}:00
-                                </div>
-                              );
-                            })}
+                          <div className="mb-2 flex h-7 items-end">
+                            <div
+                              className="sticky left-0 z-20 h-full flex-shrink-0 bg-card"
+                              style={{ width: `${TIMELINE_LABEL_WIDTH_PX}px` }}
+                            />
+                            <div className="relative flex-1" style={{ minWidth: `${TIMELINE_AREA_MIN_WIDTH_PX}px` }}>
+                              {Array.from({ length: TIMELINE_HOURS + 1 }, (_, i) => {
+                                const left = (i / TIMELINE_HOURS) * 100;
+                                const translateClass = i === 0 ? 'translate-x-0' : i === TIMELINE_HOURS ? '-translate-x-full' : '-translate-x-1/2';
+                                return (
+                                  <div
+                                    key={i}
+                                    className={`absolute text-[10px] sm:text-xs text-gray-400 ${translateClass} ${i % 2 !== 0 ? 'hidden sm:block' : ''}`}
+                                    style={{ left: `${left}%` }}
+                                  >
+                                    {TIMELINE_START_HOUR + i}:00
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
 
                           {/* Staff lanes */}
                           {lanes.map(([staffId, lane]) => (
                             <div key={staffId} className="flex items-stretch mb-1">
-                              <div className="w-14 sm:w-20 flex-shrink-0 flex items-center pr-1 sm:pr-2">
+                              <div
+                                className="sticky left-0 z-10 flex flex-shrink-0 items-center border-r border-border/60 bg-card pr-2"
+                                style={{ width: `${TIMELINE_LABEL_WIDTH_PX}px` }}
+                              >
                                 <span className="text-[10px] sm:text-xs font-medium text-gray-600 truncate">{lane.name}</span>
                               </div>
-                              <div className="flex-1 relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: `${ROW_HEIGHT}px` }}>
+                              <div
+                                className="flex-1 relative bg-gray-50 rounded-lg overflow-hidden"
+                                style={{ height: `${ROW_HEIGHT}px`, minWidth: `${TIMELINE_AREA_MIN_WIDTH_PX}px` }}
+                              >
                                 {/* Grid lines */}
                                 <div className="absolute inset-0">
                                   {Array.from({ length: TIMELINE_HOURS * 3 + 1 }, (_, i) => {

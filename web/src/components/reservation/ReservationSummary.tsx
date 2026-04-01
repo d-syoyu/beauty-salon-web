@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Calendar, Clock, Scissors, Tag, CreditCard, Store } from 'lucide-react';
+import { Calendar, Scissors, Tag, CreditCard, Store } from 'lucide-react';
 import { CATEGORY_COLORS } from '@/constants/menu';
 
 interface SelectedMenu {
