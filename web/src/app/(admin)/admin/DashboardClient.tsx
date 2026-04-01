@@ -423,7 +423,7 @@ export default function DashboardClient({
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                        title="繧ｭ繝｣繝ｳ繧ｻ繝ｫ"
+                        title="キャンセル"
                         onClick={() => openConfirmDialog(reservation, 'CANCELLED')}
                       >
                         <XCircle className="w-4 h-4" />
@@ -432,7 +432,7 @@ export default function DashboardClient({
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        title="辟｡譁ｭ繧ｭ繝｣繝ｳ繧ｻ繝ｫ"
+                        title="無断キャンセル"
                         onClick={() => openConfirmDialog(reservation, 'NO_SHOW')}
                       >
                         <Clock className="w-4 h-4" />
@@ -442,9 +442,9 @@ export default function DashboardClient({
                   <div className="mt-2 space-y-0.5">
                     <p className="text-sm font-medium truncate">{reservation.menuSummary}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {reservation.user.name || '蜷榊燕譛ｪ逋ｻ骭ｲ'}
+                      {reservation.user.name || '名前未登録'}
                       {reservation.staffName && (
-                        <span className="ml-2 text-pink-600">諡・ｽ・ {reservation.staffName}</span>
+                        <span className="ml-2 text-pink-600">担当: {reservation.staffName}</span>
                       )}
                     </p>
                   </div>
