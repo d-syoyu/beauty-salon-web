@@ -6,6 +6,15 @@ import { parseLocalDateStart, parseLocalDateEnd } from '@/lib/date-utils';
 import { reservationDedupDistinct } from '@/lib/reservation-dedup';
 import ReservationsClient, { type Reservation, type ReservationItem } from './ReservationsClient';
 
+function getJstTodayStr() {
+  const now = new Date();
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const year = jst.getUTCFullYear();
+  const month = jst.getUTCMonth() + 1;
+  const day = jst.getUTCDate();
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 export default async function AdminReservationsPage({
   searchParams,
 }: {
@@ -20,7 +29,7 @@ export default async function AdminReservationsPage({
 }) {
   const { date: dateParam, status: statusParam, staffId: staffIdParam, search: searchParam, page: pageParam, highlight: highlightParam } = await searchParams;
 
-  const dateStr = dateParam || '';
+  const dateStr = dateParam === 'all' ? '' : (dateParam || getJstTodayStr());
   const statusFilter = statusParam || '';
   const staffFilter = staffIdParam || '';
   const searchQuery = searchParam || '';

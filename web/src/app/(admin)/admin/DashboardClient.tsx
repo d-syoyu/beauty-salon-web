@@ -93,6 +93,13 @@ const ACTION_CONFIG = {
   NO_SHOW: { label: '無断キャンセルにする', title: '無断キャンセル確認', desc: '以下の予約を無断キャンセルにしますか？' },
 };
 
+const ACTION_VARIANTS = {
+  CONFIRMED: 'info',
+  COMPLETED: 'success',
+  CANCELLED: 'warning',
+  NO_SHOW: 'destructive',
+} as const;
+
 export default function DashboardClient({
   initialReservations,
   stats,
@@ -442,7 +449,8 @@ export default function DashboardClient({
                     </p>
                   </div>
                 </div>
-                <div className="hidden sm:flex sm:items-center gap-4 sm:flex-1">
+                <div className="hidden sm:flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-1">
                 <div className="w-20 shrink-0">
                   <span className="text-sm font-medium">{reservation.startTime}</span>
                   <span className="text-xs text-muted-foreground ml-1">~{reservation.endTime}</span>
@@ -473,7 +481,7 @@ export default function DashboardClient({
                   ¥{reservation.totalPrice.toLocaleString()}
                 </div>
                 </div>
-                <div className="hidden sm:flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <Button
                     size="sm"
                     variant="outline"
@@ -503,6 +511,7 @@ export default function DashboardClient({
                   </Button>
                 </div>
               </div>
+              </div>
             ))}
           </div>
         </CardContent>
@@ -514,7 +523,7 @@ export default function DashboardClient({
         title={actionCfg.title}
         description={`${actionCfg.desc}\n${confirmDialog.reservationName}（${confirmDialog.customerName} 様）`}
         confirmLabel={actionCfg.label}
-        variant={confirmDialog.action === 'CANCELLED' || confirmDialog.action === 'NO_SHOW' ? 'destructive' : 'default'}
+        variant={ACTION_VARIANTS[confirmDialog.action]}
         onConfirm={handleStatusChange}
       />
     </div>

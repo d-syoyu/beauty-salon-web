@@ -9,7 +9,7 @@ import {
   ChevronRight,
   XCircle,
   Clock,
-  Check,
+  CheckCircle,
   CreditCard,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -83,6 +83,13 @@ const ACTION_CONFIG: Record<string, { label: string; title: string; desc: string
   CANCELLED: { label: 'キャンセルする', title: 'キャンセル確認', desc: '以下の予約をキャンセルにしますか？' },
   NO_SHOW: { label: '無断キャンセルにする', title: '無断キャンセル確認', desc: '以下の予約を無断キャンセルにしますか？' },
 };
+
+const ACTION_VARIANTS = {
+  CONFIRMED: 'info',
+  COMPLETED: 'success',
+  CANCELLED: 'warning',
+  NO_SHOW: 'destructive',
+} as const;
 
 // Timeline constants
 const TIMELINE_START_HOUR = 9;
@@ -208,7 +215,7 @@ export default function ReservationsClient({
 
   const handleDateSelect = (date: Date | null) => {
     if (!date) {
-      router.push(buildUrl({ date: undefined, page: '1' }));
+      router.push(buildUrl({ date: 'all', page: '1' }));
     } else {
       const ds = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       router.push(buildUrl({ date: ds, page: '1' }));
@@ -615,7 +622,7 @@ export default function ReservationsClient({
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1 pt-1 border-t border-border">
+                      <div className="flex items-center justify-end gap-1 pt-1 border-t border-border">
                         {reservation.status === 'CONFIRMED' && (
                           <>
                             <Button size="sm" variant="outline" className="flex-1 h-7 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50"
@@ -745,7 +752,7 @@ export default function ReservationsClient({
         title={actionCfg.title}
         description={`${actionCfg.desc}\n${confirmDialog.reservationName}（${confirmDialog.customerName} 様）`}
         confirmLabel={actionCfg.label}
-        variant={confirmDialog.action === 'CANCELLED' || confirmDialog.action === 'NO_SHOW' ? 'destructive' : 'default'}
+        variant={ACTION_VARIANTS[confirmDialog.action]}
         onConfirm={handleStatusChange}
       />
     </div>
