@@ -1,19 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
+  CalendarCheck,
   CalendarOff,
   Check,
-  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
   Trash2,
   X,
-  Plus,
-  CalendarCheck,
 } from 'lucide-react';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
@@ -39,550 +37,189 @@ export interface SpecialOpenDay {
 interface HolidaysClientProps {
   year: number;
   month: number;
-  initialHolidays: Holiday[];
-  initialSpecialOpenDays: SpecialOpenDay[];
   initialClosedDays: number[];
 }
 
-export default function HolidaysClient({
-  year,
-  month,
-  initialHolidays,
-  initialSpecialOpenDays,
-  initialClosedDays,
-}: HolidaysClientProps) {
-  const router = useRouter();
-  const [holidays] = useState<Holiday[]>(initialHolidays);
-  const [specialOpenDays] = useState<SpecialOpenDay[]>(initialSpecialOpenDays);
-  const [closedDays, setClosedDays] = useState<number[]>(initialClosedDays);
+export default function HolidaysClient({ year, month, initialClosedDays }: HolidaysClientProps) {
+  const [currentYear, setCurrentYear] = useState(year);
+  const [currentMonth, setCurrentMonth] = useState(month);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [specialOpenDays, setSpecialOpenDays] = useState<SpecialOpenDay[]>([]);
+  const [closedDays, setClosedDays] = useState(initialClosedDays);
+  const [isLoadingMonth, setIsLoadingMonth] = useState(true);
   const [isSavingClosedDays, setIsSavingClosedDays] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  // Holiday modal
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [deletingHoliday, setDeletingHoliday] = useState<Holiday | null>(null);
+  const [modalType, setModalType] = useState<'holiday' | 'special-open' | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ kind: 'holiday' | 'special-open'; id: string; label: string; reason: string | null } | null>(null);
   const [reason, setReason] = useState('');
-  const [holidayType, setHolidayType] = useState<'allDay' | 'timeRange'>('allDay');
+  const [timeMode, setTimeMode] = useState<'allDay' | 'timeRange'>('allDay');
   const [startTime, setStartTime] = useState('10:00');
   const [endTime, setEndTime] = useState('12:00');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Special open day modal
-  const [isSpecialOpenModalOpen, setIsSpecialOpenModalOpen] = useState(false);
-  const [isDeleteSpecialOpenModalOpen, setIsDeleteSpecialOpenModalOpen] = useState(false);
-  const [deletingSpecialOpenDay, setDeletingSpecialOpenDay] = useState<SpecialOpenDay | null>(null);
-  const [specialOpenReason, setSpecialOpenReason] = useState('');
-  const [specialOpenType, setSpecialOpenType] = useState<'allDay' | 'timeRange'>('allDay');
-  const [specialOpenStartTime, setSpecialOpenStartTime] = useState('10:00');
-  const [specialOpenEndTime, setSpecialOpenEndTime] = useState('20:00');
+  const showSuccess = (message: string) => { setSuccess(message); setTimeout(() => setSuccess(null), 3000); };
+  const showError = (message: string) => { setError(message); setTimeout(() => setError(null), 6000); };
+  const getDateStr = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const formatDateLabel = (dateStr: string) => { const d = new Date(dateStr); return `${d.getMonth() + 1}月${d.getDate()}日(${WEEKDAYS[d.getDay()]})`; };
+  const formatTimeLabel = (start: string | null, end: string | null, allDayLabel: string) => (start && end ? `${start} - ${end}` : allDayLabel);
+  const isClosedDayOfWeek = (date: Date) => closedDays.includes(date.getDay());
+  const isToday = (date: Date) => date.toDateString() === new Date().toDateString();
 
-  const showSuccess = (msg: string) => { setSuccess(msg); setTimeout(() => setSuccess(null), 3000); };
-  const showError = (msg: string) => { setError(msg); setTimeout(() => setError(null), 8000); };
+  const loadMonthData = useCallback(async (targetYear = currentYear, targetMonth = currentMonth) => {
+    setIsLoadingMonth(true);
+    try {
+      const [holidaysResponse, specialOpenResponse] = await Promise.all([
+        fetch(`/api/admin/holidays?year=${targetYear}&month=${targetMonth}`, { cache: 'no-store' }),
+        fetch(`/api/admin/special-open-days?year=${targetYear}&month=${targetMonth}`, { cache: 'no-store' }),
+      ]);
+      if (!holidaysResponse.ok || !specialOpenResponse.ok) throw new Error('月データの読み込みに失敗しました');
+      setHolidays(await holidaysResponse.json());
+      setSpecialOpenDays(await specialOpenResponse.json());
+    } catch (err) {
+      showError(err instanceof Error ? err.message : '月データの読み込みに失敗しました');
+    } finally {
+      setIsLoadingMonth(false);
+    }
+  }, [currentMonth, currentYear]);
+
+  useEffect(() => {
+    setCurrentYear(year);
+    setCurrentMonth(month);
+  }, [year, month]);
+
+  useEffect(() => { void loadMonthData(currentYear, currentMonth); }, [currentYear, currentMonth, loadMonthData]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `?year=${currentYear}&month=${currentMonth}`);
+    }
+  }, [currentYear, currentMonth]);
 
   const navigateMonth = (delta: number) => {
-    let y = year;
-    let m = month + delta;
-    if (m > 12) { y++; m = 1; }
-    if (m < 1) { y--; m = 12; }
-    router.push(`?year=${y}&month=${m}`);
+    let nextYear = currentYear;
+    let nextMonth = currentMonth + delta;
+    if (nextMonth > 12) { nextYear += 1; nextMonth = 1; }
+    if (nextMonth < 1) { nextYear -= 1; nextMonth = 12; }
+    setCurrentYear(nextYear);
+    setCurrentMonth(nextMonth);
   };
 
   const handleSaveClosedDays = async () => {
     setIsSavingClosedDays(true);
     try {
-      const res = await fetch('/api/admin/settings', {
+      const response = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ closedDays }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || '保存に失敗しました');
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || '定休日の保存に失敗しました');
       }
       showSuccess('定休日を保存しました');
-      router.refresh();
-    } catch (err) { showError(err instanceof Error ? err.message : 'エラーが発生しました'); } finally { setIsSavingClosedDays(false); }
-  };
-
-  const toggleClosedDay = (dayIndex: number) => {
-    setClosedDays(prev => prev.includes(dayIndex) ? prev.filter(d => d !== dayIndex) : [...prev, dayIndex].sort());
-  };
-
-  const generateCalendarDays = (): (Date | null)[] => {
-    const days: (Date | null)[] = [];
-    const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0);
-    for (let i = 0; i < firstDay.getDay(); i++) days.push(null);
-    for (let d = 1; d <= lastDay.getDate(); d++) days.push(new Date(year, month - 1, d));
-    return days;
-  };
-
-  const getDateStr = (date: Date) =>
-    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-  const getHolidaysForDate = (date: Date) => {
-    const dateStr = getDateStr(date);
-    return holidays.filter(h => h.date.slice(0, 10) === dateStr);
-  };
-
-  const getSpecialOpenDaysForDate = (date: Date) => {
-    const dateStr = getDateStr(date);
-    return specialOpenDays.filter(s => s.date.slice(0, 10) === dateStr);
-  };
-
-  const isClosedDayOfWeek = (date: Date) => closedDays.includes(date.getDay());
-
-  const handleDateClick = (date: Date) => {
-    setSelectedDate(date);
-    if (isClosedDayOfWeek(date)) {
-      setSpecialOpenReason('');
-      setSpecialOpenType('allDay');
-      setSpecialOpenStartTime('10:00');
-      setSpecialOpenEndTime('20:00');
-      setIsSpecialOpenModalOpen(true);
-    } else {
-      setReason('');
-      setHolidayType('allDay');
-      setStartTime('10:00');
-      setEndTime('12:00');
-      setIsAddModalOpen(true);
+    } catch (err) {
+      showError(err instanceof Error ? err.message : '定休日の保存に失敗しました');
+    } finally {
+      setIsSavingClosedDays(false);
     }
   };
 
-  const handleAddHoliday = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedDate) return;
+  const submitDay = async () => {
+    if (!selectedDate || !modalType) return;
     setIsSubmitting(true);
     try {
-      const dateStr = getDateStr(selectedDate);
-      const res = await fetch('/api/admin/holidays', {
+      const endpoint = modalType === 'holiday' ? '/api/admin/holidays' : '/api/admin/special-open-days';
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          date: dateStr,
-          startTime: holidayType === 'timeRange' ? startTime : null,
-          endTime: holidayType === 'timeRange' ? endTime : null,
+          date: getDateStr(selectedDate),
+          startTime: timeMode === 'timeRange' ? startTime : null,
+          endTime: timeMode === 'timeRange' ? endTime : null,
           reason: reason || null,
         }),
       });
-      if (!res.ok) { const data = await res.json(); throw new Error(data.error || '登録に失敗しました'); }
-      showSuccess('不定休を登録しました');
-      setIsAddModalOpen(false);
-      router.refresh();
-    } catch (err) { showError(err instanceof Error ? err.message : 'エラーが発生しました'); } finally { setIsSubmitting(false); }
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || '保存に失敗しました');
+      }
+      showSuccess(modalType === 'holiday' ? '休日を追加しました' : '特別営業日を追加しました');
+      setModalType(null);
+      await loadMonthData();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : '保存に失敗しました');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleAddSpecialOpenDay = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedDate) return;
-    setIsSubmitting(true);
+  const deleteDay = async () => {
+    if (!deleteTarget) return;
     try {
-      const dateStr = getDateStr(selectedDate);
-      const res = await fetch('/api/admin/special-open-days', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: dateStr,
-          startTime: specialOpenType === 'timeRange' ? specialOpenStartTime : null,
-          endTime: specialOpenType === 'timeRange' ? specialOpenEndTime : null,
-          reason: specialOpenReason || null,
-        }),
-      });
-      if (!res.ok) { const data = await res.json(); throw new Error(data.error || '登録に失敗しました'); }
-      showSuccess('臨時営業日を登録しました');
-      setIsSpecialOpenModalOpen(false);
-      router.refresh();
-    } catch (err) { showError(err instanceof Error ? err.message : 'エラーが発生しました'); } finally { setIsSubmitting(false); }
+      const base = deleteTarget.kind === 'holiday' ? '/api/admin/holidays' : '/api/admin/special-open-days';
+      const response = await fetch(`${base}/${deleteTarget.id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('削除に失敗しました');
+      showSuccess(deleteTarget.kind === 'holiday' ? '休日を削除しました' : '特別営業日を削除しました');
+      setDeleteTarget(null);
+      await loadMonthData();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : '削除に失敗しました');
+    }
   };
 
-  const handleDeleteHoliday = async () => {
-    if (!deletingHoliday) return;
-    try {
-      const res = await fetch(`/api/admin/holidays/${deletingHoliday.id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('削除に失敗しました');
-      showSuccess('不定休を削除しました');
-      setIsDeleteModalOpen(false);
-      setDeletingHoliday(null);
-      router.refresh();
-    } catch (err) { showError(err instanceof Error ? err.message : 'エラーが発生しました'); }
-  };
+  const calendarDays = (() => {
+    const days: (Date | null)[] = [];
+    const firstDay = new Date(currentYear, currentMonth - 1, 1);
+    const lastDay = new Date(currentYear, currentMonth, 0);
+    for (let i = 0; i < firstDay.getDay(); i += 1) days.push(null);
+    for (let day = 1; day <= lastDay.getDate(); day += 1) days.push(new Date(currentYear, currentMonth - 1, day));
+    return days;
+  })();
 
-  const handleDeleteSpecialOpenDay = async () => {
-    if (!deletingSpecialOpenDay) return;
-    try {
-      const res = await fetch(`/api/admin/special-open-days/${deletingSpecialOpenDay.id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('削除に失敗しました');
-      showSuccess('臨時営業日を削除しました');
-      setIsDeleteSpecialOpenModalOpen(false);
-      setDeletingSpecialOpenDay(null);
-      router.refresh();
-    } catch (err) { showError(err instanceof Error ? err.message : 'エラーが発生しました'); }
-  };
-
-  const isToday = (date: Date) => date.toDateString() === new Date().toDateString();
-
-  const formatDisplayDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return `${d.getMonth() + 1}月${d.getDate()}日（${WEEKDAYS[d.getDay()]}）`;
-  };
+  const findHolidays = (date: Date) => holidays.filter((item) => item.date.slice(0, 10) === getDateStr(date));
+  const findSpecialOpenDays = (date: Date) => specialOpenDays.filter((item) => item.date.slice(0, 10) === getDateStr(date));
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-8">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/admin" className="p-2 rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors">
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-          </Link>
-          <div>
-            <p className="text-2xl font-medium flex items-center gap-2">
-              <CalendarOff className="w-6 h-6" /> 営業管理
-            </p>
-            <p className="text-sm text-gray-500 mt-1">定休日・不定休・臨時営業の設定</p>
-          </div>
-        </div>
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto"><div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-8">
+      <div className="flex items-center gap-4 mb-8"><Link href="/admin" className="p-2 rounded-lg bg-white shadow-sm hover:bg-gray-50"><ArrowLeft className="w-5 h-5 text-gray-600" /></Link><div><p className="text-2xl font-medium flex items-center gap-2"><CalendarOff className="w-6 h-6" />休日設定</p><p className="text-sm text-gray-500 mt-1">定休日、休日、特別営業日を管理します</p></div></div>
+      {error && <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">{error}</div>}
+      {success && <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-600 rounded-lg text-sm">{success}</div>}
 
-        {error && <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">{error}</div>}
-        {success && <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-600 rounded-lg text-sm">{success}</div>}
+      <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <p className="text-lg font-medium mb-4">定休日</p>
+        <div className="flex gap-2 mb-4">{WEEKDAYS.map((day, idx) => <button key={day} onClick={() => setClosedDays((prev) => prev.includes(idx) ? prev.filter((value) => value !== idx) : [...prev, idx].sort())} className={`w-12 h-12 rounded-lg text-sm font-medium ${closedDays.includes(idx) ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{day}</button>)}</div>
+        <button onClick={handleSaveClosedDays} disabled={isSavingClosedDays} className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 disabled:opacity-50"><Check className="w-4 h-4" />{isSavingClosedDays ? '保存中...' : '定休日を保存'}</button>
+      </div>
 
-        {/* Closed Days of Week */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <p className="text-lg font-medium mb-4">定休日（曜日）</p>
-          <div className="flex gap-2 mb-4">
-            {WEEKDAYS.map((day, idx) => (
-              <button
-                key={idx}
-                onClick={() => toggleClosedDay(idx)}
-                className={`w-12 h-12 rounded-lg text-sm font-medium transition-colors ${
-                  closedDays.includes(idx) ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {day}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={handleSaveClosedDays}
-            disabled={isSavingClosedDays}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 disabled:opacity-50"
-          >
-            <Check className="w-4 h-4" />
-            {isSavingClosedDays ? '保存中...' : '定休日を保存'}
-          </button>
-        </div>
-
-        {/* Calendar */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <p className="text-lg font-medium">営業カレンダー</p>
-            <div className="flex items-center gap-2">
-              <button onClick={() => navigateMonth(-1)} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronLeft className="w-5 h-5" /></button>
-              <span className="font-medium min-w-[140px] text-center">{year}年{month}月</span>
-              <button onClick={() => navigateMonth(1)} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
-            </div>
-          </div>
-
-          <>
-            <div className="grid grid-cols-7 gap-1 text-center mb-2">
-              {WEEKDAYS.map((day, idx) => (
-                <div key={day} className={`text-xs py-2 ${idx === 0 ? 'text-red-500' : idx === 6 ? 'text-blue-500' : 'text-gray-500'}`}>{day}</div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-1">
-              {generateCalendarDays().map((date, i) => {
-                if (!date) return <div key={i} className="aspect-square" />;
-
-                const dateHolidays = getHolidaysForDate(date);
-                const dateSpecialOpenDays = getSpecialOpenDaysForDate(date);
-                const isClosed = isClosedDayOfWeek(date);
-                const hasHoliday = dateHolidays.length > 0;
-                const hasSpecialOpen = dateSpecialOpenDays.length > 0;
-                const hasAllDayHoliday = dateHolidays.some(h => !h.startTime && !h.endTime);
-                const hasAllDaySpecialOpen = dateSpecialOpenDays.some(s => !s.startTime && !s.endTime);
-                const dayOfWeek = date.getDay();
-
-                let bgClass = 'border-gray-100 hover:bg-gray-50';
-                if (isClosed && hasAllDaySpecialOpen) {
-                  bgClass = 'bg-green-50 border-green-300';
-                } else if (isClosed && hasSpecialOpen) {
-                  bgClass = 'bg-green-50 border-green-200';
-                } else if (isClosed) {
-                  bgClass = 'bg-red-50 border-red-200';
-                } else if (hasAllDayHoliday) {
-                  bgClass = 'bg-red-100 border-red-300';
-                } else if (hasHoliday) {
-                  bgClass = 'bg-amber-50 border-amber-200';
-                }
-
-                return (
-                  <div
-                    key={i}
-                    className={`aspect-square border rounded-lg p-1 relative cursor-pointer transition-colors ${bgClass} ${isToday(date) ? 'ring-2 ring-blue-400' : ''}`}
-                    onClick={() => handleDateClick(date)}
-                  >
-                    <span className={`text-xs font-medium ${
-                      dayOfWeek === 0 ? 'text-red-500' : dayOfWeek === 6 ? 'text-blue-500' : ''
-                    }`}>
-                      {date.getDate()}
-                    </span>
-                    {hasSpecialOpen && (
-                      <div className="absolute bottom-1 left-1 right-1">
-                        {dateSpecialOpenDays.map((s) => (
-                          <div key={s.id} className="flex items-center justify-between">
-                            <span className="text-[10px] text-green-600 truncate flex-1">
-                              {s.startTime ? `${s.startTime}~` : '臨時営業'}
-                            </span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setDeletingSpecialOpenDay(s); setIsDeleteSpecialOpenModalOpen(true); }}
-                              className="p-0.5 text-green-400 hover:text-green-600"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {hasHoliday && !hasSpecialOpen && (
-                      <div className="absolute bottom-1 left-1 right-1">
-                        {dateHolidays.map((h) => (
-                          <div key={h.id} className="flex items-center justify-between">
-                            <span className="text-[10px] text-red-600 truncate flex-1">
-                              {h.startTime ? `${h.startTime}~` : '終日'}
-                            </span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setDeletingHoliday(h); setIsDeleteModalOpen(true); }}
-                              className="p-0.5 text-red-400 hover:text-red-600"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Legend */}
-            <div className="flex flex-wrap items-center gap-4 mt-4 text-xs text-gray-500">
-              <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-50 border border-red-200 rounded" /> 定休日</div>
-              <div className="flex items-center gap-1"><div className="w-3 h-3 bg-green-50 border border-green-300 rounded" /> 臨時営業</div>
-              <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-100 border border-red-300 rounded" /> 終日休業</div>
-              <div className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-50 border border-amber-200 rounded" /> 時間帯休業</div>
-            </div>
-
-            {/* Monthly lists */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-100">
-              <div>
-                <p className="text-sm font-medium mb-3 flex items-center gap-2">
-                  <CalendarOff className="w-4 h-4 text-red-500" />
-                  {month}月の不定休
-                </p>
-                {holidays.length === 0 ? (
-                  <p className="text-gray-400 text-xs py-3 text-center bg-gray-50 rounded-lg">不定休はありません</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {holidays.map((holiday) => (
-                      <div key={holiday.id} className="flex items-center justify-between p-2.5 bg-red-50/50 rounded-lg">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-xs sm:text-sm">{formatDisplayDate(holiday.date)}</p>
-                          <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5">
-                            {holiday.startTime && holiday.endTime ? `${holiday.startTime}〜${holiday.endTime}` : '終日休業'}
-                          </p>
-                          {holiday.reason && (
-                            <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate">{holiday.reason}</p>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => { setDeletingHoliday(holiday); setIsDeleteModalOpen(true); }}
-                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors flex-shrink-0 ml-2"
-                          title="削除"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <p className="text-sm font-medium mb-3 flex items-center gap-2">
-                  <CalendarCheck className="w-4 h-4 text-green-500" />
-                  {month}月の特別営業日
-                </p>
-                {specialOpenDays.length === 0 ? (
-                  <p className="text-gray-400 text-xs py-3 text-center bg-gray-50 rounded-lg">特別営業日はありません</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {specialOpenDays.map((day) => (
-                      <div key={day.id} className="flex items-center justify-between p-2.5 bg-green-50/50 rounded-lg">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-xs sm:text-sm">{formatDisplayDate(day.date)}</p>
-                          <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5">
-                            {day.startTime && day.endTime ? `${day.startTime}〜${day.endTime}` : '終日営業'}
-                          </p>
-                          {day.reason && (
-                            <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate">{day.reason}</p>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => { setDeletingSpecialOpenDay(day); setIsDeleteSpecialOpenModalOpen(true); }}
-                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors flex-shrink-0 ml-2"
-                          title="削除"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="flex items-center justify-between mb-6"><p className="text-lg font-medium">休日カレンダー</p><div className="flex items-center gap-2"><button onClick={() => navigateMonth(-1)} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronLeft className="w-5 h-5" /></button><span className="font-medium min-w-[140px] text-center">{currentYear}年{currentMonth}月</span><button onClick={() => navigateMonth(1)} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronRight className="w-5 h-5" /></button></div></div>
+        <div className="grid grid-cols-7 gap-1 text-center mb-2">{WEEKDAYS.map((day, idx) => <div key={day} className={`text-xs py-2 ${idx === 0 ? 'text-red-500' : idx === 6 ? 'text-blue-500' : 'text-gray-500'}`}>{day}</div>)}</div>
+        {isLoadingMonth ? <div className="grid grid-cols-7 gap-1">{Array.from({ length: 35 }).map((_, idx) => <div key={idx} className="aspect-square rounded-lg bg-gray-50 animate-pulse" />)}</div> : <div className="grid grid-cols-7 gap-1">{calendarDays.map((date, idx) => {
+          if (!date) return <div key={idx} className="aspect-square" />;
+          const dateHolidays = findHolidays(date);
+          const dateSpecialOpenDays = findSpecialOpenDays(date);
+          const isClosed = isClosedDayOfWeek(date);
+          const hasAllDayHoliday = dateHolidays.some((item) => !item.startTime && !item.endTime);
+          const hasSpecialOpen = dateSpecialOpenDays.length > 0;
+          let bgClass = 'border-gray-100 hover:bg-gray-50';
+          if (isClosed && hasSpecialOpen) bgClass = 'bg-green-50 border-green-300';
+          else if (isClosed) bgClass = 'bg-red-50 border-red-200';
+          else if (hasAllDayHoliday) bgClass = 'bg-red-100 border-red-300';
+          else if (dateHolidays.length > 0) bgClass = 'bg-amber-50 border-amber-200';
+          return <div key={idx} onClick={() => { setSelectedDate(date); setReason(''); setTimeMode('allDay'); setStartTime('10:00'); setEndTime(isClosed ? '20:00' : '12:00'); setModalType(isClosed ? 'special-open' : 'holiday'); }} className={`aspect-square border rounded-lg p-1 relative cursor-pointer transition-colors ${bgClass} ${isToday(date) ? 'ring-2 ring-blue-400' : ''}`}><span className={`text-xs font-medium ${date.getDay() === 0 ? 'text-red-500' : date.getDay() === 6 ? 'text-blue-500' : ''}`}>{date.getDate()}</span>{dateSpecialOpenDays.length > 0 && <div className="absolute bottom-1 left-1 right-1">{dateSpecialOpenDays.map((item) => <div key={item.id} className="flex items-center justify-between"><span className="text-[10px] text-green-600 truncate flex-1">{item.startTime ? `${item.startTime}~` : '終日営業'}</span><button onClick={(event) => { event.stopPropagation(); setDeleteTarget({ kind: 'special-open', id: item.id, label: formatDateLabel(item.date), reason: item.reason }); }} className="p-0.5 text-green-500 hover:text-green-700"><Trash2 className="w-3 h-3" /></button></div>)}</div>}{dateHolidays.length > 0 && dateSpecialOpenDays.length === 0 && <div className="absolute bottom-1 left-1 right-1">{dateHolidays.map((item) => <div key={item.id} className="flex items-center justify-between"><span className="text-[10px] text-red-600 truncate flex-1">{item.startTime ? `${item.startTime}~` : '終日休業'}</span><button onClick={(event) => { event.stopPropagation(); setDeleteTarget({ kind: 'holiday', id: item.id, label: formatDateLabel(item.date), reason: item.reason }); }} className="p-0.5 text-red-500 hover:text-red-700"><Trash2 className="w-3 h-3" /></button></div>)}</div>}</div>;
+        })}</div>}
+        <div className="flex flex-wrap items-center gap-4 mt-4 text-xs text-gray-500"><div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-50 border border-red-200 rounded" /> 定休日</div><div className="flex items-center gap-1"><div className="w-3 h-3 bg-green-50 border border-green-300 rounded" /> 特別営業日</div><div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-100 border border-red-300 rounded" /> 終日休業</div><div className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-50 border border-amber-200 rounded" /> 時間指定休業</div></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-100">
+          <div><p className="text-sm font-medium mb-3 flex items-center gap-2"><CalendarOff className="w-4 h-4 text-red-500" />{currentMonth}月の休日</p>{holidays.length === 0 ? <p className="text-gray-400 text-xs py-3 text-center bg-gray-50 rounded-lg">休日はありません</p> : <div className="space-y-1.5">{holidays.map((item) => <div key={item.id} className="flex items-center justify-between p-2.5 bg-red-50/50 rounded-lg"><div className="min-w-0 flex-1"><p className="font-medium text-xs sm:text-sm">{formatDateLabel(item.date)}</p><p className="text-[10px] sm:text-xs text-gray-600 mt-0.5">{formatTimeLabel(item.startTime, item.endTime, '終日休業')}</p>{item.reason && <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate">{item.reason}</p>}</div><button onClick={() => setDeleteTarget({ kind: 'holiday', id: item.id, label: formatDateLabel(item.date), reason: item.reason })} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button></div>)}</div>}</div>
+          <div><p className="text-sm font-medium mb-3 flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-green-500" />{currentMonth}月の特別営業日</p>{specialOpenDays.length === 0 ? <p className="text-gray-400 text-xs py-3 text-center bg-gray-50 rounded-lg">特別営業日はありません</p> : <div className="space-y-1.5">{specialOpenDays.map((item) => <div key={item.id} className="flex items-center justify-between p-2.5 bg-green-50/50 rounded-lg"><div className="min-w-0 flex-1"><p className="font-medium text-xs sm:text-sm">{formatDateLabel(item.date)}</p><p className="text-[10px] sm:text-xs text-gray-600 mt-0.5">{formatTimeLabel(item.startTime, item.endTime, '終日営業')}</p>{item.reason && <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate">{item.reason}</p>}</div><button onClick={() => setDeleteTarget({ kind: 'special-open', id: item.id, label: formatDateLabel(item.date), reason: item.reason })} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button></div>)}</div>}</div>
         </div>
       </div>
 
-      {/* Add Holiday Modal */}
-      {isAddModalOpen && selectedDate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsAddModalOpen(false)} />
-          <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <button onClick={() => setIsAddModalOpen(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-            <p className="text-xl font-medium mb-2">不定休を追加</p>
-            <p className="text-sm text-gray-500 mb-6">
-              {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月{selectedDate.getDate()}日（{WEEKDAYS[selectedDate.getDay()]}）
-            </p>
-            <form onSubmit={handleAddHoliday} className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">休業タイプ</label>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setHolidayType('allDay')} className={`flex-1 py-2.5 text-sm rounded-lg transition-colors ${holidayType === 'allDay' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600'}`}>終日休業</button>
-                  <button type="button" onClick={() => setHolidayType('timeRange')} className={`flex-1 py-2.5 text-sm rounded-lg transition-colors ${holidayType === 'timeRange' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600'}`}>時間帯休業</button>
-                </div>
-              </div>
-              {holidayType === 'timeRange' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">開始時間</label>
-                    <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">終了時間</label>
-                    <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm" />
-                  </div>
-                </div>
-              )}
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">理由（任意）</label>
-                <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="例: 臨時休業" className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400" />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 py-3 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">キャンセル</button>
-                <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50">
-                  <Plus className="w-4 h-4 inline mr-1" />{isSubmitting ? '登録中...' : '登録'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {modalType && selectedDate && <div className="fixed inset-0 z-50 flex items-center justify-center p-4"><div className="absolute inset-0 bg-black/50" onClick={() => setModalType(null)} /><div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6"><button onClick={() => setModalType(null)} className="absolute top-4 right-4 p-2 text-gray-400 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button><p className="text-xl font-medium mb-2">{modalType === 'holiday' ? '休日を追加' : '特別営業日を追加'}</p><p className="text-sm text-gray-500 mb-6">{selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月{selectedDate.getDate()}日 ({WEEKDAYS[selectedDate.getDay()]})</p><div className="space-y-4"><div><label className="block text-sm text-gray-600 mb-2">種別</label><div className="flex gap-2"><button type="button" onClick={() => setTimeMode('allDay')} className={`flex-1 py-2.5 text-sm rounded-lg ${timeMode === 'allDay' ? modalType === 'holiday' ? 'bg-gray-800 text-white' : 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{modalType === 'holiday' ? '終日休業' : '終日営業'}</button><button type="button" onClick={() => setTimeMode('timeRange')} className={`flex-1 py-2.5 text-sm rounded-lg ${timeMode === 'timeRange' ? modalType === 'holiday' ? 'bg-gray-800 text-white' : 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{modalType === 'holiday' ? '時間指定休業' : '時間指定営業'}</button></div></div>{timeMode === 'timeRange' && <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-gray-600 mb-1">開始</label><input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm" /></div><div><label className="block text-sm text-gray-600 mb-1">終了</label><input type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm" /></div></div>}<div><label className="block text-sm text-gray-600 mb-1">理由</label><input type="text" value={reason} onChange={(event) => setReason(event.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400" placeholder="任意" /></div></div><div className="flex gap-3 pt-6"><button onClick={() => setModalType(null)} className="flex-1 py-3 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">キャンセル</button><button onClick={() => void submitDay()} disabled={isSubmitting} className={`flex-1 py-3 text-white rounded-lg disabled:opacity-50 ${modalType === 'holiday' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-green-600 hover:bg-green-700'}`}><Plus className="w-4 h-4 inline mr-1" />{isSubmitting ? '保存中...' : '保存'}</button></div></div></div>}
 
-      {/* Special Open Day Modal */}
-      {isSpecialOpenModalOpen && selectedDate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsSpecialOpenModalOpen(false)} />
-          <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <button onClick={() => setIsSpecialOpenModalOpen(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-            <div className="flex items-center gap-2 mb-2">
-              <CalendarCheck className="w-5 h-5 text-green-600" />
-              <p className="text-xl font-medium">臨時営業を設定</p>
-            </div>
-            <p className="text-sm text-gray-500 mb-6">
-              {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月{selectedDate.getDate()}日（{WEEKDAYS[selectedDate.getDay()]}）
-              <span className="ml-2 text-red-500">※ 定休日</span>
-            </p>
-            <form onSubmit={handleAddSpecialOpenDay} className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">営業タイプ</label>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setSpecialOpenType('allDay')} className={`flex-1 py-2.5 text-sm rounded-lg transition-colors ${specialOpenType === 'allDay' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'}`}>終日営業</button>
-                  <button type="button" onClick={() => setSpecialOpenType('timeRange')} className={`flex-1 py-2.5 text-sm rounded-lg transition-colors ${specialOpenType === 'timeRange' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'}`}>時間帯営業</button>
-                </div>
-              </div>
-              {specialOpenType === 'timeRange' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">開始時間</label>
-                    <input type="time" value={specialOpenStartTime} onChange={(e) => setSpecialOpenStartTime(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">終了時間</label>
-                    <input type="time" value={specialOpenEndTime} onChange={(e) => setSpecialOpenEndTime(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm" />
-                  </div>
-                </div>
-              )}
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">理由（任意）</label>
-                <input type="text" value={specialOpenReason} onChange={(e) => setSpecialOpenReason(e.target.value)} placeholder="例: 年末特別営業" className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400" />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setIsSpecialOpenModalOpen(false)} className="flex-1 py-3 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">キャンセル</button>
-                <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
-                  <CalendarCheck className="w-4 h-4 inline mr-1" />{isSubmitting ? '登録中...' : '臨時営業を登録'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Holiday Modal */}
-      {isDeleteModalOpen && deletingHoliday && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsDeleteModalOpen(false)} />
-          <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 rounded-full bg-red-100 text-red-600"><AlertTriangle className="w-6 h-6" /></div>
-              <p className="text-xl font-medium">不定休の削除</p>
-            </div>
-            <p className="text-gray-600 mb-6">
-              {deletingHoliday.date.slice(0, 10)}の不定休を削除しますか？
-              {deletingHoliday.reason && <span className="block mt-1 text-sm text-gray-500">理由: {deletingHoliday.reason}</span>}
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-3 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">キャンセル</button>
-              <button onClick={handleDeleteHoliday} className="flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700">削除する</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Special Open Day Modal */}
-      {isDeleteSpecialOpenModalOpen && deletingSpecialOpenDay && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsDeleteSpecialOpenModalOpen(false)} />
-          <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 rounded-full bg-amber-100 text-amber-600"><AlertTriangle className="w-6 h-6" /></div>
-              <p className="text-xl font-medium">臨時営業日の削除</p>
-            </div>
-            <p className="text-gray-600 mb-6">
-              {deletingSpecialOpenDay.date.slice(0, 10)}の臨時営業設定を削除しますか？
-              {deletingSpecialOpenDay.reason && <span className="block mt-1 text-sm text-gray-500">理由: {deletingSpecialOpenDay.reason}</span>}
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setIsDeleteSpecialOpenModalOpen(false)} className="flex-1 py-3 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">キャンセル</button>
-              <button onClick={handleDeleteSpecialOpenDay} className="flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700">削除する</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      {deleteTarget && <div className="fixed inset-0 z-50 flex items-center justify-center p-4"><div className="absolute inset-0 bg-black/50" onClick={() => setDeleteTarget(null)} /><div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6"><div className="flex items-center gap-3 mb-4"><div className="p-3 rounded-full bg-red-100 text-red-600"><Trash2 className="w-5 h-5" /></div><p className="text-xl font-medium">削除確認</p></div><p className="text-gray-600 mb-6">{deleteTarget.label} の設定を削除しますか？{deleteTarget.reason && <span className="block mt-1 text-sm text-gray-500">理由: {deleteTarget.reason}</span>}</p><div className="flex gap-3"><button onClick={() => setDeleteTarget(null)} className="flex-1 py-3 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">キャンセル</button><button onClick={() => void deleteDay()} className="flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700">削除する</button></div></div></div>}
+    </div></div>
   );
 }

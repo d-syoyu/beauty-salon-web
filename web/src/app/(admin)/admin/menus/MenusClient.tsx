@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Plus,
@@ -91,15 +91,25 @@ interface MenusClientProps {
   initialCategories: Category[];
   initialMenus: Menu[];
   initialProducts: Product[];
+  initialProductsLoaded: boolean;
   defaultTab: TabType;
 }
 
-export default function MenusClient({ initialCategories, initialMenus, initialProducts, defaultTab }: MenusClientProps) {
+export default function MenusClient({
+  initialCategories,
+  initialMenus,
+  initialProducts,
+  initialProductsLoaded,
+  defaultTab,
+}: MenusClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>(defaultTab);
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [menus, setMenus] = useState<Menu[]>(initialMenus);
   const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [productsLoaded, setProductsLoaded] = useState(initialProductsLoaded);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [productsError, setProductsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -140,10 +150,43 @@ export default function MenusClient({ initialCategories, initialMenus, initialPr
 
   useEffect(() => {
     setProducts(initialProducts);
-  }, [initialProducts]);
+    setProductsLoaded(initialProductsLoaded);
+  }, [initialProducts, initialProductsLoaded]);
 
   const showSuccess = (message: string) => { setSuccess(message); setTimeout(() => setSuccess(null), 3000); };
   const showError = (message: string) => { setError(message); setTimeout(() => setError(null), 5000); };
+
+  const loadProducts = useCallback(async (force = false) => {
+    if ((productsLoaded || isLoadingProducts) && !force) return;
+
+    setIsLoadingProducts(true);
+    setProductsError(null);
+
+    try {
+      const response = await fetch('/api/admin/pos/products?isActive=true&limit=1000', {
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || '商品の読み込みに失敗しました');
+      }
+
+      const data = (await response.json()) as { products?: Product[] };
+      setProducts(Array.isArray(data.products) ? data.products : []);
+      setProductsLoaded(true);
+    } catch (err) {
+      setProductsError(err instanceof Error ? err.message : '商品の読み込みに失敗しました');
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  }, [isLoadingProducts, productsLoaded]);
+
+  useEffect(() => {
+    if (activeTab === 'products') {
+      void loadProducts();
+    }
+  }, [activeTab, loadProducts]);
 
   const getAvailableColor = () => {
     const usedColors = categories.map(c => c.color.toUpperCase());
@@ -236,10 +279,14 @@ export default function MenusClient({ initialCategories, initialMenus, initialPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...productForm, unitPrice: Number(productForm.unitPrice), stockQuantity: Number(productForm.stockQuantity) }),
       });
-      if (!res.ok) { const d = await res.json(); showError(d.error || '保存に失敗しました'); return; }
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        showError(data?.error || '商品の保存に失敗しました');
+        return;
+      }
       showSuccess(editingProduct ? '商品を更新しました' : '商品を追加しました');
       setIsProductModalOpen(false);
-      router.refresh();
+      await loadProducts(true);
     } finally {
       setIsSavingProduct(false);
     }
@@ -247,24 +294,37 @@ export default function MenusClient({ initialCategories, initialMenus, initialPr
 
   const handleProductDelete = async (id: string) => {
     if (!confirm('この商品を無効化しますか？')) return;
-    await fetch(`/api/admin/pos/products/${id}`, { method: 'DELETE' });
-    router.refresh();
+
+    const response = await fetch(`/api/admin/pos/products/${id}`, { method: 'DELETE' });
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      showError(data?.error || '商品の削除に失敗しました');
+      return;
+    }
+
+    showSuccess('商品を削除しました');
+    await loadProducts(true);
   };
 
   const handleStockAdjust = async (id: string) => {
     if (!stockAdjust) return;
-    await fetch(`/api/admin/pos/products/${id}/stock`, {
+    const response = await fetch(`/api/admin/pos/products/${id}/stock`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ adjustment: Number(stockAdjust) }),
     });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      showError(data?.error || '在庫調整に失敗しました');
+      return;
+    }
+
     setStockAdjustId(null);
     setStockAdjust(0);
-    router.refresh();
+    showSuccess('在庫を更新しました');
+    await loadProducts(true);
   };
-
-  // Sync local state when RSC refreshes
-  // (router.refresh() re-renders parent RSC, new props flow down via React reconciliation)
 
   const filteredProducts = products.filter(p =>
     !productSearch || p.name.includes(productSearch) || p.categoryName.includes(productSearch) || (p.sku || '').includes(productSearch)
@@ -345,7 +405,19 @@ export default function MenusClient({ initialCategories, initialMenus, initialPr
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400" />
           </div>
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {filteredProducts.length === 0 ? (
+            {isLoadingProducts ? (
+              <div className="p-12 text-center text-gray-500">商品を読み込んでいます...</div>
+            ) : productsError ? (
+              <div className="p-12 text-center text-red-500">
+                <p>{productsError}</p>
+                <button
+                  onClick={() => void loadProducts(true)}
+                  className="mt-3 px-4 py-2 text-sm border border-red-200 rounded-lg hover:bg-red-50"
+                >
+                  再読み込み
+                </button>
+              </div>
+            ) : filteredProducts.length === 0 ? (
               <div className="p-12 text-center text-gray-500">
                 <Package className="w-8 h-8 mx-auto mb-3 text-gray-300" />
                 商品がありません
@@ -375,7 +447,7 @@ export default function MenusClient({ initialCategories, initialMenus, initialPr
                           <div className="flex items-center justify-center gap-1">
                             <input type="number" value={stockAdjust} onChange={e => setStockAdjust(Number(e.target.value))}
                               className="w-16 px-2 py-1 border border-gray-200 rounded text-center text-sm" />
-                            <button onClick={() => handleStockAdjust(product.id)} className="p-1 text-green-600 hover:bg-green-50 rounded"><Check className="w-4 h-4" /></button>
+                            <button onClick={() => void handleStockAdjust(product.id)} className="p-1 text-green-600 hover:bg-green-50 rounded"><Check className="w-4 h-4" /></button>
                             <button onClick={() => setStockAdjustId(null)} className="p-1 text-gray-400 hover:bg-gray-50 rounded"><X className="w-4 h-4" /></button>
                           </div>
                         ) : (
@@ -390,7 +462,7 @@ export default function MenusClient({ initialCategories, initialMenus, initialPr
                           <button onClick={() => openProductModal(product)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded">
                             <Pencil className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleProductDelete(product.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded">
+                          <button onClick={() => void handleProductDelete(product.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded">
                             <X className="w-4 h-4" />
                           </button>
                         </div>
