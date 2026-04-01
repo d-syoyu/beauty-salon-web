@@ -10,7 +10,6 @@ import {
   XCircle,
   Scissors,
   Users,
-  Menu,
   CreditCard,
   Mail,
   CheckCircle,
@@ -63,8 +62,6 @@ export interface Holiday {
   endTime: string | null;
   reason: string | null;
 }
-
-const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
 const timeToMinutes = (time: string) => {
   const [h, m] = time.split(':').map(Number);
@@ -389,7 +386,63 @@ export default function DashboardClient({
               </div>
             )}
             {reservations.map((reservation) => (
-              <div key={reservation.id} className="px-6 py-3 flex items-center gap-4">
+              <div key={reservation.id} className="px-4 sm:px-6 py-3">
+                <div className="sm:hidden">
+                  <div className="flex items-center gap-3">
+                    <div className="w-20 shrink-0">
+                      <span className="text-sm font-medium">{reservation.startTime}</span>
+                      <span className="text-xs text-muted-foreground ml-1">~{reservation.endTime}</span>
+                    </div>
+                    <div className="flex flex-1 gap-0.5 min-w-0">
+                      {reservation.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="h-5 rounded"
+                          style={{ backgroundColor: CATEGORY_COLORS[item.category] || '#888', flex: item.duration }}
+                          title={item.menuName}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                        onClick={() => openConfirmDialog(reservation, 'COMPLETED')}
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        title="繧ｭ繝｣繝ｳ繧ｻ繝ｫ"
+                        onClick={() => openConfirmDialog(reservation, 'CANCELLED')}
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="辟｡譁ｭ繧ｭ繝｣繝ｳ繧ｻ繝ｫ"
+                        onClick={() => openConfirmDialog(reservation, 'NO_SHOW')}
+                      >
+                        <Clock className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="mt-2 space-y-0.5">
+                    <p className="text-sm font-medium truncate">{reservation.menuSummary}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {reservation.user.name || '蜷榊燕譛ｪ逋ｻ骭ｲ'}
+                      {reservation.staffName && (
+                        <span className="ml-2 text-pink-600">諡・ｽ・ {reservation.staffName}</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div className="hidden sm:flex sm:items-center gap-4 sm:flex-1">
                 <div className="w-20 shrink-0">
                   <span className="text-sm font-medium">{reservation.startTime}</span>
                   <span className="text-xs text-muted-foreground ml-1">~{reservation.endTime}</span>
@@ -419,7 +472,8 @@ export default function DashboardClient({
                 <div className="text-sm font-medium text-amber-600 shrink-0 hidden sm:block">
                   ¥{reservation.totalPrice.toLocaleString()}
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                </div>
+                <div className="hidden sm:flex items-center gap-1 shrink-0">
                   <Button
                     size="sm"
                     variant="outline"

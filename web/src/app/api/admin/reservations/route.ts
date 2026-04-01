@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkAdminAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { parseLocalDate, parseLocalDateStart, parseLocalDateEnd } from "@/lib/date-utils";
+import { reservationDedupDistinct } from "@/lib/reservation-dedup";
 
 export async function GET(request: NextRequest) {
   const { error } = await checkAdminAuth();
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
     const [reservations, total] = await Promise.all([
       prisma.reservation.findMany({
         where,
+        distinct: reservationDedupDistinct,
         include: {
           user: {
             select: { id: true, name: true, email: true, phone: true },
@@ -68,14 +70,18 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
       }),
-      prisma.reservation.count({ where }),
+      prisma.reservation.findMany({
+        where,
+        distinct: reservationDedupDistinct,
+        select: { id: true },
+      }),
     ]);
 
     return NextResponse.json({
       reservations,
-      total,
+      total: total.length,
       page,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total.length / limit),
     });
   } catch (err) {
     console.error("Admin reservations error:", err);

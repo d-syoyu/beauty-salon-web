@@ -3,6 +3,7 @@
 
 import { prisma } from '@/lib/db';
 import { parseLocalDateStart, parseLocalDateEnd } from '@/lib/date-utils';
+import { reservationDedupDistinct } from '@/lib/reservation-dedup';
 import ReservationsClient, { type Reservation, type ReservationItem } from './ReservationsClient';
 
 export default async function AdminReservationsPage({
@@ -50,6 +51,7 @@ export default async function AdminReservationsPage({
   const [rawReservations, total, rawStaff, rawCategories, rawMenus] = await Promise.all([
     prisma.reservation.findMany({
       where,
+      distinct: reservationDedupDistinct,
       include: {
         user: { select: { id: true, name: true, email: true, phone: true } },
         staff: { select: { id: true, name: true, image: true } },
@@ -61,8 +63,12 @@ export default async function AdminReservationsPage({
         : [{ date: 'desc' }, { startTime: 'asc' }],
       skip,
       take: limit,
+      }),
+    prisma.reservation.findMany({
+      where,
+      distinct: reservationDedupDistinct,
+      select: { id: true },
     }),
-    prisma.reservation.count({ where }),
     prisma.staff.findMany({
       where: { isActive: true },
       select: { id: true, name: true, image: true },
@@ -113,7 +119,7 @@ export default async function AdminReservationsPage({
   const staffList = rawStaff.map((s) => ({ id: s.id, name: s.name, image: s.image }));
   const categoryColors = Object.fromEntries(rawCategories.map((c) => [c.name, c.color]));
   const menuCategoryColors = Object.fromEntries(rawMenus.map((m) => [m.id, m.category.color]));
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = Math.ceil(total.length / limit);
 
   return (
     <ReservationsClient

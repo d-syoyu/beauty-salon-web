@@ -4,6 +4,7 @@
 export const dynamic = 'force-dynamic';
 
 import { prisma } from '@/lib/db';
+import { reservationDedupDistinct } from '@/lib/reservation-dedup';
 import DashboardClient, {
   type Reservation,
   type DashboardStats,
@@ -41,10 +42,11 @@ export default async function AdminDashboard() {
   weekEnd.setDate(weekEnd.getDate() + 6);
   weekEnd.setHours(23, 59, 59, 999);
 
-  const [rawReservations, todayCount, weekCount, totalReservations, rawHolidays] =
+  const [rawReservations, todayReservationIds, weekReservationIds, totalReservationIds, rawHolidays] =
     await Promise.all([
       prisma.reservation.findMany({
         where: { date: { gte: todayStart, lte: todayEnd }, status: 'CONFIRMED' },
+        distinct: reservationDedupDistinct,
         include: {
           user: { select: { id: true, name: true, email: true, phone: true } },
           items: { orderBy: { orderIndex: 'asc' } },
@@ -52,13 +54,21 @@ export default async function AdminDashboard() {
         },
         orderBy: { startTime: 'asc' },
       }),
-      prisma.reservation.count({
+      prisma.reservation.findMany({
         where: { date: { gte: todayStart, lte: todayEnd }, status: { not: 'CANCELLED' } },
+        distinct: reservationDedupDistinct,
+        select: { id: true },
       }),
-      prisma.reservation.count({
+      prisma.reservation.findMany({
         where: { date: { gte: weekStart, lte: weekEnd }, status: { not: 'CANCELLED' } },
+        distinct: reservationDedupDistinct,
+        select: { id: true },
       }),
-      prisma.reservation.count({ where: { status: { not: 'CANCELLED' } } }),
+      prisma.reservation.findMany({
+        where: { status: { not: 'CANCELLED' } },
+        distinct: reservationDedupDistinct,
+        select: { id: true },
+      }),
       prisma.holiday.findMany({
         where: { date: { gte: monthStart, lte: monthEnd } },
         orderBy: { date: 'asc' },
@@ -99,9 +109,9 @@ export default async function AdminDashboard() {
   const weekEndStr = `${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`;
 
   const stats: DashboardStats = {
-    todayCount,
-    weekCount,
-    totalReservations,
+    todayCount: todayReservationIds.length,
+    weekCount: weekReservationIds.length,
+    totalReservations: totalReservationIds.length,
     weekStartStr,
     weekEndStr,
   };
