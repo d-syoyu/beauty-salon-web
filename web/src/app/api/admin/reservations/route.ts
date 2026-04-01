@@ -70,18 +70,14 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
       }),
-      prisma.reservation.findMany({
-        where,
-        distinct: reservationDedupDistinct,
-        select: { id: true },
-      }),
+      prisma.reservation.count({ where }),
     ]);
 
     return NextResponse.json({
       reservations,
-      total: total.length,
+      total,
       page,
-      totalPages: Math.ceil(total.length / limit),
+      totalPages: Math.ceil(total / limit),
     });
   } catch (err) {
     console.error("Admin reservations error:", err);

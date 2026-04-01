@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Search,
@@ -19,7 +19,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/admin/StatusBadge';
@@ -53,8 +52,8 @@ export interface Customer {
   phone: string | null;
   createdAt: string;
   newsletterOptOut: boolean;
-  reservations: Reservation[];
   completedCount: number;
+  totalRevenue: number;
 }
 
 const INITIAL_VISIBLE = 5;
@@ -76,6 +75,9 @@ export default function CustomersClient({
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [expandedCustomerId, setExpandedCustomerId] = useState<string | null>(null);
   const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({});
+  const [reservationHistory, setReservationHistory] = useState<Record<string, Reservation[]>>({});
+  const [reservationsLoading, setReservationsLoading] = useState<Record<string, boolean>>({});
+  const [reservationsError, setReservationsError] = useState<Record<string, string | null>>({});
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', email: '' });
@@ -89,6 +91,10 @@ export default function CustomersClient({
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
+
+  useEffect(() => {
+    setSearchQuery(initialSearch);
+  }, [initialSearch]);
 
   const navigate = (params: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
@@ -107,14 +113,46 @@ export default function CustomersClient({
     return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}（${weekdays[date.getDay()]}）`;
   };
 
+  const fetchCustomerReservations = async (customerId: string) => {
+    setReservationsLoading((prev) => ({ ...prev, [customerId]: true }));
+    setReservationsError((prev) => ({ ...prev, [customerId]: null }));
+
+    try {
+      const res = await fetch(`/api/admin/customers/${customerId}/reservations`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || 'Failed to load reservations');
+      }
+
+      const data = await res.json();
+      setReservationHistory((prev) => ({
+        ...prev,
+        [customerId]: Array.isArray(data) ? data : [],
+      }));
+      setVisibleCounts((prev) => ({ ...prev, [customerId]: prev[customerId] || INITIAL_VISIBLE }));
+    } catch (err) {
+      setReservationsError((prev) => ({
+        ...prev,
+        [customerId]: err instanceof Error ? err.message : 'Failed to load reservations',
+      }));
+    } finally {
+      setReservationsLoading((prev) => ({ ...prev, [customerId]: false }));
+    }
+  };
+
   const toggleCustomer = (customerId: string) => {
     if (expandedCustomerId === customerId) {
       setExpandedCustomerId(null);
-    } else {
-      setExpandedCustomerId(customerId);
-      if (!visibleCounts[customerId]) {
-        setVisibleCounts(prev => ({ ...prev, [customerId]: INITIAL_VISIBLE }));
-      }
+      return;
+    }
+
+    setExpandedCustomerId(customerId);
+    if (!reservationHistory[customerId] && !reservationsLoading[customerId]) {
+      void fetchCustomerReservations(customerId);
+      return;
+    }
+    if (!visibleCounts[customerId]) {
+      setVisibleCounts(prev => ({ ...prev, [customerId]: INITIAL_VISIBLE }));
     }
   };
 
@@ -122,13 +160,9 @@ export default function CustomersClient({
     setVisibleCounts(prev => ({ ...prev, [customerId]: (prev[customerId] || INITIAL_VISIBLE) + LOAD_MORE_COUNT }));
   };
 
-  const getVisibleReservations = (customer: Customer) => {
-    const count = visibleCounts[customer.id] || INITIAL_VISIBLE;
-    return customer.reservations.slice(0, count);
-  };
-
-  const getTotalRevenue = (reservations: Reservation[]) => {
-    return reservations.filter(r => r.status !== 'CANCELLED' && r.status !== 'NO_SHOW').reduce((sum, r) => sum + r.totalPrice, 0);
+  const getVisibleReservations = (customerId: string) => {
+    const count = visibleCounts[customerId] || INITIAL_VISIBLE;
+    return (reservationHistory[customerId] || []).slice(0, count);
   };
 
   const handleAddCustomer = async (e: React.FormEvent) => {
@@ -249,7 +283,7 @@ export default function CustomersClient({
 
                 <div className="text-right shrink-0 hidden sm:block">
                   <p className="text-sm font-medium">{customer.completedCount}回</p>
-                  <p className="text-xs text-muted-foreground">¥{getTotalRevenue(customer.reservations).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">¥{customer.totalRevenue.toLocaleString()}</p>
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
@@ -278,7 +312,7 @@ export default function CustomersClient({
               {expandedCustomerId === customer.id && (
                 <div className="px-4 pb-4 bg-muted/30">
                   <div className="space-y-2">
-                    {getVisibleReservations(customer).map((r) => (
+                    {getVisibleReservations(customer.id).map((r) => (
                       <div key={r.id} className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border">
                         <div className="shrink-0 w-28">
                           <p className="text-xs text-muted-foreground">{formatDate(r.date)}</p>
@@ -297,7 +331,18 @@ export default function CustomersClient({
                       </div>
                     ))}
                   </div>
-                  {customer.reservations.length > (visibleCounts[customer.id] || INITIAL_VISIBLE) && (
+                  {reservationsLoading[customer.id] && (
+                    <div className="py-6 text-center text-xs text-muted-foreground">読み込み中...</div>
+                  )}
+                  {!reservationsLoading[customer.id] && reservationsError[customer.id] && (
+                    <div className="py-4 text-center text-xs text-destructive">{reservationsError[customer.id]}</div>
+                  )}
+                  {!reservationsLoading[customer.id] &&
+                    !reservationsError[customer.id] &&
+                    (reservationHistory[customer.id]?.length || 0) === 0 && (
+                      <div className="py-6 text-center text-xs text-muted-foreground">予約履歴はありません</div>
+                    )}
+                  {(reservationHistory[customer.id]?.length || 0) > (visibleCounts[customer.id] || INITIAL_VISIBLE) && (
                     <Button
                       variant="ghost" size="sm" className="mt-2 w-full text-xs h-8"
                       onClick={() => loadMore(customer.id)}

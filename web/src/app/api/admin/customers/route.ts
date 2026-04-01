@@ -28,54 +28,58 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const [customers, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          createdAt: true,
-          newsletterOptOut: true,
-          _count: {
-            select: { reservations: true },
-          },
-          reservations: {
-            orderBy: [{ date: "desc" }, { startTime: "desc" }],
-            take: 20,
-            include: {
-              items: { orderBy: { orderIndex: "asc" } },
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-      }),
+    const customers = await prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        createdAt: true,
+        newsletterOptOut: true,
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    });
+
+    const customerIds = customers.map((customer) => customer.id);
+
+    const [total, completedCounts, revenueSums] = await Promise.all([
       prisma.user.count({ where }),
+      customerIds.length === 0
+        ? Promise.resolve([])
+        : prisma.reservation.groupBy({
+            by: ["userId"],
+            where: {
+              userId: { in: customerIds },
+              status: "COMPLETED",
+            },
+            _count: { id: true },
+          }),
+      customerIds.length === 0
+        ? Promise.resolve([])
+        : prisma.reservation.groupBy({
+            by: ["userId"],
+            where: {
+              userId: { in: customerIds },
+              status: { notIn: ["CANCELLED", "NO_SHOW"] },
+            },
+            _sum: { totalPrice: true },
+          }),
     ]);
 
-    // Count completed reservations for all fetched customers in one query
-    const customerIds = customers.map((c) => c.id);
-    const completedCounts = await prisma.reservation.groupBy({
-      by: ["userId"],
-      where: {
-        userId: { in: customerIds },
-        status: "COMPLETED",
-      },
-      _count: { id: true },
-    });
     const completedMap = new Map(
-      completedCounts.map((c) => [c.userId, c._count.id])
+      completedCounts.map((entry) => [entry.userId, entry._count.id])
+    );
+    const revenueMap = new Map(
+      revenueSums.map((entry) => [entry.userId, entry._sum.totalPrice ?? 0])
     );
 
-    const result = customers.map((c) => ({
-      ...c,
-      _count: {
-        reservations: c._count.reservations,
-        completedReservations: completedMap.get(c.id) ?? 0,
-      },
+    const result = customers.map((customer) => ({
+      ...customer,
+      completedCount: completedMap.get(customer.id) ?? 0,
+      totalRevenue: revenueMap.get(customer.id) ?? 0,
     }));
 
     return NextResponse.json({

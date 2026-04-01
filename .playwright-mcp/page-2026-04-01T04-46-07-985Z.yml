@@ -1,0 +1,221 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - img [ref=e7]
+          - generic:
+            - paragraph: LUMINA
+            - paragraph: 管理画面
+        - navigation [ref=e13]:
+          - link "ダッシュボード" [ref=e15] [cursor=pointer]:
+            - /url: /admin
+            - img [ref=e17]
+            - generic: ダッシュボード
+          - link "予約管理" [ref=e23] [cursor=pointer]:
+            - /url: /admin/reservations
+            - img [ref=e25]
+            - generic: 予約管理
+          - link "顧客管理" [ref=e28] [cursor=pointer]:
+            - /url: /admin/customers
+            - img [ref=e30]
+            - generic: 顧客管理
+          - link "スタッフ管理" [ref=e36] [cursor=pointer]:
+            - /url: /admin/staff
+            - img [ref=e38]
+            - generic: スタッフ管理
+            - img [ref=e44]
+          - link "メニュー管理" [ref=e47] [cursor=pointer]:
+            - /url: /admin/menus
+            - img [ref=e49]
+            - generic: メニュー管理
+          - link "休日・特別時間" [ref=e55] [cursor=pointer]:
+            - /url: /admin/holidays
+            - img [ref=e57]
+            - generic: 休日・特別時間
+          - link "POS・会計" [ref=e62] [cursor=pointer]:
+            - /url: /admin/pos
+            - img [ref=e64]
+            - generic: POS・会計
+          - link "メルマガ" [ref=e67] [cursor=pointer]:
+            - /url: /admin/newsletter
+            - img [ref=e69]
+            - generic: メルマガ
+        - link "サイトへ戻る" [ref=e73] [cursor=pointer]:
+          - /url: /
+          - img [ref=e74]
+          - generic [ref=e76]: サイトへ戻る
+    - main [ref=e77]:
+      - generic [ref=e78]:
+        - generic [ref=e80]:
+          - heading "ダッシュボード" [level=1] [ref=e81]
+          - paragraph [ref=e82]: 2026年4月1日（水）
+        - generic [ref=e83]:
+          - generic [ref=e84]:
+            - generic [ref=e86]:
+              - img [ref=e87]
+              - text: 本日の予約
+            - generic [ref=e89]:
+              - paragraph [ref=e90]: "3"
+              - paragraph [ref=e91]: 件
+          - generic [ref=e92]:
+            - generic [ref=e94]:
+              - img [ref=e95]
+              - text: 今週の予約
+            - generic [ref=e98]:
+              - paragraph [ref=e99]: "18"
+              - paragraph [ref=e100]: 3/30 ~ 4/5
+          - generic [ref=e101]:
+            - generic [ref=e103]:
+              - img [ref=e104]
+              - text: Web予約累計
+            - generic [ref=e110]:
+              - paragraph [ref=e111]: "57"
+              - paragraph [ref=e112]: 件
+        - generic [ref=e113]:
+          - link "予約管理 予約一覧・編集" [ref=e114] [cursor=pointer]:
+            - /url: /admin/reservations
+            - generic [ref=e116]:
+              - img [ref=e118]
+              - generic [ref=e120]:
+                - paragraph [ref=e121]: 予約管理
+                - paragraph [ref=e122]: 予約一覧・編集
+          - link "メニュー管理 メニュー・店販商品" [ref=e123] [cursor=pointer]:
+            - /url: /admin/menus
+            - generic [ref=e125]:
+              - img [ref=e127]
+              - generic [ref=e132]:
+                - paragraph [ref=e133]: メニュー管理
+                - paragraph [ref=e134]: メニュー・店販商品
+          - link "スタッフ管理 スタイリスト・シフト" [ref=e135] [cursor=pointer]:
+            - /url: /admin/staff
+            - generic [ref=e137]:
+              - img [ref=e139]
+              - generic [ref=e145]:
+                - paragraph [ref=e146]: スタッフ管理
+                - paragraph [ref=e147]: スタイリスト・シフト
+          - link "顧客管理 顧客情報" [ref=e148] [cursor=pointer]:
+            - /url: /admin/customers
+            - generic [ref=e150]:
+              - img [ref=e152]
+              - generic [ref=e157]:
+                - paragraph [ref=e158]: 顧客管理
+                - paragraph [ref=e159]: 顧客情報
+          - link "営業管理 定休日・不定休" [ref=e160] [cursor=pointer]:
+            - /url: /admin/holidays
+            - generic [ref=e162]:
+              - img [ref=e164]
+              - generic [ref=e168]:
+                - paragraph [ref=e169]: 営業管理
+                - paragraph [ref=e170]: 定休日・不定休
+          - link "会計・売上 POS・レポート" [ref=e171] [cursor=pointer]:
+            - /url: /admin/pos
+            - generic [ref=e173]:
+              - img [ref=e175]
+              - generic [ref=e177]:
+                - paragraph [ref=e178]: 会計・売上
+                - paragraph [ref=e179]: POS・レポート
+          - link "ニュースレター メール配信" [ref=e180] [cursor=pointer]:
+            - /url: /admin/newsletter
+            - generic [ref=e182]:
+              - img [ref=e184]
+              - generic [ref=e187]:
+                - paragraph [ref=e188]: ニュースレター
+                - paragraph [ref=e189]: メール配信
+        - generic [ref=e190]:
+          - generic [ref=e192]:
+            - generic [ref=e193]: 本日のご予約
+            - generic [ref=e194]: 3件
+          - generic [ref=e195]:
+            - generic [ref=e197]:
+              - generic [ref=e198]:
+                - generic [ref=e199]: 9:00
+                - generic [ref=e200]: 10:00
+                - generic [ref=e201]: 11:00
+                - generic [ref=e202]: 12:00
+                - generic [ref=e203]: 13:00
+                - generic [ref=e204]: 14:00
+                - generic [ref=e205]: 15:00
+                - generic [ref=e206]: 16:00
+                - generic [ref=e207]: 17:00
+                - generic [ref=e208]: 18:00
+                - generic [ref=e209]: 19:00
+                - generic [ref=e210]: 20:00
+              - generic [ref=e211]:
+                - generic [ref=e213]: 山田 花子
+                - generic [ref=e214]:
+                  - button "キッズカット" [ref=e250] [cursor=pointer]:
+                    - generic [ref=e252]: キッズカット
+                  - button "リタッチカラー" [ref=e253] [cursor=pointer]:
+                    - generic [ref=e255]: リタッチカラー
+              - generic [ref=e256]:
+                - generic [ref=e258]: 佐藤 美咲
+                - button "フルカラー" [ref=e295] [cursor=pointer]:
+                  - generic [ref=e297]: フルカラー
+            - generic [ref=e298]:
+              - generic [ref=e300]:
+                - generic [ref=e301]:
+                  - generic [ref=e302]:
+                    - text: 10:00
+                    - generic [ref=e303]: ~10:45
+                  - generic "キッズカット（小学生以下）" [ref=e305]
+                  - generic [ref=e306]:
+                    - paragraph [ref=e307]: キッズカット（小学生以下）
+                    - paragraph [ref=e308]:
+                      - text: 高橋 花
+                      - generic [ref=e309]: "担当: 山田 花子"
+                      - text: / 090-4567-8901
+                  - generic [ref=e310]: ¥3,300
+                - generic [ref=e311]:
+                  - button "完了" [ref=e312]:
+                    - img
+                    - text: 完了
+                  - button "キャンセル" [ref=e313]:
+                    - img
+                  - button "無断キャンセル" [ref=e314]:
+                    - img
+              - generic [ref=e316]:
+                - generic [ref=e317]:
+                  - generic [ref=e318]:
+                    - text: 12:00
+                    - generic [ref=e319]: ~13:30
+                  - generic "フルカラー" [ref=e321]
+                  - generic [ref=e322]:
+                    - paragraph [ref=e323]: フルカラー
+                    - paragraph [ref=e324]:
+                      - text: 伊藤 真由
+                      - generic [ref=e325]: "担当: 佐藤 美咲"
+                      - text: / 080-5678-9012
+                  - generic [ref=e326]: ¥8,800
+                - generic [ref=e327]:
+                  - button "完了" [ref=e328]:
+                    - img
+                    - text: 完了
+                  - button "キャンセル" [ref=e329]:
+                    - img
+                  - button "無断キャンセル" [ref=e330]:
+                    - img
+              - generic [ref=e332]:
+                - generic [ref=e333]:
+                  - generic [ref=e334]:
+                    - text: 14:00
+                    - generic [ref=e335]: ~15:00
+                  - generic "リタッチカラー" [ref=e337]
+                  - generic [ref=e338]:
+                    - paragraph [ref=e339]: リタッチカラー
+                    - paragraph [ref=e340]:
+                      - text: 渡辺 さくら
+                      - generic [ref=e341]: "担当: 山田 花子"
+                      - text: / 090-6789-0123
+                  - generic [ref=e342]: ¥6,600
+                - generic [ref=e343]:
+                  - button "完了" [ref=e344]:
+                    - img
+                    - text: 完了
+                  - button "キャンセル" [ref=e345]:
+                    - img
+                  - button "無断キャンセル" [ref=e346]:
+                    - img
+    - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e352] [cursor=pointer]:
+    - img [ref=e353]

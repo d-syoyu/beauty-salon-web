@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -88,6 +88,10 @@ export default function StaffDayOpsClient({
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [pendingRequestCount] = useState(initialPendingCount);
+
+  useEffect(() => {
+    void loadDate(initialDate);
+  }, [initialDate]);
 
   const loadDate = async (date: string) => {
     setLoading(true);

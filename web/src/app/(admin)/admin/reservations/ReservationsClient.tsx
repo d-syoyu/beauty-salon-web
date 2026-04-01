@@ -9,7 +9,6 @@ import {
   ChevronRight,
   XCircle,
   Clock,
-  CheckCircle,
   CreditCard,
   Check,
 } from 'lucide-react';
@@ -194,6 +193,7 @@ export default function ReservationsClient({
     const nextDate = new Date(dateStr + 'T12:00:00');
     setCurrentMonth(new Date(nextDate.getFullYear(), nextDate.getMonth(), 1));
   }, [dateStr]);
+
 
   const buildUrl = (overrides: Record<string, string | undefined>) => {
     const params = new URLSearchParams();
