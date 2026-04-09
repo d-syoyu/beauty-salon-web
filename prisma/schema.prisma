@@ -7,24 +7,75 @@ datasource db {
 }
 
 model User {
-  id               String    @id @default(cuid())
+  id               String          @id @default(cuid())
   name             String?
-  email            String?   @unique
+  email            String?         @unique
   emailVerified    DateTime?
   image            String?
   phone            String?
   password         String?
-  role             String    @default("CUSTOMER")
-  newsletterOptOut Boolean   @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  role             String          @default("CUSTOMER")
+  newsletterOptOut Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  accounts         Account[]
+  kartes           CustomerKarte[]
+  reservations     Reservation[]
+  createdSales     Sale[]          @relation("CreatedSales")
+  dailyClosings    DailyClosing[]  @relation("DailyClosingClosedBy")
+  monthlyClosings  MonthlyClosing[] @relation("MonthlyClosingClosedBy")
+  sales            Sale[]
+  sessions         Session[]
+}
 
-  accounts     Account[]
-  sessions     Session[]
-  reservations Reservation[]
-  sales        Sale[]
-  createdSales Sale[]          @relation("CreatedSales")
-  kartes       CustomerKarte[]
+model Shop {
+  id                       String             @id @default(cuid())
+  name                     String
+  publicSlug               String?            @unique
+  address                  String?
+  phoneNumber              String?
+  description              String?
+  accessInfo               String?
+  coverImageUrl            String?
+  googleBusinessLocationId String?
+  isPublished              Boolean            @default(true)
+  isActive                 Boolean            @default(true)
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  businessHours            ShopBusinessHour[]
+  reservations             Reservation[]
+  holidays                 Holiday[]
+  specialOpenDays          SpecialOpenDay[]
+  sales                    Sale[]
+  paymentMethods           PaymentMethodSetting[]
+  staffShops               StaffShop[]
+  categoryShops            CategoryShop[]
+  menuShops                MenuShop[]
+  productShops             ProductShop[]
+  couponShops              CouponShop[]
+  announcements            Announcement[]
+  galleryPhotos            GalleryPhoto[]
+  dailyClosings            DailyClosing[]
+  monthlyClosings          MonthlyClosing[]
+
+  @@index([isActive])
+  @@index([isPublished])
+}
+
+model ShopBusinessHour {
+  id                   String   @id @default(cuid())
+  shopId               String
+  dayOfWeek            Int
+  isOpen               Boolean  @default(true)
+  openTime             String
+  closeTime            String
+  lastBookingOffsetMin Int      @default(60)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  shop                 Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, dayOfWeek])
+  @@index([shopId, dayOfWeek])
 }
 
 model Account {
@@ -40,8 +91,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -51,8 +101,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
@@ -64,32 +113,33 @@ model VerificationToken {
 }
 
 model Reservation {
-  id                    String   @id @default(cuid())
+  id                    String            @id @default(cuid())
   userId                String
+  shopId                String?
   couponId              String?
   couponCode            String?
-  couponDiscount        Int      @default(0)
+  couponDiscount        Int               @default(0)
   totalPrice            Int
   totalDuration         Int
   menuSummary           String
   date                  DateTime
   startTime             String
   endTime               String
-  status                String   @default("CONFIRMED")
-  paymentMethod         String   @default("ONSITE")
+  status                String            @default("CONFIRMED")
+  paymentMethod         String            @default("ONSITE")
   stripePaymentIntentId String?
   note                  String?
-  isFirstVisit          Boolean?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
   staffId               String?
   staffName             String?
-
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  coupon Coupon? @relation(fields: [couponId], references: [id])
-  staff  Staff?   @relation(fields: [staffId], references: [id], onDelete: SetNull)
-  items  ReservationItem[]
-  sale   Sale?
+  isFirstVisit          Boolean?
+  coupon                Coupon?           @relation(fields: [couponId], references: [id])
+  shop                  Shop?             @relation(fields: [shopId], references: [id])
+  staff                 Staff?            @relation(fields: [staffId], references: [id])
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items                 ReservationItem[]
+  sale                  Sale?
 
   @@index([date])
   @@index([userId])
@@ -97,10 +147,12 @@ model Reservation {
   @@index([date, status])
   @@index([couponId])
   @@index([staffId])
+  @@index([shopId])
+  @@index([shopId, date])
 }
 
 model ReservationItem {
-  id            String @id @default(cuid())
+  id            String      @id @default(cuid())
   reservationId String
   menuId        String
   menuName      String
@@ -108,11 +160,10 @@ model ReservationItem {
   price         Int
   duration      Int
   orderIndex    Int
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
 
-  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-
-  @@index([reservationId])
   @@unique([reservationId, orderIndex])
+  @@index([reservationId])
 }
 
 model Category {
@@ -124,27 +175,27 @@ model Category {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  menus Menu[]
+  menus        Menu[]
+  shops        CategoryShop[]
 
   @@index([isActive])
 }
 
 model Menu {
-  id              String   @id @default(cuid())
-  name            String
-  categoryId      String
-  price           Int
-  priceVariable   Boolean  @default(false)
-  duration        Int
-  lastBookingTime String
-  displayOrder    Int      @default(0)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
+  id               String      @id @default(cuid())
+  name             String
+  categoryId       String
+  price            Int
+  priceVariable    Boolean     @default(false)
+  duration         Int
+  lastBookingTime  String
+  displayOrder     Int         @default(0)
+  isActive         Boolean     @default(true)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
   category         Category    @relation(fields: [categoryId], references: [id])
   staffAssignments StaffMenu[]
+  shops            MenuShop[]
 
   @@index([categoryId])
   @@index([isActive])
@@ -152,67 +203,74 @@ model Menu {
 
 model Holiday {
   id        String   @id @default(cuid())
+  shopId    String?
   date      DateTime
   startTime String?
   endTime   String?
   reason    String?
   createdAt DateTime @default(now())
+  shop      Shop?    @relation(fields: [shopId], references: [id])
 
-  @@unique([date, startTime, endTime])
+  @@unique([shopId, date, startTime, endTime])
   @@index([date])
+  @@index([shopId, date])
 }
 
 model SpecialOpenDay {
   id        String   @id @default(cuid())
+  shopId    String?
   date      DateTime
   startTime String?
   endTime   String?
   reason    String?
   createdAt DateTime @default(now())
+  shop      Shop?    @relation(fields: [shopId], references: [id])
 
-  @@unique([date, startTime, endTime])
+  @@unique([shopId, date, startTime, endTime])
   @@index([date])
+  @@index([shopId, date])
 }
 
 model Sale {
-  id             String   @id @default(cuid())
-  saleNumber     String   @unique
+  id             String         @id @default(cuid())
+  saleNumber     String         @unique
   userId         String?
+  shopId         String?
   customerName   String?
   customerPhone  String?
-  reservationId  String?  @unique
+  reservationId  String?        @unique
   subtotal       Int
   taxAmount      Int
   taxRate        Int
-  discountAmount Int      @default(0)
+  discountAmount Int            @default(0)
   couponId       String?
-  couponDiscount Int      @default(0)
+  couponDiscount Int            @default(0)
   totalAmount    Int
   paymentMethod  String
-  paymentStatus  String   @default("PENDING")
+  paymentStatus  String         @default("PENDING")
   saleDate       DateTime
   saleTime       String
   note           String?
   createdBy      String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  cancelReason   String?
+  cancelledAt    DateTime?
+  isNominated    Boolean        @default(false)
+  refundAmount   Int            @default(0)
+  refundedAt     DateTime?
   staffId        String?
   staffName      String?
-  isNominated    Boolean  @default(false)
-  cancelledAt    DateTime?
-  cancelReason   String?
-  refundAmount   Int      @default(0)
-  refundedAt     DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  reservation   Reservation?  @relation(fields: [reservationId], references: [id], onDelete: SetNull)
-  coupon        Coupon?       @relation(fields: [couponId], references: [id], onDelete: SetNull)
-  staff         Staff?        @relation(fields: [staffId], references: [id], onDelete: SetNull)
-  items         SaleItem[]
-  payments      Payment[]
-  createdByUser User?         @relation("CreatedSales", fields: [createdBy], references: [id], onDelete: SetNull)
-  auditLogs     SaleAuditLog[]
-  karte         CustomerKarte?
+  karte          CustomerKarte?
+  payments       Payment[]
+  coupon         Coupon?        @relation(fields: [couponId], references: [id])
+  createdByUser  User?          @relation("CreatedSales", fields: [createdBy], references: [id])
+  reservation    Reservation?   @relation(fields: [reservationId], references: [id])
+  shop           Shop?          @relation(fields: [shopId], references: [id])
+  staff          Staff?         @relation(fields: [staffId], references: [id])
+  user           User?          @relation(fields: [userId], references: [id])
+  auditLogs      SaleAuditLog[]
+  items          SaleItem[]
 
   @@index([saleDate])
   @@index([userId])
@@ -221,10 +279,12 @@ model Sale {
   @@index([paymentMethod])
   @@index([staffId])
   @@index([createdAt])
+  @@index([shopId])
+  @@index([shopId, saleDate])
 }
 
 model SaleItem {
-  id          String @id @default(cuid())
+  id          String  @id @default(cuid())
   saleId      String
   itemType    String
   menuId      String?
@@ -234,16 +294,15 @@ model SaleItem {
   duration    Int?
   productId   String?
   productName String?
-  quantity    Int    @default(1)
+  quantity    Int     @default(1)
   unitPrice   Int
   subtotal    Int
   orderIndex  Int
+  sale        Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
-  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
-
+  @@unique([saleId, orderIndex])
   @@index([saleId])
   @@index([categoryId])
-  @@unique([saleId, orderIndex])
 }
 
 model Payment {
@@ -254,40 +313,39 @@ model Payment {
   orderIndex    Int
   note          String?
   createdAt     DateTime @default(now())
+  sale          Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
-  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
-
-  @@index([saleId])
   @@unique([saleId, orderIndex])
+  @@index([saleId])
 }
 
 model Coupon {
-  id                    String   @id @default(cuid())
-  code                  String   @unique
+  id                    String        @id @default(cuid())
+  code                  String        @unique
   name                  String
   type                  String
   value                 Int
   description           String?
-  applicableMenuIds     String   @default("[]")
-  applicableCategoryIds String   @default("[]")
-  applicableWeekdays    String   @default("[]")
+  applicableMenuIds     String        @default("[]")
+  applicableCategoryIds String        @default("[]")
+  applicableWeekdays    String        @default("[]")
   startTime             String?
   endTime               String?
-  onlyFirstTime         Boolean  @default(false)
-  onlyReturning         Boolean  @default(false)
+  onlyFirstTime         Boolean       @default(false)
+  onlyReturning         Boolean       @default(false)
   validFrom             DateTime
   validUntil            DateTime
   usageLimit            Int?
   usageLimitPerCustomer Int?
-  usageCount            Int      @default(0)
+  usageCount            Int           @default(0)
   minimumAmount         Int?
-  isActive              Boolean  @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  usages        CouponUsage[]
-  sales         Sale[]
-  reservations  Reservation[]
+  isActive              Boolean       @default(true)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  shops                 CouponShop[]
+  usages                CouponUsage[]
+  reservations          Reservation[]
+  sales                 Sale[]
 
   @@index([code])
   @@index([isActive])
@@ -299,8 +357,7 @@ model CouponUsage {
   saleId     String?  @unique
   customerId String?
   usedAt     DateTime @default(now())
-
-  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  coupon     Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
 
   @@index([couponId])
   @@index([customerId])
@@ -314,48 +371,57 @@ model Settings {
 }
 
 model PaymentMethodSetting {
-  id           String   @id @default(cuid())
-  code         String   @unique
-  displayName  String
-  isActive     Boolean  @default(true)
-  displayOrder Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  shopId                 String?
+  channel                String   @default("IN_STORE")
+  code                   String   @unique
+  displayName            String
+  provider               String?
+  terminalName           String?
+  note                   String?
+  isActive               Boolean  @default(true)
+  isVisibleOnStorefront  Boolean  @default(true)
+  displayOrder           Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  shop                   Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([isActive])
   @@index([code])
+  @@index([shopId, isActive])
+  @@index([channel, isActive])
 }
 
 model Staff {
-  id                  String   @id @default(cuid())
-  name                String
-  nameEn              String?
-  role                String
-  image               String?
-  bio                 String?
-  specialties         String   @default("[]")
-  experience          String?
-  socialMedia         String   @default("{}")
-  displayOrder        Int      @default(0)
-  isActive            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  schedules           StaffSchedule[]
-  scheduleOverrides   StaffScheduleOverride[]
-  menuAssignments     StaffMenu[]
-  reservations        Reservation[]
-  shiftPatterns       ShiftPattern[]
-  employmentProfile   StaffEmploymentProfile?
-  attendanceRecords   AttendanceRecord[]
-  correctionRequests  AttendanceCorrectionRequest[]
-  leaveGrants         LeaveGrant[]
-  leaveRequests       LeaveRequest[]
-  overtimeRequests    OvertimeRequest[]
-  approvalLogs        ApprovalActionLog[]
-  monthlyClosures     AttendanceMonthlyClosure[]
-  sales               Sale[]
-  kartes              CustomerKarte[]
+  id                 String                        @id @default(cuid())
+  name               String
+  nameEn             String?
+  role               String
+  image              String?
+  bio                String?
+  specialties        String                        @default("[]")
+  experience         String?
+  socialMedia        String                        @default("{}")
+  displayOrder       Int                           @default(0)
+  isActive           Boolean                       @default(true)
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+  approvalLogs       ApprovalActionLog[]
+  correctionRequests AttendanceCorrectionRequest[]
+  monthlyClosures    AttendanceMonthlyClosure[]
+  attendanceRecords  AttendanceRecord[]
+  kartes             CustomerKarte[]
+  leaveGrants        LeaveGrant[]
+  leaveRequests      LeaveRequest[]
+  overtimeRequests   OvertimeRequest[]
+  reservations       Reservation[]
+  sales              Sale[]
+  shiftPatterns      ShiftPattern[]
+  employmentProfile  StaffEmploymentProfile?
+  menuAssignments    StaffMenu[]
+  shops              StaffShop[]
+  schedules          StaffSchedule[]
+  scheduleOverrides  StaffScheduleOverride[]
 
   @@index([isActive])
 }
@@ -369,30 +435,28 @@ model StaffSchedule {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@unique([staffId, dayOfWeek])
   @@index([staffId])
 }
 
 model StaffScheduleOverride {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   staffId      String
   date         DateTime
   startTime    String?
   endTime      String?
-  timeSegments Json?
-  breakMinutes Int      @default(0)
-  status       String   @default("scheduled")
+  createdAt    DateTime  @default(now())
+  breakMinutes Int       @default(0)
   note         String?
-  source       String   @default("manual")
-  publishedAt  DateTime?
   patternCode  String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  publishedAt  DateTime?
+  source       String    @default("manual")
+  status       String    @default("scheduled")
+  updatedAt    DateTime  @updatedAt
+  timeSegments Json?
+  staff        Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@unique([staffId, date])
   @@index([staffId])
@@ -404,13 +468,57 @@ model StaffMenu {
   id      String @id @default(cuid())
   staffId String
   menuId  String
-
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  menu  Menu  @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  menu    Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@unique([staffId, menuId])
   @@index([staffId])
   @@index([menuId])
+}
+
+model StaffShop {
+  staffId   String
+  shopId    String
+  isPrimary Boolean @default(false)
+  staff     Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  shop      Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@id([staffId, shopId])
+  @@index([staffId])
+  @@index([shopId])
+}
+
+model CategoryShop {
+  categoryId String
+  shopId     String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@id([categoryId, shopId])
+  @@index([categoryId])
+  @@index([shopId])
+}
+
+model MenuShop {
+  menuId  String
+  shopId  String
+  menu    Menu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  shop    Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@id([menuId, shopId])
+  @@index([menuId])
+  @@index([shopId])
+}
+
+model CouponShop {
+  couponId String
+  shopId   String
+  coupon   Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  shop     Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@id([couponId, shopId])
+  @@index([couponId])
+  @@index([shopId])
 }
 
 model ShiftPattern {
@@ -425,8 +533,7 @@ model ShiftPattern {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staff        Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@unique([staffId, code])
   @@index([staffId])
@@ -434,75 +541,71 @@ model ShiftPattern {
 }
 
 model LeavePolicy {
-  id                String   @id @default(cuid())
-  name              String
-  grantMode         String   @default("hire_date")
-  fixedGrantMonth   Int?
-  fixedGrantDay     Int?
-  isActive          Boolean  @default(true)
-  notes             String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  employmentProfiles StaffEmploymentProfile[]
+  id                 String                   @id @default(cuid())
+  name               String
+  grantMode          String                   @default("hire_date")
+  fixedGrantMonth    Int?
+  fixedGrantDay      Int?
+  isActive           Boolean                  @default(true)
+  notes              String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
   leaveGrants        LeaveGrant[]
+  employmentProfiles StaffEmploymentProfile[]
 
   @@index([isActive])
 }
 
 model StaffEmploymentProfile {
-  id                   String   @id @default(cuid())
-  staffId              String   @unique
+  id                   String       @id @default(cuid())
+  staffId              String       @unique
   hireDate             DateTime?
-  employmentType       String   @default("full_time")
+  employmentType       String       @default("full_time")
   prescribedWeeklyDays Int?
   prescribedAnnualDays Int?
   leavePolicyId        String?
   warningNote          String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-
-  staff       Staff       @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  leavePolicy LeavePolicy? @relation(fields: [leavePolicyId], references: [id], onDelete: SetNull)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  leavePolicy          LeavePolicy? @relation(fields: [leavePolicyId], references: [id])
+  staff                Staff        @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([leavePolicyId])
 }
 
 model LeaveType {
-  id             String   @id @default(cuid())
-  code           String   @unique
+  id             String         @id @default(cuid())
+  code           String         @unique
   name           String
-  unit           String   @default("full")
-  deductsBalance Boolean  @default(true)
+  unit           String         @default("full")
+  deductsBalance Boolean        @default(true)
   color          String?
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  leaveGrants   LeaveGrant[]
-  leaveRequests LeaveRequest[]
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  leaveGrants    LeaveGrant[]
+  leaveRequests  LeaveRequest[]
 
   @@index([isActive])
 }
 
 model LeaveGrant {
-  id                        String   @id @default(cuid())
+  id                        String       @id @default(cuid())
   staffId                   String
   leavePolicyId             String?
   leaveTypeId               String?
   grantDate                 DateTime
   expireDate                DateTime?
   grantedDays               Float
-  usedDays                  Float    @default(0)
-  remainingManualAdjustment Float    @default(0)
-  source                    String   @default("auto")
+  usedDays                  Float        @default(0)
+  remainingManualAdjustment Float        @default(0)
+  source                    String       @default("auto")
   note                      String?
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
-
-  staff       Staff       @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  leavePolicy LeavePolicy? @relation(fields: [leavePolicyId], references: [id], onDelete: SetNull)
-  leaveType   LeaveType?   @relation(fields: [leaveTypeId], references: [id], onDelete: SetNull)
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
+  leavePolicy               LeavePolicy? @relation(fields: [leavePolicyId], references: [id])
+  leaveType                 LeaveType?   @relation(fields: [leaveTypeId], references: [id])
+  staff                     Staff        @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([staffId])
   @@index([grantDate])
@@ -510,25 +613,24 @@ model LeaveGrant {
 }
 
 model LeaveRequest {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   staffId          String
   leaveTypeId      String
   date             DateTime
-  unit             String   @default("full")
+  unit             String    @default("full")
   startTime        String?
   endTime          String?
-  requestedDays    Float    @default(1)
-  status           String   @default("submitted")
+  requestedDays    Float     @default(1)
+  status           String    @default("submitted")
   note             String?
   adminComment     String?
   approvedAt       DateTime?
   approvedByUserId String?
   createdByUserId  String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  staff     Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  leaveType        LeaveType @relation(fields: [leaveTypeId], references: [id])
+  staff            Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([staffId])
   @@index([date])
@@ -536,30 +638,29 @@ model LeaveRequest {
 }
 
 model AttendanceRecord {
-  id                 String   @id @default(cuid())
+  id                 String                        @id @default(cuid())
   staffId            String
   date               DateTime
   scheduledStartTime String?
   scheduledEndTime   String?
   actualStartTime    String?
   actualEndTime      String?
-  totalWorkMinutes   Int      @default(0)
-  totalBreakMinutes  Int      @default(0)
-  lateMinutes        Int      @default(0)
-  earlyLeaveMinutes  Int      @default(0)
-  overtimeMinutes    Int      @default(0)
-  status             String   @default("not_started")
+  totalWorkMinutes   Int                           @default(0)
+  totalBreakMinutes  Int                           @default(0)
+  lateMinutes        Int                           @default(0)
+  earlyLeaveMinutes  Int                           @default(0)
+  overtimeMinutes    Int                           @default(0)
+  status             String                        @default("not_started")
   note               String?
-  isClosed           Boolean  @default(false)
+  isClosed           Boolean                       @default(false)
   closedAt           DateTime?
   createdByUserId    String?
   updatedByUserId    String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  staff              Staff                        @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
   breaks             AttendanceBreak[]
   correctionRequests AttendanceCorrectionRequest[]
+  staff              Staff                         @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@unique([staffId, date])
   @@index([staffId])
@@ -568,41 +669,39 @@ model AttendanceRecord {
 }
 
 model AttendanceBreak {
-  id                 String   @id @default(cuid())
+  id                 String           @id @default(cuid())
   attendanceRecordId String
   startTime          String
   endTime            String?
-  startedAt          DateTime @default(now())
+  startedAt          DateTime         @default(now())
   endedAt            DateTime?
-  durationMinutes    Int      @default(0)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  attendanceRecord AttendanceRecord @relation(fields: [attendanceRecordId], references: [id], onDelete: Cascade)
+  durationMinutes    Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  attendanceRecord   AttendanceRecord @relation(fields: [attendanceRecordId], references: [id], onDelete: Cascade)
 
   @@index([attendanceRecordId])
 }
 
 model AttendanceCorrectionRequest {
-  id                    String   @id @default(cuid())
+  id                    String            @id @default(cuid())
   staffId               String
   attendanceRecordId    String?
   date                  DateTime
   requestedStartTime    String?
   requestedEndTime      String?
   requestedBreakMinutes Int?
-  requestCategory       String   @default("correction")
-  status                String   @default("submitted")
+  requestCategory       String            @default("correction")
+  status                String            @default("submitted")
   note                  String?
   adminComment          String?
   approvedAt            DateTime?
   approvedByUserId      String?
   createdByUserId       String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  staff            Staff             @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  attendanceRecord AttendanceRecord? @relation(fields: [attendanceRecordId], references: [id], onDelete: SetNull)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  attendanceRecord      AttendanceRecord? @relation(fields: [attendanceRecordId], references: [id])
+  staff                 Staff             @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([staffId])
   @@index([date])
@@ -610,23 +709,22 @@ model AttendanceCorrectionRequest {
 }
 
 model OvertimeRequest {
-  id                 String   @id @default(cuid())
+  id                 String    @id @default(cuid())
   staffId            String
   date               DateTime
   requestedStartTime String?
   requestedEndTime   String
-  requestCategory    String   @default("overtime")
-  isHolidayWork      Boolean  @default(false)
-  status             String   @default("submitted")
+  requestCategory    String    @default("overtime")
+  isHolidayWork      Boolean   @default(false)
+  status             String    @default("submitted")
   note               String?
   adminComment       String?
   approvedAt         DateTime?
   approvedByUserId   String?
   createdByUserId    String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  staff              Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([staffId])
   @@index([date])
@@ -642,26 +740,24 @@ model ApprovalActionLog {
   comment       String?
   staffId       String?
   createdAt     DateTime @default(now())
-
-  staff Staff? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  staff         Staff?   @relation(fields: [staffId], references: [id])
 
   @@index([requestType, requestId])
   @@index([staffId])
 }
 
 model AttendanceMonthlyClosure {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   staffId        String
   year           Int
   month          Int
-  status         String   @default("open")
+  status         String    @default("open")
   blockedReason  String?
   closedAt       DateTime?
   closedByUserId String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  staff          Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@unique([staffId, year, month])
   @@index([year, month])
@@ -669,20 +765,141 @@ model AttendanceMonthlyClosure {
 }
 
 model Product {
-  id            String   @id @default(cuid())
-  name          String
-  categoryName  String
-  unitPrice     Int
-  stockQuantity Int      @default(0)
-  sku           String?  @unique
-  barcode       String?
-  description   String?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                     String        @id @default(cuid())
+  name                   String
+  categoryName           String
+  unitPrice              Int
+  stockQuantity          Int           @default(0)
+  sku                    String?       @unique
+  barcode                String?
+  description            String?
+  imageUrl               String?
+  isActive               Boolean       @default(true)
+  isVisibleOnStorefront  Boolean       @default(true)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  shops                  ProductShop[]
 
   @@index([isActive])
   @@index([categoryName])
+}
+
+model ProductShop {
+  productId String
+  shopId    String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  shop      Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@id([productId, shopId])
+  @@index([productId])
+  @@index([shopId])
+}
+
+model Announcement {
+  id                    String         @id @default(cuid())
+  shopId                String?
+  title                 String
+  body                  String
+  imageUrl              String?
+  channels              String[]
+  status                String         @default("draft")
+  publishedAt           DateTime?
+  expiresAt             DateTime?
+  targetCategoryIds     String         @default("[]")
+  targetMenuIds         String         @default("[]")
+  targetLastVisitMonths Int?
+  targetMinVisitCount   Int?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  shop                  Shop?          @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  sends                 CampaignSend[]
+
+  @@index([status])
+  @@index([shopId, status])
+  @@index([publishedAt])
+}
+
+model CampaignSend {
+  id             String       @id @default(cuid())
+  announcementId String
+  channel        String
+  sentAt         DateTime     @default(now())
+  recipientCount Int
+  successCount   Int          @default(0)
+  errorCount     Int          @default(0)
+  errorSample    String?
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@index([announcementId])
+  @@index([sentAt])
+}
+
+model GalleryPhoto {
+  id           String   @id @default(cuid())
+  shopId       String?
+  imageUrl     String
+  caption      String?
+  displayOrder Int      @default(0)
+  isPublished  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  shop         Shop?    @relation(fields: [shopId], references: [id], onDelete: SetNull)
+
+  @@index([shopId, isPublished, displayOrder])
+}
+
+model DailyClosing {
+  id               String   @id @default(cuid())
+  shopId           String?
+  date             DateTime @db.Date
+  status           String   @default("open")
+  totalSales       Int
+  saleCount        Int
+  totalTax         Int      @default(0)
+  totalDiscount    Int      @default(0)
+  paymentBreakdown Json     @default("{}")
+  expectedCash     Int      @default(0)
+  actualCash       Int?
+  cashDifference   Int?
+  note             String?
+  closedAt         DateTime?
+  closedByUserId   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  shop             Shop?    @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  closedBy         User?    @relation("DailyClosingClosedBy", fields: [closedByUserId], references: [id])
+
+  @@unique([shopId, date])
+  @@index([date])
+  @@index([shopId, date])
+  @@index([status])
+}
+
+model MonthlyClosing {
+  id                 String   @id @default(cuid())
+  shopId             String?
+  year               Int
+  month              Int
+  status             String   @default("open")
+  totalSales         Int
+  saleCount          Int
+  totalTax           Int      @default(0)
+  totalDiscount      Int      @default(0)
+  averagePerCustomer Int      @default(0)
+  paymentBreakdown   Json     @default("{}")
+  dailyClosingCount  Int      @default(0)
+  note               String?
+  closedAt           DateTime?
+  closedByUserId     String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  shop               Shop?    @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  closedBy           User?    @relation("MonthlyClosingClosedBy", fields: [closedByUserId], references: [id])
+
+  @@unique([shopId, year, month])
+  @@index([year, month])
+  @@index([shopId, year, month])
+  @@index([status])
 }
 
 model CustomerKarte {
@@ -700,10 +917,9 @@ model CustomerKarte {
   saleId          String?  @unique
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  staff Staff? @relation(fields: [staffId], references: [id], onDelete: SetNull)
-  sale  Sale?  @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  sale            Sale?    @relation(fields: [saleId], references: [id])
+  staff           Staff?   @relation(fields: [staffId], references: [id])
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([visitDate])
@@ -720,8 +936,7 @@ model SaleAuditLog {
   reason       String?
   actedBy      String?
   createdAt    DateTime @default(now())
-
-  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  sale         Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   @@index([saleId])
   @@index([action])

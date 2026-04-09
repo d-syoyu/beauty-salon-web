@@ -1,11 +1,11 @@
-// src/app/(admin)/admin/layout.tsx
-// Admin Layout - Auto guest auth, session cleared on tab close
-
 import SessionProvider from "@/components/providers/session-provider";
 import AdminAutoAuth from "@/components/admin/AdminAutoAuth";
-import FloatingBackButton from "@/components/FloatingBackButton";
+import { AdminToaster } from "@/components/admin/AdminToaster";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { ADMIN_AUTH_DISABLED } from "@/lib/admin-access";
 import { getDemoAdminSession } from "@/lib/admin-demo";
+import { prisma } from "@/lib/db";
+import { getAdminShopContext } from "@/lib/admin-shop";
 
 export const metadata = {
   title: "Admin | LUMINA HAIR STUDIO",
@@ -17,13 +17,16 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const demoSession = ADMIN_AUTH_DISABLED ? await getDemoAdminSession() : null;
+  const { shops, selectedShopId } = await getAdminShopContext(prisma);
+
   const content = (
-    <>
-      <div className="admin-page bg-gray-50 min-h-screen text-gray-900 overflow-x-hidden pb-12 md:pb-0">
+    <div className="min-h-screen bg-muted/40 text-foreground">
+      <AdminSidebar shops={shops} selectedShopId={selectedShopId} />
+      <main className="min-w-0 overflow-x-hidden pt-14 md:pt-0 md:pl-56 xl:pl-14">
         {children}
-      </div>
-      <FloatingBackButton />
-    </>
+      </main>
+      <AdminToaster richColors position="top-right" />
+    </div>
   );
 
   return (
