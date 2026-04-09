@@ -22,8 +22,60 @@ model User {
   kartes           CustomerKarte[]
   reservations     Reservation[]
   createdSales     Sale[]          @relation("CreatedSales")
+  dailyClosings    DailyClosing[]  @relation("DailyClosingClosedBy")
+  monthlyClosings  MonthlyClosing[] @relation("MonthlyClosingClosedBy")
   sales            Sale[]
   sessions         Session[]
+}
+
+model Shop {
+  id                       String             @id @default(cuid())
+  name                     String
+  publicSlug               String?            @unique
+  address                  String?
+  phoneNumber              String?
+  description              String?
+  accessInfo               String?
+  coverImageUrl            String?
+  googleBusinessLocationId String?
+  isPublished              Boolean            @default(true)
+  isActive                 Boolean            @default(true)
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  businessHours            ShopBusinessHour[]
+  reservations             Reservation[]
+  holidays                 Holiday[]
+  specialOpenDays          SpecialOpenDay[]
+  sales                    Sale[]
+  paymentMethods           PaymentMethodSetting[]
+  staffShops               StaffShop[]
+  categoryShops            CategoryShop[]
+  menuShops                MenuShop[]
+  productShops             ProductShop[]
+  couponShops              CouponShop[]
+  announcements            Announcement[]
+  galleryPhotos            GalleryPhoto[]
+  dailyClosings            DailyClosing[]
+  monthlyClosings          MonthlyClosing[]
+
+  @@index([isActive])
+  @@index([isPublished])
+}
+
+model ShopBusinessHour {
+  id                   String   @id @default(cuid())
+  shopId               String
+  dayOfWeek            Int
+  isOpen               Boolean  @default(true)
+  openTime             String
+  closeTime            String
+  lastBookingOffsetMin Int      @default(60)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  shop                 Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, dayOfWeek])
+  @@index([shopId, dayOfWeek])
 }
 
 model Account {
@@ -63,6 +115,7 @@ model VerificationToken {
 model Reservation {
   id                    String            @id @default(cuid())
   userId                String
+  shopId                String?
   couponId              String?
   couponCode            String?
   couponDiscount        Int               @default(0)
@@ -82,6 +135,7 @@ model Reservation {
   staffName             String?
   isFirstVisit          Boolean?
   coupon                Coupon?           @relation(fields: [couponId], references: [id])
+  shop                  Shop?             @relation(fields: [shopId], references: [id])
   staff                 Staff?            @relation(fields: [staffId], references: [id])
   user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   items                 ReservationItem[]
@@ -93,6 +147,8 @@ model Reservation {
   @@index([date, status])
   @@index([couponId])
   @@index([staffId])
+  @@index([shopId])
+  @@index([shopId, date])
 }
 
 model ReservationItem {
@@ -120,6 +176,7 @@ model Category {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   menus        Menu[]
+  shops        CategoryShop[]
 
   @@index([isActive])
 }
@@ -138,6 +195,7 @@ model Menu {
   updatedAt        DateTime    @updatedAt
   category         Category    @relation(fields: [categoryId], references: [id])
   staffAssignments StaffMenu[]
+  shops            MenuShop[]
 
   @@index([categoryId])
   @@index([isActive])
@@ -145,32 +203,39 @@ model Menu {
 
 model Holiday {
   id        String   @id @default(cuid())
+  shopId    String?
   date      DateTime
   startTime String?
   endTime   String?
   reason    String?
   createdAt DateTime @default(now())
+  shop      Shop?    @relation(fields: [shopId], references: [id])
 
-  @@unique([date, startTime, endTime])
+  @@unique([shopId, date, startTime, endTime])
   @@index([date])
+  @@index([shopId, date])
 }
 
 model SpecialOpenDay {
   id        String   @id @default(cuid())
+  shopId    String?
   date      DateTime
   startTime String?
   endTime   String?
   reason    String?
   createdAt DateTime @default(now())
+  shop      Shop?    @relation(fields: [shopId], references: [id])
 
-  @@unique([date, startTime, endTime])
+  @@unique([shopId, date, startTime, endTime])
   @@index([date])
+  @@index([shopId, date])
 }
 
 model Sale {
   id             String         @id @default(cuid())
   saleNumber     String         @unique
   userId         String?
+  shopId         String?
   customerName   String?
   customerPhone  String?
   reservationId  String?        @unique
@@ -201,6 +266,7 @@ model Sale {
   coupon         Coupon?        @relation(fields: [couponId], references: [id])
   createdByUser  User?          @relation("CreatedSales", fields: [createdBy], references: [id])
   reservation    Reservation?   @relation(fields: [reservationId], references: [id])
+  shop           Shop?          @relation(fields: [shopId], references: [id])
   staff          Staff?         @relation(fields: [staffId], references: [id])
   user           User?          @relation(fields: [userId], references: [id])
   auditLogs      SaleAuditLog[]
@@ -213,6 +279,8 @@ model Sale {
   @@index([paymentMethod])
   @@index([staffId])
   @@index([createdAt])
+  @@index([shopId])
+  @@index([shopId, saleDate])
 }
 
 model SaleItem {
@@ -274,6 +342,7 @@ model Coupon {
   isActive              Boolean       @default(true)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
+  shops                 CouponShop[]
   usages                CouponUsage[]
   reservations          Reservation[]
   sales                 Sale[]
@@ -302,16 +371,25 @@ model Settings {
 }
 
 model PaymentMethodSetting {
-  id           String   @id @default(cuid())
-  code         String   @unique
-  displayName  String
-  isActive     Boolean  @default(true)
-  displayOrder Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  shopId                 String?
+  channel                String   @default("IN_STORE")
+  code                   String   @unique
+  displayName            String
+  provider               String?
+  terminalName           String?
+  note                   String?
+  isActive               Boolean  @default(true)
+  isVisibleOnStorefront  Boolean  @default(true)
+  displayOrder           Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  shop                   Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([isActive])
   @@index([code])
+  @@index([shopId, isActive])
+  @@index([channel, isActive])
 }
 
 model Staff {
@@ -341,6 +419,7 @@ model Staff {
   shiftPatterns      ShiftPattern[]
   employmentProfile  StaffEmploymentProfile?
   menuAssignments    StaffMenu[]
+  shops              StaffShop[]
   schedules          StaffSchedule[]
   scheduleOverrides  StaffScheduleOverride[]
 
@@ -395,6 +474,51 @@ model StaffMenu {
   @@unique([staffId, menuId])
   @@index([staffId])
   @@index([menuId])
+}
+
+model StaffShop {
+  staffId   String
+  shopId    String
+  isPrimary Boolean @default(false)
+  staff     Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  shop      Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@id([staffId, shopId])
+  @@index([staffId])
+  @@index([shopId])
+}
+
+model CategoryShop {
+  categoryId String
+  shopId     String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@id([categoryId, shopId])
+  @@index([categoryId])
+  @@index([shopId])
+}
+
+model MenuShop {
+  menuId  String
+  shopId  String
+  menu    Menu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  shop    Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@id([menuId, shopId])
+  @@index([menuId])
+  @@index([shopId])
+}
+
+model CouponShop {
+  couponId String
+  shopId   String
+  coupon   Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  shop     Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@id([couponId, shopId])
+  @@index([couponId])
+  @@index([shopId])
 }
 
 model ShiftPattern {
@@ -641,20 +765,141 @@ model AttendanceMonthlyClosure {
 }
 
 model Product {
-  id            String   @id @default(cuid())
-  name          String
-  categoryName  String
-  unitPrice     Int
-  stockQuantity Int      @default(0)
-  sku           String?  @unique
-  barcode       String?
-  description   String?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                     String        @id @default(cuid())
+  name                   String
+  categoryName           String
+  unitPrice              Int
+  stockQuantity          Int           @default(0)
+  sku                    String?       @unique
+  barcode                String?
+  description            String?
+  imageUrl               String?
+  isActive               Boolean       @default(true)
+  isVisibleOnStorefront  Boolean       @default(true)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  shops                  ProductShop[]
 
   @@index([isActive])
   @@index([categoryName])
+}
+
+model ProductShop {
+  productId String
+  shopId    String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  shop      Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@id([productId, shopId])
+  @@index([productId])
+  @@index([shopId])
+}
+
+model Announcement {
+  id                    String         @id @default(cuid())
+  shopId                String?
+  title                 String
+  body                  String
+  imageUrl              String?
+  channels              String[]
+  status                String         @default("draft")
+  publishedAt           DateTime?
+  expiresAt             DateTime?
+  targetCategoryIds     String         @default("[]")
+  targetMenuIds         String         @default("[]")
+  targetLastVisitMonths Int?
+  targetMinVisitCount   Int?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  shop                  Shop?          @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  sends                 CampaignSend[]
+
+  @@index([status])
+  @@index([shopId, status])
+  @@index([publishedAt])
+}
+
+model CampaignSend {
+  id             String       @id @default(cuid())
+  announcementId String
+  channel        String
+  sentAt         DateTime     @default(now())
+  recipientCount Int
+  successCount   Int          @default(0)
+  errorCount     Int          @default(0)
+  errorSample    String?
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@index([announcementId])
+  @@index([sentAt])
+}
+
+model GalleryPhoto {
+  id           String   @id @default(cuid())
+  shopId       String?
+  imageUrl     String
+  caption      String?
+  displayOrder Int      @default(0)
+  isPublished  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  shop         Shop?    @relation(fields: [shopId], references: [id], onDelete: SetNull)
+
+  @@index([shopId, isPublished, displayOrder])
+}
+
+model DailyClosing {
+  id               String   @id @default(cuid())
+  shopId           String?
+  date             DateTime @db.Date
+  status           String   @default("open")
+  totalSales       Int
+  saleCount        Int
+  totalTax         Int      @default(0)
+  totalDiscount    Int      @default(0)
+  paymentBreakdown Json     @default("{}")
+  expectedCash     Int      @default(0)
+  actualCash       Int?
+  cashDifference   Int?
+  note             String?
+  closedAt         DateTime?
+  closedByUserId   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  shop             Shop?    @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  closedBy         User?    @relation("DailyClosingClosedBy", fields: [closedByUserId], references: [id])
+
+  @@unique([shopId, date])
+  @@index([date])
+  @@index([shopId, date])
+  @@index([status])
+}
+
+model MonthlyClosing {
+  id                 String   @id @default(cuid())
+  shopId             String?
+  year               Int
+  month              Int
+  status             String   @default("open")
+  totalSales         Int
+  saleCount          Int
+  totalTax           Int      @default(0)
+  totalDiscount      Int      @default(0)
+  averagePerCustomer Int      @default(0)
+  paymentBreakdown   Json     @default("{}")
+  dailyClosingCount  Int      @default(0)
+  note               String?
+  closedAt           DateTime?
+  closedByUserId     String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  shop               Shop?    @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  closedBy           User?    @relation("MonthlyClosingClosedBy", fields: [closedByUserId], references: [id])
+
+  @@unique([shopId, year, month])
+  @@index([year, month])
+  @@index([shopId, year, month])
+  @@index([status])
 }
 
 model CustomerKarte {

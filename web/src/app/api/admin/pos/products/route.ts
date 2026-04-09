@@ -1,9 +1,7 @@
-// src/app/api/admin/pos/products/route.ts
-// Admin Product CRUD - List & Create
-
-import { NextRequest, NextResponse } from "next/server";
-import { checkAdminAuth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { NextRequest, NextResponse } from 'next/server';
+import { checkAdminAuth } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { getSelectedShopIdFromCookies } from '@/lib/admin-shop';
 
 export async function GET(request: NextRequest) {
   const { error } = await checkAdminAuth();
@@ -11,28 +9,32 @@ export async function GET(request: NextRequest) {
 
   try {
     const searchParams = request.nextUrl.searchParams;
-    const search = searchParams.get("search") || "";
-    const isActiveParam = searchParams.get("isActive");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const search = searchParams.get('search') || '';
+    const isActiveParam = searchParams.get('isActive');
+    const shopIdParam = searchParams.get('shopId');
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
     const skip = (page - 1) * limit;
+    const selectedShopId = shopIdParam || (await getSelectedShopIdFromCookies(prisma));
 
     const where: Record<string, unknown> = {};
-    if (isActiveParam !== null) {
-      where.isActive = isActiveParam !== "false";
-    }
+    if (isActiveParam !== null) where.isActive = isActiveParam !== 'false';
+    if (selectedShopId) where.shops = { some: { shopId: selectedShopId } };
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { categoryName: { contains: search, mode: "insensitive" } },
-        { sku: { contains: search, mode: "insensitive" } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { categoryName: { contains: search, mode: 'insensitive' } },
+        { sku: { contains: search, mode: 'insensitive' } },
       ];
     }
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        orderBy: [{ categoryName: "asc" }, { name: "asc" }],
+        include: {
+          shops: { select: { shopId: true } },
+        },
+        orderBy: [{ categoryName: 'asc' }, { name: 'asc' }],
         skip,
         take: limit,
       }),
@@ -40,9 +42,9 @@ export async function GET(request: NextRequest) {
     ]);
 
     return NextResponse.json({ products, total });
-  } catch (err) {
-    console.error("Get products error:", err);
-    return NextResponse.json({ error: "商品の取得に失敗しました" }, { status: 500 });
+  } catch (error) {
+    console.error('Get products error:', error);
+    return NextResponse.json({ error: 'Failed to load products.' }, { status: 500 });
   }
 }
 
@@ -52,36 +54,53 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, categoryName, unitPrice, stockQuantity, sku, barcode, description } = body;
+    const selectedShopId = (typeof body.shopId === 'string' && body.shopId) || (await getSelectedShopIdFromCookies(prisma));
+    const {
+      name,
+      categoryName,
+      unitPrice,
+      stockQuantity,
+      sku,
+      barcode,
+      description,
+      imageUrl,
+      isActive,
+      isVisibleOnStorefront,
+    } = body;
 
     if (!name || !categoryName || unitPrice == null) {
-      return NextResponse.json({ error: "必須項目が不足しています" }, { status: 400 });
+      return NextResponse.json({ error: 'Name, category, and price are required.' }, { status: 400 });
     }
+
+    const shopLinks = selectedShopId
+      ? [{ shopId: selectedShopId }]
+      : (await prisma.shop.findMany({ where: { isActive: true }, select: { id: true } })).map((shop) => ({ shopId: shop.id }));
 
     const product = await prisma.product.create({
       data: {
         name,
         categoryName,
-        unitPrice: parseInt(unitPrice),
-        stockQuantity: stockQuantity != null ? parseInt(stockQuantity) : 0,
+        unitPrice: parseInt(String(unitPrice), 10),
+        stockQuantity: stockQuantity != null ? parseInt(String(stockQuantity), 10) : 0,
         sku: sku || null,
         barcode: barcode || null,
         description: description || null,
-        isActive: true,
+        imageUrl: imageUrl || null,
+        isActive: isActive !== false,
+        isVisibleOnStorefront: isVisibleOnStorefront !== false,
+        shops: shopLinks.length > 0 ? { create: shopLinks } : undefined,
+      },
+      include: {
+        shops: { select: { shopId: true } },
       },
     });
 
     return NextResponse.json(product, { status: 201 });
-  } catch (err: unknown) {
-    console.error("Create product error:", err);
-    if (
-      err &&
-      typeof err === "object" &&
-      "code" in err &&
-      (err as { code: string }).code === "P2002"
-    ) {
-      return NextResponse.json({ error: "SKUが重複しています" }, { status: 409 });
+  } catch (error: unknown) {
+    console.error('Create product error:', error);
+    if (error && typeof error === 'object' && 'code' in error && (error as { code: string }).code === 'P2002') {
+      return NextResponse.json({ error: 'SKU already exists.' }, { status: 409 });
     }
-    return NextResponse.json({ error: "商品の作成に失敗しました" }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create product.' }, { status: 500 });
   }
 }

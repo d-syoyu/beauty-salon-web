@@ -27,8 +27,8 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = '実行',
-  cancelLabel = 'キャンセル',
+  confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
   variant = 'destructive',
   onConfirm,
 }: ConfirmDialogProps) {
@@ -45,16 +45,13 @@ export function ConfirmDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
-          {description && (
+          {description ? (
             <AlertDialogDescription>{description}</AlertDialogDescription>
-          )}
+          ) : null}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onConfirm}
-            className={confirmButtonClassName}
-          >
+          <AlertDialogAction onClick={onConfirm} className={confirmButtonClassName}>
             {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>

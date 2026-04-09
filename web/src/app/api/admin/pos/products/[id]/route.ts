@@ -1,76 +1,94 @@
-// src/app/api/admin/pos/products/[id]/route.ts
-// Admin Product CRUD - Get, Update, Delete
+import { NextRequest, NextResponse } from 'next/server';
+import { checkAdminAuth } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 
-import { NextRequest, NextResponse } from "next/server";
-import { checkAdminAuth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+type Params = { params: Promise<{ id: string }> };
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: NextRequest, { params }: Params) {
   const { error } = await checkAdminAuth();
   if (error) return error;
 
   try {
     const { id } = await params;
-    const product = await prisma.product.findUnique({ where: { id } });
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: { shops: { select: { shopId: true } } },
+    });
     if (!product) {
-      return NextResponse.json({ error: "商品が見つかりません" }, { status: 404 });
+      return NextResponse.json({ error: 'Product not found.' }, { status: 404 });
     }
     return NextResponse.json(product);
-  } catch (err) {
-    console.error("Get product error:", err);
-    return NextResponse.json({ error: "商品の取得に失敗しました" }, { status: 500 });
+  } catch (error) {
+    console.error('Get product error:', error);
+    return NextResponse.json({ error: 'Failed to load product.' }, { status: 500 });
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: Params) {
   const { error } = await checkAdminAuth();
   if (error) return error;
 
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, categoryName, unitPrice, stockQuantity, sku, barcode, description, isActive } =
-      body;
+    const {
+      name,
+      categoryName,
+      unitPrice,
+      stockQuantity,
+      sku,
+      barcode,
+      description,
+      imageUrl,
+      isActive,
+      isVisibleOnStorefront,
+      shopId,
+    } = body;
 
-    const product = await prisma.product.update({
-      where: { id },
-      data: {
-        ...(name != null && { name }),
-        ...(categoryName != null && { categoryName }),
-        ...(unitPrice != null && { unitPrice: parseInt(unitPrice) }),
-        ...(stockQuantity != null && { stockQuantity: parseInt(stockQuantity) }),
-        ...(sku !== undefined && { sku: sku || null }),
-        ...(barcode !== undefined && { barcode: barcode || null }),
-        ...(description !== undefined && { description: description || null }),
-        ...(isActive != null && { isActive }),
-      },
+    const product = await prisma.$transaction(async (tx) => {
+      const updated = await tx.product.update({
+        where: { id },
+        data: {
+          ...(name != null && { name }),
+          ...(categoryName != null && { categoryName }),
+          ...(unitPrice != null && { unitPrice: parseInt(String(unitPrice), 10) }),
+          ...(stockQuantity != null && { stockQuantity: parseInt(String(stockQuantity), 10) }),
+          ...(sku !== undefined && { sku: sku || null }),
+          ...(barcode !== undefined && { barcode: barcode || null }),
+          ...(description !== undefined && { description: description || null }),
+          ...(imageUrl !== undefined && { imageUrl: imageUrl || null }),
+          ...(isActive != null && { isActive }),
+          ...(isVisibleOnStorefront != null && { isVisibleOnStorefront }),
+        },
+      });
+
+      if (typeof shopId === 'string' && shopId) {
+        await tx.productShop.upsert({
+          where: { productId_shopId: { productId: id, shopId } },
+          update: {},
+          create: { productId: id, shopId },
+        });
+      }
+
+      return updated;
     });
 
-    return NextResponse.json(product);
-  } catch (err: unknown) {
-    console.error("Update product error:", err);
-    if (
-      err &&
-      typeof err === "object" &&
-      "code" in err &&
-      (err as { code: string }).code === "P2025"
-    ) {
-      return NextResponse.json({ error: "商品が見つかりません" }, { status: 404 });
+    const hydrated = await prisma.product.findUnique({
+      where: { id: product.id },
+      include: { shops: { select: { shopId: true } } },
+    });
+
+    return NextResponse.json(hydrated);
+  } catch (error: unknown) {
+    console.error('Update product error:', error);
+    if (error && typeof error === 'object' && 'code' in error && (error as { code: string }).code === 'P2025') {
+      return NextResponse.json({ error: 'Product not found.' }, { status: 404 });
     }
-    return NextResponse.json({ error: "商品の更新に失敗しました" }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update product.' }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: NextRequest, { params }: Params) {
   const { error } = await checkAdminAuth();
   if (error) return error;
 
@@ -81,16 +99,11 @@ export async function DELETE(
       data: { isActive: false },
     });
     return NextResponse.json({ success: true });
-  } catch (err: unknown) {
-    console.error("Delete product error:", err);
-    if (
-      err &&
-      typeof err === "object" &&
-      "code" in err &&
-      (err as { code: string }).code === "P2025"
-    ) {
-      return NextResponse.json({ error: "商品が見つかりません" }, { status: 404 });
+  } catch (error: unknown) {
+    console.error('Delete product error:', error);
+    if (error && typeof error === 'object' && 'code' in error && (error as { code: string }).code === 'P2025') {
+      return NextResponse.json({ error: 'Product not found.' }, { status: 404 });
     }
-    return NextResponse.json({ error: "商品の削除に失敗しました" }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to archive product.' }, { status: 500 });
   }
 }
