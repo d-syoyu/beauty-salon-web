@@ -20,8 +20,11 @@ export async function GET() {
     // Parse closedDays
     const closedDays = result.closed_days ? JSON.parse(result.closed_days) : [1];
     const taxRate = result.tax_rate ? parseInt(result.tax_rate) : 10;
+    const cancellationHoursBefore = result.cancellation_hours_before
+      ? parseInt(result.cancellation_hours_before)
+      : 24;
 
-    return NextResponse.json({ closedDays, taxRate, raw: result });
+    return NextResponse.json({ closedDays, taxRate, cancellationHoursBefore, raw: result });
   } catch (err) {
     console.error("Admin settings error:", err);
     return NextResponse.json({ error: "設定の取得に失敗しました" }, { status: 500 });
@@ -86,6 +89,14 @@ export async function PUT(request: NextRequest) {
         where: { key: "tax_rate" },
         update: { value: String(body.taxRate) },
         create: { key: "tax_rate", value: String(body.taxRate) },
+      });
+    }
+
+    if (body.cancellationHoursBefore !== undefined) {
+      await prisma.settings.upsert({
+        where: { key: "cancellation_hours_before" },
+        update: { value: String(body.cancellationHoursBefore) },
+        create: { key: "cancellation_hours_before", value: String(body.cancellationHoursBefore) },
       });
     }
 
