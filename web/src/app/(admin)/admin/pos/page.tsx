@@ -1,8 +1,16 @@
 // src/app/(admin)/admin/pos/page.tsx
 // RSC: fetches today/week/month sales stats directly via Prisma
 
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import PosDashboardClient, { type Sale, type PosStats } from './PosDashboardClient';
+
+type RawPosStatsRow = {
+  todaySales: bigint | number | null;
+  todayCount: bigint | number;
+  weekSales: bigint | number | null;
+  monthSales: bigint | number | null;
+};
 
 /** Get current date string in JST (UTC+9) */
 function getJstToday(): { year: number; month: number; day: number; label: string } {
@@ -31,30 +39,57 @@ export default async function POSDashboard() {
 
   const monthStart = new Date(today.year, today.month - 1, 1, 0, 0, 0, 0);
 
-  const [rawTodaySales, todayAgg, weekAgg, monthAgg] = await Promise.all([
-    prisma.sale.findMany({
+  const rawTodaySalesPromise = prisma.sale.findMany({
       where: { saleDate: { gte: todayStart, lte: todayEnd }, paymentStatus: 'PAID' },
-      include: {
-        items: { select: { itemType: true, menuName: true, productName: true, quantity: true }, orderBy: { orderIndex: 'asc' } },
+      select: {
+        id: true,
+        saleNumber: true,
+        customerName: true,
+        saleDate: true,
+        saleTime: true,
+        totalAmount: true,
+        paymentMethod: true,
+        items: {
+          select: { itemType: true, menuName: true, productName: true, quantity: true },
+          orderBy: { orderIndex: 'asc' },
+        },
         user: { select: { name: true } },
       },
       orderBy: [{ saleDate: 'desc' }, { saleTime: 'desc' }],
       take: 10,
-    }),
-    prisma.sale.aggregate({
-      _sum: { totalAmount: true },
-      _count: true,
-      where: { saleDate: { gte: todayStart, lte: todayEnd }, paymentStatus: 'PAID' },
-    }),
-    prisma.sale.aggregate({
-      _sum: { totalAmount: true },
-      where: { saleDate: { gte: weekStart }, paymentStatus: 'PAID' },
-    }),
-    prisma.sale.aggregate({
-      _sum: { totalAmount: true },
-      where: { saleDate: { gte: monthStart }, paymentStatus: 'PAID' },
-    }),
+    });
+
+  const statsPromise = prisma.$queryRaw<RawPosStatsRow[]>(Prisma.sql`
+    SELECT
+      COALESCE(SUM("totalAmount") FILTER (
+        WHERE "saleDate" >= ${todayStart}
+          AND "saleDate" <= ${todayEnd}
+      ), 0) AS "todaySales",
+      COUNT(*) FILTER (
+        WHERE "saleDate" >= ${todayStart}
+          AND "saleDate" <= ${todayEnd}
+      ) AS "todayCount",
+      COALESCE(SUM("totalAmount") FILTER (
+        WHERE "saleDate" >= ${weekStart}
+      ), 0) AS "weekSales",
+      COALESCE(SUM("totalAmount") FILTER (
+        WHERE "saleDate" >= ${monthStart}
+      ), 0) AS "monthSales"
+    FROM "Sale"
+    WHERE "paymentStatus" = 'PAID'
+  `);
+
+  const [rawTodaySales, rawStats] = await Promise.all([
+    rawTodaySalesPromise,
+    statsPromise,
   ]);
+
+  const statsRow = rawStats[0] ?? {
+    todaySales: 0,
+    todayCount: 0,
+    weekSales: 0,
+    monthSales: 0,
+  };
 
   // Serialize dates for client props
   const todaySales: Sale[] = rawTodaySales.map((s) => ({
@@ -70,10 +105,10 @@ export default async function POSDashboard() {
   }));
 
   const stats: PosStats = {
-    todaySales: todayAgg._sum.totalAmount ?? 0,
-    todayCount: todayAgg._count ?? 0,
-    weekSales: weekAgg._sum.totalAmount ?? 0,
-    monthSales: monthAgg._sum.totalAmount ?? 0,
+    todaySales: Number(statsRow.todaySales ?? 0),
+    todayCount: Number(statsRow.todayCount ?? 0),
+    weekSales: Number(statsRow.weekSales ?? 0),
+    monthSales: Number(statsRow.monthSales ?? 0),
   };
 
   return <PosDashboardClient todaySales={todaySales} stats={stats} todayLabel={today.label} />;
