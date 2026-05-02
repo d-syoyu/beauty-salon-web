@@ -1,7 +1,6 @@
 "use client";
 
 export default function FloatingBackButton() {
-  return null;
   return (
     <>
       {/* Desktop / Tablet - right edge tab */}
