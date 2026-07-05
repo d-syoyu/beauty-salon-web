@@ -1,20 +1,65 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { SidebarContent, type Shop } from '@/components/admin/AdminSidebarContent';
+import { useEffect, useState } from 'react';
+import { SidebarContent, type CurrentUser, type Shop } from '@/components/admin/AdminSidebarContent';
 import { cn } from '@/lib/utils';
+
+export type { CurrentUser };
 
 const AdminMobileSidebar = dynamic(
   () => import('@/components/admin/AdminMobileSidebar').then((module) => module.AdminMobileSidebar),
   { ssr: false },
 );
 
+function AdminMobileSidebarSlot({
+  shops,
+  selectedShopId,
+  currentUser,
+  storefrontUrl,
+  showGbpReviews,
+}: {
+  shops: Shop[];
+  selectedShopId: string | null;
+  currentUser: CurrentUser;
+  storefrontUrl?: string | null;
+  showGbpReviews?: boolean;
+}) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener('change', update);
+    return () => mediaQuery.removeEventListener('change', update);
+  }, []);
+
+  if (!isMobile) return null;
+
+  return (
+    <AdminMobileSidebar
+      shops={shops}
+      selectedShopId={selectedShopId}
+      currentUser={currentUser}
+      storefrontUrl={storefrontUrl}
+      showGbpReviews={showGbpReviews}
+    />
+  );
+}
+
 export function AdminSidebar({
   shops = [],
   selectedShopId = null,
+  currentUser,
+  storefrontUrl,
+  showGbpReviews = false,
 }: {
   shops?: Shop[];
   selectedShopId?: string | null;
+  currentUser: CurrentUser;
+  storefrontUrl?: string | null;
+  showGbpReviews?: boolean;
 }) {
   return (
     <>
@@ -25,7 +70,13 @@ export function AdminSidebar({
           'w-56 bg-card border-r border-border',
         )}
       >
-        <SidebarContent shops={shops} selectedShopId={selectedShopId} />
+        <SidebarContent
+          shops={shops}
+          selectedShopId={selectedShopId}
+          currentUser={currentUser}
+          storefrontUrl={storefrontUrl}
+          showGbpReviews={showGbpReviews}
+        />
       </aside>
 
       <aside
@@ -36,10 +87,23 @@ export function AdminSidebar({
           'w-14 hover:w-56 overflow-hidden',
         )}
       >
-        <SidebarContent collapsed shops={shops} selectedShopId={selectedShopId} />
+        <SidebarContent
+          collapsed
+          shops={shops}
+          selectedShopId={selectedShopId}
+          currentUser={currentUser}
+          storefrontUrl={storefrontUrl}
+          showGbpReviews={showGbpReviews}
+        />
       </aside>
 
-      <AdminMobileSidebar shops={shops} selectedShopId={selectedShopId} />
+      <AdminMobileSidebarSlot
+        shops={shops}
+        selectedShopId={selectedShopId}
+        currentUser={currentUser}
+        storefrontUrl={storefrontUrl}
+        showGbpReviews={showGbpReviews}
+      />
     </>
   );
 }

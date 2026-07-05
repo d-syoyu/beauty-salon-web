@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import {
   ArrowLeft,
   Calendar,
@@ -13,11 +14,13 @@ import {
   CreditCard,
   Image as ImageIcon,
   LayoutDashboard,
+  LogOut,
   Megaphone,
   Package,
   Scissors,
   Settings,
   Store,
+  User as UserIcon,
   Users,
   UtensilsCrossed,
 } from 'lucide-react';
@@ -27,6 +30,16 @@ import { cn } from '@/lib/utils';
 export interface Shop {
   id: string;
   name: string;
+  brand?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+}
+
+export interface CurrentUser {
+  name: string | null;
+  email: string | null;
 }
 
 interface NavItem {
@@ -232,6 +245,9 @@ export interface SidebarContentProps {
   collapsed?: boolean;
   shops: Shop[];
   selectedShopId: string | null;
+  currentUser: CurrentUser;
+  storefrontUrl?: string | null;
+  showGbpReviews?: boolean;
 }
 
 export function SidebarContent({
@@ -239,6 +255,8 @@ export function SidebarContent({
   collapsed = false,
   shops,
   selectedShopId,
+  currentUser,
+  storefrontUrl,
 }: SidebarContentProps) {
   const pathname = usePathname();
 
@@ -256,12 +274,12 @@ export function SidebarContent({
           </div>
           {collapsed ? (
             <div className="overflow-hidden whitespace-nowrap opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-              <p className="text-sm font-semibold leading-tight">LUMINA</p>
+              <p className="text-sm font-semibold leading-tight">SOGA</p>
               <p className="text-xs leading-tight text-muted-foreground">管理画面</p>
             </div>
           ) : (
             <div>
-              <p className="text-sm font-semibold leading-tight">LUMINA</p>
+              <p className="text-sm font-semibold leading-tight">SOGA</p>
               <p className="text-xs leading-tight text-muted-foreground">管理画面</p>
             </div>
           )}
@@ -349,7 +367,68 @@ export function SidebarContent({
         })}
       </nav>
 
-      <div className="overflow-hidden border-t border-sidebar-border px-3 py-3">
+      <div className="space-y-3 overflow-hidden border-t border-sidebar-border px-3 py-3">
+        <div
+          className={cn('flex items-center gap-2', collapsed && 'overflow-hidden')}
+          title={currentUser.email ?? currentUser.name ?? undefined}
+        >
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <UserIcon className="h-3.5 w-3.5" />
+          </div>
+          <div
+            className={cn(
+              'min-w-0 flex-1',
+              collapsed && 'overflow-hidden opacity-0 transition-opacity duration-150 group-hover:opacity-100',
+            )}
+          >
+            {currentUser.name ? (
+              <p className="truncate text-xs font-medium leading-tight text-foreground">
+                {currentUser.name}
+              </p>
+            ) : null}
+            {currentUser.email ? (
+              <p className="truncate text-[11px] leading-tight text-muted-foreground">
+                {currentUser.email}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            onClose?.();
+            void signOut({ callbackUrl: '/' });
+          }}
+          className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <LogOut className="h-3.5 w-3.5 shrink-0" />
+          {collapsed ? (
+            <span className="overflow-hidden whitespace-nowrap opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+              ログアウト
+            </span>
+          ) : (
+            <span>ログアウト</span>
+          )}
+        </button>
+
+        <a
+          href={storefrontUrl ?? '/'}
+          onClick={onClose}
+          className="flex items-center gap-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
+          {collapsed ? (
+            <span className="overflow-hidden whitespace-nowrap opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+              サイトへ戻る
+            </span>
+          ) : (
+            <span>サイトへ戻る</span>
+          )}
+        </a>
+      </div>
+
+      <div className="hidden">
         <Link
           href="/"
           onClick={onClose}
