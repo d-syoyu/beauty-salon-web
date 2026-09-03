@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Calendar,
+  CalendarDays,
   CalendarOff,
   CheckCircle,
+  BadgeJapaneseYen,
   Clock,
-  CreditCard,
+  Globe,
   Megaphone,
-  Scissors,
+  Tags,
+  UserRoundCog,
   Users,
-  UtensilsCrossed,
   XCircle,
 } from 'lucide-react';
 import { getCategoryTextColor } from '@/constants/menu';
@@ -79,13 +81,13 @@ interface ConfirmDialogState {
 }
 
 const quickLinks = [
-  { href: '/admin/reservations', icon: Calendar, label: '予約', sub: '予約台帳', color: 'bg-blue-50 text-blue-600' },
-  { href: '/admin/menus', icon: UtensilsCrossed, label: 'メニュー', sub: 'メニューとカテゴリ', color: 'bg-amber-50 text-amber-600' },
-  { href: '/admin/staff', icon: Scissors, label: 'スタッフ', sub: '勤怠とシフト', color: 'bg-pink-50 text-pink-600' },
-  { href: '/admin/customers', icon: Users, label: '顧客', sub: '顧客情報と履歴', color: 'bg-emerald-50 text-emerald-600' },
-  { href: '/admin/holidays', icon: CalendarOff, label: '休業日', sub: '店休日と特別営業日', color: 'bg-red-50 text-red-600' },
-  { href: '/admin/pos', icon: CreditCard, label: 'POS', sub: '売上とレポート', color: 'bg-violet-50 text-violet-600' },
-  { href: '/admin/campaigns', icon: Megaphone, label: 'キャンペーン', sub: 'お知らせと配信', color: 'bg-teal-50 text-teal-600' },
+  { href: '/admin/reservations', icon: Calendar, label: '予約管理', sub: '予約一覧・編集', color: 'text-blue-600 bg-blue-50' },
+  { href: '/admin/menus', icon: Tags, label: 'メニュー・商品管理', sub: '施術メニュー・店販商品', color: 'text-amber-600 bg-amber-50' },
+  { href: '/admin/staff', icon: UserRoundCog, label: 'スタッフ管理', sub: 'スタイリスト・シフト', color: 'text-pink-600 bg-pink-50' },
+  { href: '/admin/customers', icon: Users, label: '顧客管理', sub: '顧客情報', color: 'text-green-600 bg-green-50' },
+  { href: '/admin/holidays', icon: CalendarOff, label: '営業管理', sub: '定休日・不定休', color: 'text-red-600 bg-red-50' },
+  { href: '/admin/pos', icon: BadgeJapaneseYen, label: '会計・売上', sub: 'POS・レポート', color: 'text-purple-600 bg-purple-50' },
+  { href: '/admin/campaigns', icon: Megaphone, label: 'キャンペーン', sub: 'クーポン・告知', color: 'text-teal-600 bg-teal-50' },
 ];
 
 const ACTION_CONFIG: Record<ReservationStatusAction, { label: string; title: string; desc: string }> = {
@@ -204,38 +206,38 @@ export default function DashboardClient({
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Calendar className="h-4 w-4 text-blue-500" />
-              本日
+              本日の予約
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold">{stats.todayCount}</p>
-            <p className="mt-1 text-xs text-muted-foreground">件の予約</p>
+            <p className="mt-1 text-xs text-muted-foreground">件</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Clock className="h-4 w-4 text-indigo-500" />
-              今週
+              <CalendarDays className="h-4 w-4 text-indigo-500" />
+              今週の予約
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold">{stats.weekCount}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {stats.weekStartStr} - {stats.weekEndStr}
+              {stats.weekStartStr} ~ {stats.weekEndStr}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Scissors className="h-4 w-4 text-amber-500" />
-              合計
+              <Globe className="h-4 w-4 text-amber-500" />
+              Web予約累計
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold">{stats.totalReservations}</p>
-            <p className="mt-1 text-xs text-muted-foreground">有効な予約</p>
+            <p className="mt-1 text-xs text-muted-foreground">件</p>
           </CardContent>
         </Card>
       </div>
@@ -261,11 +263,11 @@ export default function DashboardClient({
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle className="text-base">本日のタイムライン</CardTitle>
+            <CardTitle className="text-base">本日のご予約</CardTitle>
             <div className="flex flex-wrap items-center justify-end gap-2">
               {([
                 ['CONFIRMED', '確定', 'bg-blue-100 border-blue-300 text-blue-700'],
-                ['COMPLETED', '来店済み', 'bg-emerald-100 border-emerald-300 text-emerald-700'],
+                ['COMPLETED', '完了済み', 'bg-emerald-100 border-emerald-300 text-emerald-700'],
                 ['CANCELLED', 'キャンセル', 'bg-orange-100 border-orange-300 text-orange-700'],
                 ['NO_SHOW', '無断キャンセル', 'bg-red-100 border-red-300 text-red-700'],
               ] as const).map(([status, label, activeClass]) => {
@@ -291,7 +293,7 @@ export default function DashboardClient({
                 );
               })}
               <Badge variant="secondary" className="text-xs">
-                {visibleReservations.length}件表示
+                {visibleReservations.length}件
               </Badge>
             </div>
           </div>

@@ -27,8 +27,23 @@ function getJstToday() {
   const day = Number(parts.find((part) => part.type === 'day')?.value);
   const weekday = parts.find((part) => part.type === 'weekday')?.value ?? '';
   const str = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const weekdayJa: Record<string, string> = {
+    Sun: '日',
+    Mon: '月',
+    Tue: '火',
+    Wed: '水',
+    Thu: '木',
+    Fri: '金',
+    Sat: '土',
+  };
 
-  return { year, month, day, str, label: `${str} (${weekday})` };
+  return {
+    year,
+    month,
+    day,
+    str,
+    label: `${year}年${month}月${day}日（${weekdayJa[weekday] ?? weekday}）`,
+  };
 }
 
 function DashboardFallback() {
@@ -53,8 +68,6 @@ async function DashboardContent() {
 
     const todayStart = new Date(today.year, today.month - 1, today.day, 0, 0, 0, 0);
     const todayEnd = new Date(today.year, today.month - 1, today.day, 23, 59, 59, 999);
-    const monthStart = new Date(today.year, today.month - 1, 1, 0, 0, 0, 0);
-    const monthEnd = new Date(today.year, today.month, 0, 23, 59, 59, 999);
 
     const todayDate = new Date(today.year, today.month - 1, today.day);
     const dayOfWeek = todayDate.getDay();
@@ -110,7 +123,7 @@ async function DashboardContent() {
         ),
         measureAdminTask('dashboard.query.holidays', () =>
           prisma.holiday.findMany({
-            where: { ...shopWhere, date: { gte: monthStart, lte: monthEnd } },
+            where: { ...shopWhere, date: { gte: todayStart, lte: todayEnd } },
             orderBy: { date: 'asc' },
           }),
         ),
@@ -139,15 +152,7 @@ async function DashboardContent() {
       items: reservation.items,
     }));
 
-    const todayHolidays: Holiday[] = rawHolidays
-      .filter((holiday) => {
-        const value =
-          holiday.date instanceof Date
-            ? holiday.date.toISOString().slice(0, 10)
-            : String(holiday.date).slice(0, 10);
-        return value === today.str;
-      })
-      .map((holiday) => ({
+    const todayHolidays: Holiday[] = rawHolidays.map((holiday) => ({
         id: holiday.id,
         date:
           holiday.date instanceof Date

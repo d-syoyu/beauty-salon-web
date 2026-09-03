@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useRef, useState, useTransition } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
@@ -11,18 +12,18 @@ import {
   CalendarOff,
   ChevronDown,
   ChevronRight,
-  CreditCard,
+  BadgeJapaneseYen,
+  Building2,
   Image as ImageIcon,
   LayoutDashboard,
   LogOut,
   Megaphone,
-  Package,
-  Scissors,
+  Tags,
   Settings,
   Store,
   User as UserIcon,
   Users,
-  UtensilsCrossed,
+  UserRoundCog,
 } from 'lucide-react';
 import { dispatchAdminShopChanged } from '@/lib/admin-shop-client';
 import { cn } from '@/lib/utils';
@@ -51,43 +52,44 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'ダッシュボード', href: '/admin', icon: <LayoutDashboard className="h-4 w-4" /> },
-  { label: '予約', href: '/admin/reservations', icon: <Calendar className="h-4 w-4" /> },
-  { label: '顧客', href: '/admin/customers', icon: <Users className="h-4 w-4" /> },
   {
-    label: 'スタッフ',
+    label: '予約管理',
+    href: '/admin/reservations',
+    icon: <Calendar className="h-4 w-4" />,
+    children: [{ label: '予約一覧', href: '/admin/reservations' }],
+  },
+  {
+    label: '顧客管理',
+    href: '/admin/customers',
+    icon: <Users className="h-4 w-4" />,
+    children: [{ label: '顧客一覧', href: '/admin/customers' }],
+  },
+  {
+    label: 'スタッフ管理',
     href: '/admin/staff',
-    icon: <Scissors className="h-4 w-4" />,
+    icon: <UserRoundCog className="h-4 w-4" />,
     children: [
-      { label: '日次業務', href: '/admin/staff' },
+      { label: '日次オペレーション', href: '/admin/staff' },
       { label: 'スタッフ一覧', href: '/admin/staff/list' },
-      { label: '月次表示', href: '/admin/staff/monthly' },
-      { label: '申請一覧', href: '/admin/requests' },
+      { label: '月次シフト', href: '/admin/staff/monthly' },
+      { label: '申請承認', href: '/admin/requests' },
     ],
   },
-  { label: 'メニュー', href: '/admin/menus', icon: <UtensilsCrossed className="h-4 w-4" /> },
-  { label: '休業日', href: '/admin/holidays', icon: <CalendarOff className="h-4 w-4" /> },
-  {
-    label: 'POS',
-    href: '/admin/pos',
-    icon: <CreditCard className="h-4 w-4" />,
-    children: [
-      { label: 'ダッシュボード', href: '/admin/pos' },
-      { label: '締め処理', href: '/admin/pos/closing' },
-    ],
-  },
+  { label: 'メニュー・商品管理', href: '/admin/menus', icon: <Tags className="h-4 w-4" /> },
+  { label: '定休日・特別営業', href: '/admin/holidays', icon: <CalendarOff className="h-4 w-4" /> },
+  { label: '売上・会計', href: '/admin/pos', icon: <BadgeJapaneseYen className="h-4 w-4" /> },
   { label: 'キャンペーン', href: '/admin/campaigns', icon: <Megaphone className="h-4 w-4" /> },
   { label: 'ギャラリー', href: '/admin/gallery', icon: <ImageIcon className="h-4 w-4" /> },
-  { label: '店販商品', href: '/admin/products', icon: <Package className="h-4 w-4" /> },
-  { label: '店舗', href: '/admin/shops', icon: <Store className="h-4 w-4" /> },
+  { label: '店舗・ブランド', href: '/admin/shops', icon: <Building2 className="h-4 w-4" /> },
   {
     label: '設定',
     href: '/admin/settings',
     icon: <Settings className="h-4 w-4" />,
     children: [
       { label: '予約設定', href: '/admin/settings/booking' },
-      { label: 'LINE', href: '/admin/settings/line' },
-      { label: 'Google Business', href: '/admin/settings/google-business' },
-      { label: 'パスワード', href: '/admin/settings/password' },
+      { label: '配信設定', href: '/admin/settings/line' },
+      { label: 'Googleマップ連携', href: '/admin/settings/google-business' },
+      { label: 'パスワード変更', href: '/admin/settings/password' },
     ],
   },
 ];
@@ -269,9 +271,14 @@ export function SidebarContent({
     <div className="flex h-full flex-col">
       <div className="overflow-hidden border-b border-sidebar-border px-3 py-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary">
-            <Scissors className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <Image
+            src="/icon.png"
+            alt=""
+            width={28}
+            height={28}
+            preload
+            className="h-7 w-7 shrink-0 rounded-lg"
+          />
           {collapsed ? (
             <div className="overflow-hidden whitespace-nowrap opacity-0 transition-opacity duration-150 group-hover:opacity-100">
               <p className="text-sm font-semibold leading-tight">SOGA</p>

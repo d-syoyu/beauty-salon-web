@@ -2,6 +2,7 @@ import "server-only";
 
 import type { PrismaClient, Shop } from "@prisma/client";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 export const SELECTED_SHOP_COOKIE = "selected_shop_id";
 export const DEFAULT_SHOP_SLUG = "main-salon";
@@ -20,6 +21,7 @@ const DEFAULT_BUSINESS_HOURS = [
 type ShopSummary = Pick<Shop, "id" | "name" | "isActive">;
 
 let defaultShopSetupPromise: Promise<ShopSummary> | null = null;
+let defaultShopSetupResult: ShopSummary | null = null;
 
 async function ensureDefaultBusinessHours(prisma: PrismaClient, shopId: string) {
   const count = await prisma.shopBusinessHour.count({ where: { shopId } });
@@ -185,10 +187,19 @@ async function runDefaultShopSetup(prisma: PrismaClient): Promise<ShopSummary> {
 }
 
 export async function ensureDefaultShopSetup(prisma: PrismaClient): Promise<ShopSummary> {
+  if (defaultShopSetupResult) {
+    return defaultShopSetupResult;
+  }
+
   if (!defaultShopSetupPromise) {
-    defaultShopSetupPromise = runDefaultShopSetup(prisma).finally(() => {
-      defaultShopSetupPromise = null;
-    });
+    defaultShopSetupPromise = runDefaultShopSetup(prisma)
+      .then((shop) => {
+        defaultShopSetupResult = shop;
+        return shop;
+      })
+      .finally(() => {
+        defaultShopSetupPromise = null;
+      });
   }
 
   return defaultShopSetupPromise;
@@ -223,7 +234,7 @@ export async function getSelectedShopIdFromCookies(prisma: PrismaClient): Promis
   return getValidatedSelectedShopId(prisma, rawShopId);
 }
 
-export async function getAdminShopContext(prisma: PrismaClient) {
+async function getAdminShopContextUncached(prisma: PrismaClient) {
   const defaultShop = await ensureDefaultShopSetup(prisma);
   const [shops, selectedShopId] = await Promise.all([
     prisma.shop.findMany({
@@ -240,3 +251,6 @@ export async function getAdminShopContext(prisma: PrismaClient) {
     selectedShopId,
   };
 }
+
+/** Share the layout/page lookup within one React server render. */
+export const getAdminShopContext = cache(getAdminShopContextUncached);

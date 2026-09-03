@@ -1,6 +1,6 @@
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
-import FloatingBackButton from "../../components/FloatingBackButton";
+// import FloatingBackButton from "../../components/FloatingBackButton";
 
 export default function PublicLayout({
   children,
@@ -14,7 +14,7 @@ export default function PublicLayout({
         {children}
       </main>
       <Footer />
-      <FloatingBackButton />
+      {/* <FloatingBackButton /> */}
     </>
   );
 }

@@ -78,7 +78,7 @@ export default function TimeSlotGrid({
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2 text-base font-[family-name:var(--font-serif)]">
+        <div className="flex items-center gap-2 text-base">
           <Clock className="w-4 h-4 text-[var(--color-sage)]" />
           {selectedDate && (
             <span>

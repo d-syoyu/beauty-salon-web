@@ -2,6 +2,7 @@ import SessionProvider from "@/components/providers/session-provider";
 import AdminAutoAuth from "@/components/admin/AdminAutoAuth";
 import { AdminToaster } from "@/components/admin/AdminToaster";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import FloatingBackButton from "@/components/FloatingBackButton";
 import { ADMIN_AUTH_DISABLED } from "@/lib/admin-access";
 import { getDemoAdminSession } from "@/lib/admin-demo";
 import { getCurrentUser } from "@/lib/auth";
@@ -24,9 +25,11 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const demoSession = ADMIN_AUTH_DISABLED ? await getDemoAdminSession() : null;
-  const { shops, selectedShopId } = await getAdminShopContext(prisma);
-  const user = await getCurrentUser();
+  const [demoSession, { shops, selectedShopId }] = await Promise.all([
+    ADMIN_AUTH_DISABLED ? getDemoAdminSession() : Promise.resolve(null),
+    getAdminShopContext(prisma),
+  ]);
+  const user = ADMIN_AUTH_DISABLED ? demoSession?.user ?? null : await getCurrentUser();
   const currentUser = {
     name: user?.name ?? null,
     email: user?.email ?? null,
@@ -43,6 +46,7 @@ export default async function AdminLayout({
       <main className="min-w-0 overflow-x-hidden pt-14 md:pt-0 md:pl-56 xl:pl-14">
         {children}
       </main>
+      <FloatingBackButton />
       <AdminToaster richColors position="top-right" />
     </div>
   );
