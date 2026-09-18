@@ -375,29 +375,25 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 0;
 }
 
-/* Warm linen field: beige panel on the left, photo open on the right */
-.hero-linen-field {
-  background:
-    linear-gradient(
-      90deg,
-      #f3eee6 0%,
-      #f3eee6 40%,
-      rgba(243, 238, 230, 0.82) 44%,
-      rgba(243, 238, 230, 0) 52%
-    ),
-    radial-gradient(ellipse at 16% 28%, rgba(184, 149, 110, 0.1) 0%, transparent 42%);
+.hero-copy-frost-bg {
+  position: absolute;
+  inset: -1.5rem -2.25rem -2rem -1.25rem;
+  background: rgba(253, 252, 250, 0.55);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  border-radius: 1.75rem;
+  mask-image: radial-gradient(ellipse 86% 78% at 28% 48%, #000 38%, rgba(0, 0, 0, 0.5) 64%, transparent 84%);
+  -webkit-mask-image: radial-gradient(ellipse 86% 78% at 28% 48%, #000 38%, rgba(0, 0, 0, 0.5) 64%, transparent 84%);
+  pointer-events: none;
 }
 
 @media (max-width: 767px) {
-  .hero-linen-field {
-    background: linear-gradient(
-      180deg,
-      rgba(243, 238, 230, 0.45) 0%,
-      rgba(243, 238, 230, 0.12) 22%,
-      transparent 38%,
-      rgba(243, 238, 230, 0.55) 68%,
-      #f3eee6 100%
-    );
+  .hero-copy-frost-bg {
+    inset: -1.1rem -1rem -1.25rem -1rem;
+    background: rgba(253, 252, 250, 0.72);
+    mask-image: none;
+    -webkit-mask-image: none;
+    border-radius: 1.15rem;
   }
 }
 

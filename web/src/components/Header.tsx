@@ -44,7 +44,7 @@ const Header = () => {
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           scrolled
             ? 'bg-[#f3eee6]/95 backdrop-blur-md py-4 shadow-sm'
-            : 'bg-[#f3eee6]/80 backdrop-blur-sm py-6'
+            : 'bg-[var(--color-cream)]/30 backdrop-blur-md py-6'
         }`}
       >
         <div className="container-wide flex justify-between items-center">
