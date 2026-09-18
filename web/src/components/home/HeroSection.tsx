@@ -11,6 +11,32 @@ const HERO_MOBILE = '/full_for_mobile.png';
 const HERO_FALLBACK =
   'https://images.unsplash.com/photo-1633681926022-84c23e8cb2d6?auto=format&fit=crop&w=2400&q=80';
 
+function OutlinedText({
+  text,
+  className,
+  fillClassName,
+}: {
+  text: string;
+  className?: string;
+  fillClassName?: string;
+}) {
+  return (
+    <span className={className}>
+      {Array.from(text).map((ch, index) => {
+        const glyph = ch === ' ' ? '\u00A0' : ch;
+        return (
+          <span className="hero-glyph" key={`${index}-${ch}`}>
+            <span className="hero-glyph-stroke" aria-hidden="true">
+              {glyph}
+            </span>
+            <span className={`hero-glyph-fill ${fillClassName ?? ''}`}>{glyph}</span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 export default function HeroSection() {
   const containerRef = useRef<HTMLElement>(null);
   const { scrollY } = useScroll();
@@ -57,62 +83,63 @@ export default function HeroSection() {
         className="relative z-10 w-full px-6 pb-14 pt-28 md:px-12 md:pb-0 md:pt-16 lg:px-20"
       >
         <div className="mx-auto max-w-7xl">
-          <div className="hero-copy-frost relative max-w-xl py-8 pr-8 md:py-10 md:pr-14">
-            <div className="hero-copy-frost-bg" aria-hidden="true" />
+          <div className="max-w-xl">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.05 }}
+              className="mb-6 flex items-center gap-4"
+            >
+              <span className="h-px w-10 bg-[var(--color-gold)]" />
+              <p className="hero-outlined-sm text-[10px] tracking-[0.42em] uppercase">
+                <OutlinedText text="Omotesando · Tokyo" fillClassName="text-[var(--color-gold)]" />
+              </p>
+            </motion.div>
 
-            <div className="relative z-[1]">
-              <motion.div
+            <h1 className="hero-outlined-lg mb-7 overflow-visible font-jp-display font-medium tracking-wide">
+              <motion.span
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.05 }}
-                className="mb-6 flex items-center gap-4"
+                transition={{ duration: 0.55, delay: 0.1 }}
+                className="block text-[2.05rem] leading-[1.35] md:text-[3.15rem] lg:text-[3.85rem]"
               >
-                <span className="h-px w-10 bg-[var(--color-gold)]" />
-                <p className="text-[10px] tracking-[0.42em] text-[var(--color-gold)] uppercase">
-                  Omotesando · Tokyo
-                </p>
-              </motion.div>
-
-              <h1 className="mb-7">
-                <motion.span
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.55, delay: 0.1 }}
-                  className="block font-jp-display text-[2.05rem] font-medium leading-[1.2] tracking-wide text-[var(--color-charcoal)] md:text-[3.15rem] lg:text-[3.85rem]"
-                >
-                  あなたの美しさを
-                </motion.span>
-                <span className="hero-text-reveal mt-1 block font-jp-display text-[2.55rem] font-medium italic leading-[0.98] tracking-wide text-[var(--color-gold)] md:text-[4.2rem] lg:text-[5.25rem]">
-                  引き出す
-                </span>
-              </h1>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.25 }}
-                className="mb-9 max-w-sm text-sm font-light leading-relaxed tracking-wider text-[var(--color-warm-gray)] md:text-[0.95rem]"
-              >
-                自然由来の成分と熟練の技術で、
-                <br className="hidden sm:block" />
-                心と髪に優しいサロン体験を。
-              </motion.p>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                <OutlinedText text="あなたの美しさを" />
+              </motion.span>
+              <motion.span
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.32 }}
-                className="flex flex-col gap-3 sm:flex-row sm:items-center"
+                transition={{ duration: 0.55, delay: 0.18 }}
+                className="mt-1 block italic text-[2.55rem] leading-[1.2] md:text-[4.2rem] lg:text-[5.25rem]"
               >
-                <Link href="/reservation" className="btn-hero-primary">
-                  ご予約はこちら
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link href="/menu" className="btn-hero-outline">
-                  メニューを見る
-                </Link>
-              </motion.div>
-            </div>
+                <OutlinedText text="引き出す" fillClassName="text-[var(--color-gold)]" />
+              </motion.span>
+            </h1>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.28 }}
+              className="hero-outlined-sm mb-9 max-w-sm text-sm font-light leading-relaxed tracking-wider md:text-[0.95rem]"
+            >
+              <OutlinedText text="自然由来の成分と熟練の技術で、" />
+              <br className="hidden sm:block" />
+              <OutlinedText text="心と髪に優しいサロン体験を。" />
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.36 }}
+              className="flex flex-col gap-3 sm:flex-row sm:items-center"
+            >
+              <Link href="/reservation" className="btn-hero-primary">
+                ご予約はこちら
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/menu" className="btn-hero-outline">
+                メニューを見る
+              </Link>
+            </motion.div>
           </div>
         </div>
       </motion.div>
