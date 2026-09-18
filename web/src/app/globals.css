@@ -112,8 +112,22 @@ h1, h2, h3, h4, h5, h6 {
   max-width: 80rem;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .container-wide {
+    padding-left: 1.75rem;
+    padding-right: 1.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-wide {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
 }
 
 /* Button styles */
@@ -262,16 +276,16 @@ h1, h2, h3, h4, h5, h6 {
    Hero Section - Enhanced Animations
    ============================================ */
 
-/* Ken Burns - single image slow zoom with subtle pan */
+/* Ken Burns - slight overscan so image corners (incl. watermark) stay cropped */
 @keyframes hero-ken-burns {
   0% {
-    transform: scale(1) translate(0, 0);
+    transform: scale(1.12) translate(0.4%, -1.2%);
   }
   50% {
-    transform: scale(1.06) translate(-1%, -0.5%);
+    transform: scale(1.18) translate(-0.6%, -1.8%);
   }
   100% {
-    transform: scale(1) translate(0, 0);
+    transform: scale(1.12) translate(0.4%, -1.2%);
   }
 }
 
@@ -279,6 +293,7 @@ h1, h2, h3, h4, h5, h6 {
   animation: hero-ken-burns 20s ease-in-out infinite;
   will-change: transform;
   overflow: hidden;
+  transform: scale(1.12) translate(0.4%, -1.2%);
 }
 
 /* Ambient floating motion for decorative elements */
@@ -408,6 +423,30 @@ h1, h2, h3, h4, h5, h6 {
   filter: blur(3px);
 }
 
+@media (max-width: 767px) {
+  .hero-glyph-stroke {
+    -webkit-text-stroke: 8px rgba(245, 238, 228, 0.88);
+    filter: blur(3px);
+  }
+
+  .hero-outlined-lg .hero-glyph-stroke {
+    -webkit-text-stroke: 10px rgba(245, 238, 228, 0.9);
+    filter: blur(3.6px);
+  }
+
+  .hero-outlined-sm .hero-glyph-stroke {
+    -webkit-text-stroke: 5px rgba(245, 238, 228, 0.82);
+    filter: blur(2.2px);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .hero-outlined-lg .hero-glyph-stroke {
+    -webkit-text-stroke: 14px rgba(245, 238, 228, 0.9);
+    filter: blur(5px);
+  }
+}
+
 .hero-paper-grain {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
   opacity: 0.035;
@@ -448,16 +487,32 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 1rem 2.5rem;
+  padding: 1rem 2rem;
   border-radius: 9999px;
   border: none;
   background: linear-gradient(135deg, var(--color-gold), var(--color-gold-light));
   color: white;
   font-size: 0.8rem;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .btn-hero-primary {
+    padding: 1.05rem 2.6rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+  }
+}
+
+@media (min-width: 1024px) {
+  .btn-hero-primary {
+    padding: 1.15rem 2.85rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.2em;
+  }
 }
 
 .btn-hero-primary::before {
@@ -486,16 +541,32 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 1rem 2.5rem;
+  padding: 1rem 2rem;
   border-radius: 9999px;
   border: 1px solid var(--color-gold);
   color: var(--color-charcoal);
   font-size: 0.8rem;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(4px);
   background: rgba(253, 252, 250, 0.72);
+}
+
+@media (min-width: 768px) {
+  .btn-hero-outline {
+    padding: 1.05rem 2.6rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+  }
+}
+
+@media (min-width: 1024px) {
+  .btn-hero-outline {
+    padding: 1.15rem 2.85rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.2em;
+  }
 }
 
 .btn-hero-outline:hover {
@@ -515,6 +586,10 @@ h1, h2, h3, h4, h5, h6 {
   .hero-spotlight,
   .btn-hero-primary::before {
     animation: none !important;
+  }
+
+  .hero-ken-burns {
+    transform: scale(1.12) translate(0.4%, -1.2%);
   }
 
   .hero-text-reveal {

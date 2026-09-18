@@ -11,11 +11,11 @@ export default function HomeSections() {
   return (
     <>
       {/* Concept Section */}
-      <AnimatedSection className="py-32 md:py-40">
+      <AnimatedSection className="py-16 sm:py-24 lg:py-32 xl:py-40">
         <div className="container-wide">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+          <div className="grid grid-cols-1 items-center gap-10 md:gap-14 lg:grid-cols-2 lg:gap-24">
             {/* Image */}
-            <motion.div variants={fadeInUp} className="relative">
+            <motion.div variants={fadeInUp} className="relative mx-auto w-full max-w-lg lg:mx-0 lg:max-w-none">
               <div className="relative aspect-[4/5] overflow-hidden">
                 <Image
                   src="/seet.png"
@@ -24,15 +24,15 @@ export default function HomeSections() {
                   className="object-cover"
                 />
               </div>
-              <div className="absolute -bottom-6 -right-6 w-full h-full border border-[var(--color-gold)] -z-10" />
+              <div className="absolute -bottom-4 -right-3 -z-10 hidden h-full w-full border border-[var(--color-gold)] sm:block sm:-right-6 sm:-bottom-6" />
             </motion.div>
 
             {/* Content */}
-            <div className="lg:pl-8">
-              <motion.p variants={fadeInUp} className="text-subheading mb-4">
+            <div className="lg:pl-4 xl:pl-8">
+              <motion.p variants={fadeInUp} className="text-subheading mb-3 md:mb-4">
                 Our Concept
               </motion.p>
-              <motion.h2 variants={fadeInUp} className="text-heading mb-8">
+              <motion.h2 variants={fadeInUp} className="text-heading mb-6 md:mb-8">
                 自然と調和する<br />
                 <span className="italic">美しさ</span>を
               </motion.h2>
@@ -59,9 +59,9 @@ export default function HomeSections() {
       </AnimatedSection>
 
       {/* Services Section */}
-      <AnimatedSection className="py-32 bg-[var(--color-cream-dark)]">
+      <AnimatedSection className="bg-[var(--color-cream-dark)] py-16 sm:py-24 lg:py-32">
         <div className="container-wide">
-          <div className="text-center mb-20">
+          <div className="mb-10 text-center sm:mb-14 lg:mb-20">
             <motion.p variants={fadeInUp} className="text-subheading mb-4">
               Services
             </motion.p>
@@ -71,7 +71,7 @@ export default function HomeSections() {
             <motion.div variants={fadeInUp} className="divider-line mx-auto" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-12">
             {[
               {
                 icon: <Leaf className="w-8 h-8" />,
@@ -115,7 +115,7 @@ export default function HomeSections() {
                 </div>
 
                 {/* Content */}
-                <div className="p-8">
+                <div className="p-6 sm:p-8">
                   <p className="text-xs tracking-[0.2em] text-[var(--color-sage)] mb-2">
                     {service.title}
                   </p>
@@ -136,7 +136,7 @@ export default function HomeSections() {
             ))}
           </div>
 
-          <motion.div variants={fadeInUp} className="text-center mt-16">
+          <motion.div variants={fadeInUp} className="mt-10 text-center sm:mt-14 lg:mt-16">
             <Link href="/menu" className="btn-primary">
               全てのメニューを見る
               <ArrowRight className="w-4 h-4" />
@@ -146,9 +146,9 @@ export default function HomeSections() {
       </AnimatedSection>
 
       {/* Stylists Section */}
-      <AnimatedSection className="py-32">
+      <AnimatedSection className="py-16 sm:py-24 lg:py-32">
         <div className="container-wide">
-          <div className="text-center mb-20">
+          <div className="mb-10 text-center sm:mb-14 lg:mb-20">
             <motion.p variants={fadeInUp} className="text-subheading mb-4">
               Stylists
             </motion.p>
@@ -158,7 +158,7 @@ export default function HomeSections() {
             <motion.div variants={fadeInUp} className="divider-line mx-auto" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+          <div className="mx-auto grid max-w-2xl grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-8">
             {[
               {
                 name: '山田 花子',
@@ -199,7 +199,7 @@ export default function HomeSections() {
             ))}
           </div>
 
-          <motion.div variants={fadeInUp} className="text-center mt-16">
+          <motion.div variants={fadeInUp} className="mt-10 text-center sm:mt-14 lg:mt-16">
             <Link href="/staff" className="btn-outline">
               全てのスタッフを見る
               <ArrowRight className="w-4 h-4" />
@@ -209,9 +209,9 @@ export default function HomeSections() {
       </AnimatedSection>
 
       {/* Features Section */}
-      <AnimatedSection className="py-32 bg-[var(--color-cream-dark)]">
+      <AnimatedSection className="bg-[var(--color-cream-dark)] py-16 sm:py-24 lg:py-32">
         <div className="container-wide">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
+          <div className="grid grid-cols-1 gap-12 md:grid-cols-3 md:gap-8 lg:gap-16">
             {[
               {
                 number: '01',
@@ -246,9 +246,9 @@ export default function HomeSections() {
       </AnimatedSection>
 
       {/* Access Section */}
-      <AnimatedSection className="py-32 bg-[var(--color-charcoal)] text-white">
+      <AnimatedSection className="bg-[var(--color-charcoal)] py-16 text-white sm:py-24 lg:py-32">
         <div className="container-wide">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <div>
               <motion.p variants={fadeInUp} className="text-xs tracking-[0.3em] uppercase text-[var(--color-sage-light)] mb-4">
                 Access
@@ -287,7 +287,7 @@ export default function HomeSections() {
                 </div>
               </motion.div>
 
-              <motion.div variants={fadeInUp} className="mt-12">
+              <motion.div variants={fadeInUp} className="mt-10 lg:mt-12">
                 <Link
                   href="/contact"
                   className="inline-flex items-center gap-2 px-8 py-4 rounded-full border border-[var(--color-gold)] text-white text-sm tracking-[0.2em] uppercase transition-all duration-500 hover:bg-[var(--color-gold)] hover:text-white hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(184,149,110,0.3)]"
@@ -323,7 +323,7 @@ export default function HomeSections() {
       </AnimatedSection>
 
       {/* CTA Section */}
-      <AnimatedSection className="py-32 relative overflow-hidden">
+      <AnimatedSection className="relative overflow-hidden py-16 sm:py-24 lg:py-32">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image
@@ -346,7 +346,7 @@ export default function HomeSections() {
             当サロンは完全予約制となっております。<br />
             お電話またはオンラインフォームよりご予約ください。
           </motion.p>
-          <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4 justify-center">
+          <motion.div variants={fadeInUp} className="flex flex-col justify-center gap-4 sm:flex-row">
             <Link href="/reservation" className="btn-primary">
               オンライン予約
               <ArrowRight className="w-4 h-4" />

@@ -10,7 +10,7 @@ export default function PublicLayout({
   return (
     <>
       <Header />
-      <main className="flex-grow overflow-x-hidden pb-12 md:pb-0">
+      <main className="flex-grow overflow-x-hidden">
         {children}
       </main>
       <Footer />
