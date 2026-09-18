@@ -43,8 +43,8 @@ const Header = () => {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           scrolled
-            ? 'bg-[#f3eee6]/95 py-3 shadow-sm backdrop-blur-md xl:py-4'
-            : 'bg-[var(--color-cream)]/30 py-4 backdrop-blur-md xl:py-6'
+            ? 'bg-[#f3eee6]/95 py-2 shadow-sm backdrop-blur-md'
+            : 'bg-[var(--color-cream)]/30 py-2 backdrop-blur-md'
         }`}
       >
         <div className="container-wide flex items-center justify-between">
@@ -53,10 +53,10 @@ const Header = () => {
             href="/"
             className="group relative z-50"
           >
-            <span className="font-[family-name:var(--font-serif)] text-lg tracking-[0.15em] text-[var(--color-charcoal)] transition-colors duration-300 md:text-xl xl:text-2xl">
+            <span className="font-[family-name:var(--font-serif)] text-base leading-none tracking-[0.15em] text-[var(--color-charcoal)] transition-colors duration-300 md:text-lg">
               LUMINA
             </span>
-            <span className="block text-[9px] tracking-[0.28em] text-[var(--color-warm-gray)] uppercase md:text-[10px] md:tracking-[0.3em]">
+            <span className="mt-0.5 block text-[8px] leading-none tracking-[0.28em] text-[var(--color-warm-gray)] uppercase md:text-[9px] md:tracking-[0.3em]">
               HAIR STUDIO
             </span>
           </Link>
@@ -80,7 +80,7 @@ const Header = () => {
               <li>
                 <Link
                   href="/reservation"
-                  className="ml-4 px-6 py-3 rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] text-white text-xs tracking-[0.15em] uppercase transition-all duration-300 hover:shadow-[0_0_20px_rgba(184,149,110,0.35)] hover:-translate-y-0.5"
+                  className="ml-4 rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] px-5 py-1.5 text-[11px] tracking-[0.15em] text-white uppercase transition-all duration-300 hover:shadow-[0_0_20px_rgba(184,149,110,0.35)] hover:-translate-y-0.5"
                 >
                   予約する
                 </Link>
@@ -92,12 +92,12 @@ const Header = () => {
           <div className="relative z-50 flex items-center gap-2 xl:hidden">
             <Link
               href="/reservation"
-              className="hidden rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] px-4 py-2 text-[10px] tracking-[0.16em] text-white uppercase sm:inline-flex"
+              className="hidden rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-light)] px-3.5 py-1.5 text-[10px] tracking-[0.16em] text-white uppercase sm:inline-flex"
             >
               予約する
             </Link>
             <button
-              className="flex h-10 w-10 items-center justify-center"
+              className="flex h-8 w-8 items-center justify-center"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'メニューを閉じる' : 'メニューを開く'}
             >
