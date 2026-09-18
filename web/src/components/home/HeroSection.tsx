@@ -1,229 +1,162 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 
+const HERO_DESKTOP = '/full.png';
+const HERO_MOBILE = '/full_for_mobile.png';
+const HERO_FALLBACK =
+  'https://images.unsplash.com/photo-1633681926022-84c23e8cb2d6?auto=format&fit=crop&w=2400&q=80';
+
+function OutlinedText({
+  text,
+  className,
+  fillClassName,
+}: {
+  text: string;
+  className?: string;
+  fillClassName?: string;
+}) {
+  return (
+    <span className={className}>
+      {Array.from(text).map((ch, index) => {
+        const glyph = ch === ' ' ? '\u00A0' : ch;
+        return (
+          <span className="hero-glyph" key={`${index}-${ch}`}>
+            <span className="hero-glyph-stroke" aria-hidden="true">
+              {glyph}
+            </span>
+            <span className={`hero-glyph-fill ${fillClassName ?? ''}`}>{glyph}</span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 export default function HeroSection() {
   const containerRef = useRef<HTMLElement>(null);
-  // Track scroll of the viewport (not the section itself) to preserve parallax behavior
   const { scrollY } = useScroll();
-  const heroImageScale = useTransform(scrollY, [0, 300], [1, 1.1]);
-  const heroTextY = useTransform(scrollY, [0, 300], [0, -100]);
-  const heroOpacity = useTransform(scrollY, [0, 200], [1, 0]);
+  const heroImageScale = useTransform(scrollY, [0, 400], [1, 1.06]);
+  const heroTextY = useTransform(scrollY, [0, 360], [0, -40]);
+
+  const [desktopSrc, setDesktopSrc] = useState(HERO_DESKTOP);
+  const [mobileSrc, setMobileSrc] = useState(HERO_MOBILE);
 
   return (
     <section
       ref={containerRef}
-      className="relative h-screen flex items-start pt-[22vh] md:pt-[18vh] overflow-hidden hero-noise"
+      className="relative isolate flex h-svh min-h-[640px] items-center overflow-hidden bg-[#f3eee6]"
     >
-      {/* === BACKGROUND LAYERS === */}
       <motion.div style={{ scale: heroImageScale }} className="absolute inset-0 z-0">
-        {/* Ken Burns animated background */}
-        <div className="absolute inset-0 hero-ken-burns">
-          {/* Desktop */}
+        <div className="hero-ken-burns absolute inset-0">
           <Image
-            src="/full.png"
+            src={desktopSrc}
             alt="LUMINA HAIR STUDIO サロン内観"
             fill
-            className="object-cover object-center hidden md:block"
             priority
+            sizes="100vw"
+            onError={() => setDesktopSrc(HERO_FALLBACK)}
+            className="hidden object-cover object-[52%_38%] xl:block"
           />
-          {/* Mobile */}
           <Image
-            src="/full_for_mobile.png"
+            src={mobileSrc}
             alt="LUMINA HAIR STUDIO サロン内観"
             fill
-            className="object-cover object-center md:hidden"
             priority
+            sizes="100vw"
+            onError={() => setMobileSrc(HERO_FALLBACK)}
+            className="object-cover object-[center_46%] md:object-[center_44%] xl:hidden"
           />
         </div>
-
-        {/* Multi-layer gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-cream)]/60 via-[var(--color-cream)]/20 to-[var(--color-cream)]/75" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-cream)]/35 via-transparent to-transparent hidden md:block" />
-
-        {/* Colored blur orbs */}
-        <div className="absolute top-[15%] left-[5%] w-[250px] h-[250px] md:w-[450px] md:h-[450px] rounded-full bg-[var(--color-sage)] opacity-[0.07] blur-[80px] md:blur-[120px] hero-float-slow" />
-        <div className="absolute bottom-[20%] right-[8%] w-[200px] h-[200px] md:w-[350px] md:h-[350px] rounded-full bg-[var(--color-gold)] opacity-[0.06] blur-[60px] md:blur-[100px] hero-float-slow-reverse" />
-
-        {/* Spotlight glow */}
-        <div
-          className="absolute -top-[40%] -left-[20%] w-[80vw] h-[80vh] hero-spotlight hidden md:block"
-          style={{
-            background: 'radial-gradient(ellipse, rgba(184,149,110,0.08) 0%, transparent 70%)',
-          }}
-        />
-
-        {/* Vignette */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,var(--color-cream)_85%)] opacity-40" />
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#f3eee6]/40 to-transparent md:h-28" />
+        <div className="absolute inset-x-0 bottom-0 h-[38%] bg-gradient-to-t from-[#f3eee6]/45 via-[#f3eee6]/12 to-transparent xl:hidden" />
       </motion.div>
 
-      {/* === WATERMARK CHARACTER === */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 2, delay: 0.3 }}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 md:left-[30%] select-none pointer-events-none z-[1]"
-        aria-hidden="true"
-      >
-        <span className="text-[18rem] md:text-[26rem] lg:text-[34rem] font-[family-name:var(--font-serif)] italic text-[var(--color-sage)] opacity-[0.03] leading-none">
-          L
-        </span>
-      </motion.div>
+      <div className="pointer-events-none absolute inset-3 z-[2] border border-[var(--color-gold)]/30 sm:inset-5 md:inset-7 xl:inset-10" />
 
-      {/* === DECORATIVE FLOATING ELEMENTS (desktop only) === */}
-      <div className="hidden md:block absolute inset-0 z-[2] pointer-events-none overflow-hidden">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.12 }}
-          transition={{ duration: 2, delay: 2.5 }}
-          className="absolute top-[22%] right-[14%] w-24 h-24 lg:w-32 lg:h-32 rounded-full border border-[var(--color-gold)] hero-float-slow"
-        />
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.18 }}
-          transition={{ duration: 2, delay: 3 }}
-          className="absolute top-[62%] left-[7%] w-2 h-2 rounded-full bg-[var(--color-sage)] hero-float-slow-reverse"
-        />
-        <motion.div
-          initial={{ opacity: 0, scaleX: 0 }}
-          animate={{ opacity: 0.08, scaleX: 1 }}
-          transition={{ duration: 1.5, delay: 2 }}
-          className="absolute top-[65%] right-[22%] w-28 h-[1px] bg-[var(--color-gold)] origin-right"
-        />
-        <motion.div
-          initial={{ opacity: 0, scaleY: 0 }}
-          animate={{ opacity: 0.06, scaleY: 1 }}
-          transition={{ duration: 2, delay: 2.2 }}
-          className="absolute top-[10%] right-[35%] w-[1px] h-40 bg-gradient-to-b from-transparent via-[var(--color-gold)] to-transparent origin-top rotate-[20deg]"
-        />
-      </div>
-
-      {/* === MAIN TEXT CONTENT === */}
       <motion.div
-        style={{ y: heroTextY, opacity: heroOpacity }}
-        className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 lg:px-20"
+        style={{ y: heroTextY }}
+        className="relative z-10 w-full px-5 pb-10 pt-20 sm:px-8 md:px-12 md:pb-12 lg:px-16 xl:px-20 xl:pb-0 xl:pt-16"
       >
-        <div className="text-center md:text-left md:max-w-xl lg:max-w-2xl">
-          {/* Subheading with shimmer effect */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="flex items-center gap-3 mb-6 md:mb-8 justify-center md:justify-start"
-          >
+        <div className="mx-auto max-w-7xl max-xl:portrait:flex max-xl:portrait:justify-center xl:block">
+          <div className="max-w-[22rem] sm:max-w-md md:max-w-lg lg:max-w-xl max-xl:portrait:mx-auto max-xl:portrait:text-center xl:mx-0 xl:text-left">
             <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 0.6, delay: 0.8 }}
-              className="w-8 h-[1px] bg-white/60 md:bg-[var(--color-gold)] origin-left"
-            />
-            <p className="text-subheading hero-shimmer-text">LUMINA HAIR STUDIO</p>
-          </motion.div>
-
-          {/* Heading */}
-          <h1 className="mb-6">
-            <motion.span
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.7 }}
-              className="block font-[family-name:var(--font-serif)] text-[2rem] md:text-[3rem] lg:text-[3.75rem] tracking-[-0.01em] text-[var(--color-charcoal)] leading-[1.1] mb-1 md:mb-2"
+              transition={{ duration: 0.5, delay: 0.05 }}
+              className="mb-3 flex items-center gap-3 sm:mb-4 md:gap-4 max-xl:portrait:justify-center"
             >
-              あなたの美しさを
-            </motion.span>
-            <span
-              className="block font-[family-name:var(--font-serif)] italic text-[var(--color-charcoal)] text-[2.5rem] md:text-[4rem] lg:text-[5rem] leading-[0.95] tracking-tight hero-text-reveal"
+              <span className="h-px w-7 bg-[var(--color-gold)] sm:w-10" />
+              <p className="hero-outlined-sm text-[10px] tracking-[0.24em] uppercase sm:text-[11px] sm:tracking-[0.32em] md:text-xs lg:tracking-[0.38em]">
+                <OutlinedText text="Omotesando · Tokyo" fillClassName="text-[var(--color-gold)]" />
+              </p>
+            </motion.div>
+
+            <h1 className="hero-outlined-lg mb-4 overflow-visible font-jp-display font-medium tracking-wide sm:mb-5 md:mb-6">
+              <motion.span
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, delay: 0.1 }}
+                className="block text-[2.15rem] leading-[1.35] sm:text-[2.45rem] md:text-[3.1rem] lg:text-[3.55rem] xl:text-[3.85rem]"
+              >
+                <OutlinedText text="あなたの美しさを" />
+              </motion.span>
+              <motion.span
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, delay: 0.18 }}
+                className="mt-1 block italic text-[2.7rem] leading-[1.2] sm:text-[3.15rem] md:text-[4rem] lg:text-[4.6rem] xl:text-[5.25rem]"
+              >
+                <OutlinedText text="引き出す" fillClassName="text-[var(--color-gold)]" />
+              </motion.span>
+            </h1>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.28 }}
+              className="hero-outlined-sm mb-6 max-w-[20rem] text-[15px] font-light leading-relaxed tracking-wider sm:mb-7 sm:max-w-md sm:text-base md:mb-8 md:text-[1.05rem] lg:text-[1.1rem] max-xl:portrait:mx-auto"
             >
-              引き出す
-            </span>
-          </h1>
+              <OutlinedText text="自然由来の成分と熟練の技術で、" />
+              <br />
+              <OutlinedText text="心と髪に優しいサロン体験を。" />
+            </motion.p>
 
-          {/* Divider */}
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 0.8, delay: 1.2 }}
-            className="w-16 h-[1px] mb-8 md:mb-8 mx-auto md:mx-0 origin-center md:origin-left bg-gradient-to-r from-white/70 md:from-[var(--color-gold)] to-transparent md:to-[var(--color-gold-light)]/0"
-          />
-
-          {/* Tagline */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 1.5 }}
-            className="relative inline-block max-w-md mx-auto md:mx-0 mb-14 md:mb-16"
-          >
-            <div className="absolute -inset-4 bg-[var(--color-cream)]/75 blur-xl rounded-full md:hidden" />
-            <p className="relative text-[var(--color-warm-gray)] font-light text-xs md:text-sm leading-relaxed">
-              自然由来の成分と熟練の技術で<br />
-              心と髪に優しいサロン体験を
-            </p>
-          </motion.div>
-
-          {/* CTA accent dots */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 1.6 }}
-            className="flex items-center gap-2 justify-center md:justify-start mb-6"
-          >
-            <div className="w-1 h-1 rounded-full bg-[var(--color-gold)] opacity-30" />
-            <div className="w-1 h-1 rounded-full bg-[var(--color-gold)] opacity-60" />
-            <div className="w-1 h-1 rounded-full bg-[var(--color-gold)] opacity-30" />
-          </motion.div>
-
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1.8 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start"
-          >
-            <Link href="/reservation" className="btn-hero-primary">
-              ご予約はこちら
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link href="/menu" className="btn-hero-outline">
-              メニューを見る
-            </Link>
-          </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.36 }}
+              className="flex w-full flex-col items-stretch gap-3 md:flex-row md:items-center max-xl:portrait:justify-center"
+            >
+              <Link href="/reservation" className="btn-hero-primary w-full md:w-auto">
+                ご予約はこちら
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/menu" className="btn-hero-outline w-full md:w-auto">
+                メニューを見る
+              </Link>
+            </motion.div>
+          </div>
         </div>
-
-        {/* Vertical decorative text - desktop only */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1.2, delay: 2.0 }}
-          className="hidden lg:flex absolute right-0 xl:right-8 top-1/2 -translate-y-1/2 flex-col items-center gap-4"
-        >
-          <div className="w-[1px] h-16 bg-gradient-to-b from-transparent to-[var(--color-gold)]/30" />
-          <span
-            className="text-[10px] tracking-[0.4em] text-[var(--color-warm-gray)]/50 uppercase"
-            style={{ writingMode: 'vertical-rl' }}
-          >
-            Since 2024
-          </span>
-          <div className="w-[1px] h-16 bg-gradient-to-b from-[var(--color-gold)]/30 to-transparent" />
-        </motion.div>
       </motion.div>
 
-      {/* === SCROLL INDICATOR === */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 2.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-3"
+        transition={{ delay: 1.2 }}
+        className="absolute bottom-8 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-2 xl:flex"
       >
-        <span className="text-[9px] tracking-[0.35em] text-[var(--color-warm-gray)]/70 uppercase font-light">
+        <span className="text-[9px] font-light tracking-[0.38em] text-[var(--color-charcoal)]/55 uppercase">
           Scroll
         </span>
         <motion.div
           animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-          className="w-[1px] h-8 bg-gradient-to-b from-[var(--color-warm-gray)]/50 to-transparent"
+          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+          className="h-8 w-px bg-gradient-to-b from-[var(--color-gold)]/80 to-transparent"
         />
       </motion.div>
     </section>
