@@ -1,231 +1,203 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 
+const HERO_DESKTOP = '/full.png';
+const HERO_MOBILE = '/full_for_mobile.png';
+const HERO_FALLBACK =
+  'https://images.unsplash.com/photo-1633681926022-84c23e8cb2d6?auto=format&fit=crop&w=2400&q=80';
+
 export default function HeroSection() {
   const containerRef = useRef<HTMLElement>(null);
-  // Track scroll of the viewport (not the section itself) to preserve parallax behavior
   const { scrollY } = useScroll();
-  const heroImageScale = useTransform(scrollY, [0, 300], [1, 1.1]);
-  const heroTextY = useTransform(scrollY, [0, 300], [0, -100]);
-  const heroOpacity = useTransform(scrollY, [0, 200], [1, 0]);
+  const heroImageScale = useTransform(scrollY, [0, 400], [1, 1.12]);
+  const heroTextY = useTransform(scrollY, [0, 360], [0, -56]);
+  const heroOpacity = useTransform(scrollY, [0, 280], [1, 0]);
+
+  const [desktopSrc, setDesktopSrc] = useState(HERO_DESKTOP);
+  const [mobileSrc, setMobileSrc] = useState(HERO_MOBILE);
 
   return (
     <section
       ref={containerRef}
-      className="relative h-screen flex items-start pt-[22vh] md:pt-[18vh] overflow-hidden hero-noise"
+      className="relative isolate flex h-svh min-h-[640px] items-end overflow-hidden bg-[#161210] text-[var(--color-cream)] md:items-center"
     >
-      {/* === BACKGROUND LAYERS === */}
+      {/* === BACKGROUND === */}
       <motion.div style={{ scale: heroImageScale }} className="absolute inset-0 z-0">
-        {/* Ken Burns animated background */}
-        <div className="absolute inset-0 hero-ken-burns">
-          {/* Desktop */}
+        <div className="hero-ken-burns absolute inset-0">
           <Image
-            src="/full.png"
+            src={desktopSrc}
             alt="LUMINA HAIR STUDIO サロン内観"
             fill
-            className="object-cover object-center hidden md:block"
             priority
+            sizes="100vw"
+            onError={() => setDesktopSrc(HERO_FALLBACK)}
+            className="hidden object-cover object-[68%_center] md:block"
           />
-          {/* Mobile */}
           <Image
-            src="/full_for_mobile.png"
+            src={mobileSrc}
             alt="LUMINA HAIR STUDIO サロン内観"
             fill
-            className="object-cover object-center md:hidden"
             priority
+            sizes="100vw"
+            onError={() => setMobileSrc(HERO_FALLBACK)}
+            className="object-cover object-center md:hidden"
           />
         </div>
 
-        {/* Multi-layer gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-cream)]/60 via-[var(--color-cream)]/20 to-[var(--color-cream)]/75" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-cream)]/35 via-transparent to-transparent hidden md:block" />
+        {/* Cinematic color grade — dark, not cream */}
+        <div className="hero-cinematic-grade absolute inset-0" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#120e0c] via-[#120e0c]/25 to-transparent md:via-transparent" />
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#120e0c]/70 to-transparent" />
+        <div className="absolute inset-0 hidden bg-gradient-to-r from-[#120e0c]/88 via-[#120e0c]/45 to-[#120e0c]/20 md:block" />
 
-        {/* Colored blur orbs */}
-        <div className="absolute top-[15%] left-[5%] w-[250px] h-[250px] md:w-[450px] md:h-[450px] rounded-full bg-[var(--color-sage)] opacity-[0.07] blur-[80px] md:blur-[120px] hero-float-slow" />
-        <div className="absolute bottom-[20%] right-[8%] w-[200px] h-[200px] md:w-[350px] md:h-[350px] rounded-full bg-[var(--color-gold)] opacity-[0.06] blur-[60px] md:blur-[100px] hero-float-slow-reverse" />
-
-        {/* Spotlight glow */}
-        <div
-          className="absolute -top-[40%] -left-[20%] w-[80vw] h-[80vh] hero-spotlight hidden md:block"
-          style={{
-            background: 'radial-gradient(ellipse, rgba(184,149,110,0.08) 0%, transparent 70%)',
-          }}
-        />
-
-        {/* Vignette */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,var(--color-cream)_85%)] opacity-40" />
+        <div className="absolute -left-[10%] top-[18%] h-[420px] w-[420px] rounded-full bg-[var(--color-gold)]/12 blur-[140px] hero-float-slow" />
+        <div className="absolute bottom-[8%] right-[4%] h-[280px] w-[280px] rounded-full bg-[var(--color-sage)]/10 blur-[120px] hero-float-slow-reverse" />
       </motion.div>
 
-      {/* === WATERMARK CHARACTER === */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 2, delay: 0.3 }}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 md:left-[30%] select-none pointer-events-none z-[1]"
+      {/* Grain + editorial frame */}
+      <div className="hero-film-grain pointer-events-none absolute inset-0 z-[1]" />
+      <div className="pointer-events-none absolute inset-4 z-[2] border border-[var(--color-gold)]/20 md:inset-7 lg:inset-10" />
+
+      {/* Oversized watermark */}
+      <motion.span
         aria-hidden="true"
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1.6, delay: 0.2 }}
+        className="pointer-events-none absolute -right-6 top-[12%] z-[1] hidden select-none font-[family-name:var(--font-serif)] text-[18rem] font-light italic leading-none text-white/[0.04] lg:block xl:text-[22rem]"
       >
-        <span className="text-[18rem] md:text-[26rem] lg:text-[34rem] font-[family-name:var(--font-serif)] italic text-[var(--color-sage)] opacity-[0.03] leading-none">
-          L
-        </span>
-      </motion.div>
+        Lumina
+      </motion.span>
 
-      {/* === DECORATIVE FLOATING ELEMENTS (desktop only) === */}
-      <div className="hidden md:block absolute inset-0 z-[2] pointer-events-none overflow-hidden">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.12 }}
-          transition={{ duration: 2, delay: 2.5 }}
-          className="absolute top-[22%] right-[14%] w-24 h-24 lg:w-32 lg:h-32 rounded-full border border-[var(--color-gold)] hero-float-slow"
-        />
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.18 }}
-          transition={{ duration: 2, delay: 3 }}
-          className="absolute top-[62%] left-[7%] w-2 h-2 rounded-full bg-[var(--color-sage)] hero-float-slow-reverse"
-        />
-        <motion.div
-          initial={{ opacity: 0, scaleX: 0 }}
-          animate={{ opacity: 0.08, scaleX: 1 }}
-          transition={{ duration: 1.5, delay: 2 }}
-          className="absolute top-[65%] right-[22%] w-28 h-[1px] bg-[var(--color-gold)] origin-right"
-        />
-        <motion.div
-          initial={{ opacity: 0, scaleY: 0 }}
-          animate={{ opacity: 0.06, scaleY: 1 }}
-          transition={{ duration: 2, delay: 2.2 }}
-          className="absolute top-[10%] right-[35%] w-[1px] h-40 bg-gradient-to-b from-transparent via-[var(--color-gold)] to-transparent origin-top rotate-[20deg]"
-        />
-      </div>
-
-      {/* === MAIN TEXT CONTENT === */}
+      {/* === COPY === */}
       <motion.div
         style={{ y: heroTextY, opacity: heroOpacity }}
-        className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 lg:px-20"
+        className="relative z-10 w-full px-6 pb-16 pt-28 md:px-12 md:pb-0 md:pt-16 lg:px-20"
       >
-        <div className="text-center md:text-left md:max-w-xl lg:max-w-2xl">
-          {/* Subheading with shimmer effect */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="flex items-center gap-3 mb-6 md:mb-8 justify-center md:justify-start"
-          >
+        <div className="mx-auto grid max-w-7xl items-end gap-10 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:items-center lg:gap-16">
+          <div className="max-w-xl">
             <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 0.6, delay: 0.8 }}
-              className="w-8 h-[1px] bg-white/60 md:bg-[var(--color-gold)] origin-left"
-            />
-            <p className="text-subheading hero-shimmer-text">LUMINA HAIR STUDIO</p>
-          </motion.div>
-
-          {/* Heading */}
-          <h1 className="mb-6">
-            <motion.span
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.7 }}
-              className="block font-[family-name:var(--font-serif)] text-[2rem] md:text-[3rem] lg:text-[3.75rem] tracking-[-0.01em] text-[var(--color-charcoal)] leading-[1.1] mb-1 md:mb-2"
+              transition={{ duration: 0.7, delay: 0.35 }}
+              className="mb-7 flex items-center gap-4"
             >
-              あなたの美しさを
-            </motion.span>
-            <span
-              className="block font-[family-name:var(--font-serif)] italic text-[var(--color-charcoal)] text-[2.5rem] md:text-[4rem] lg:text-[5rem] leading-[0.95] tracking-tight hero-text-reveal"
+              <span className="h-px w-10 origin-left bg-[var(--color-gold)]" />
+              <p className="text-[10px] tracking-[0.42em] text-[var(--color-gold-light)] uppercase">
+                Omotesando · Tokyo
+              </p>
+            </motion.div>
+
+            <h1 className="mb-8">
+              <motion.span
+                initial={{ opacity: 0, y: 22 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.5 }}
+                className="block font-jp-display text-[2.15rem] font-medium leading-[1.15] tracking-wide text-[var(--color-cream)] md:text-[3.4rem] lg:text-[4.25rem]"
+              >
+                あなたの美しさを
+              </motion.span>
+              <span className="hero-text-reveal mt-1 block font-jp-display text-[2.7rem] font-medium italic leading-[0.95] tracking-wide text-[var(--color-gold-light)] md:text-[4.6rem] lg:text-[6rem]">
+                引き出す
+              </span>
+            </h1>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 1.05 }}
+              className="mb-10 max-w-sm text-sm font-light leading-relaxed tracking-wider text-[var(--color-cream)]/72 md:text-[0.95rem]"
             >
-              引き出す
-            </span>
-          </h1>
+              自然由来の成分と熟練の技術で、
+              <br className="hidden sm:block" />
+              心と髪に優しいサロン体験を。
+            </motion.p>
 
-          {/* Divider */}
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 0.8, delay: 1.2 }}
-            className="w-16 h-[1px] mb-8 md:mb-8 mx-auto md:mx-0 origin-center md:origin-left bg-gradient-to-r from-white/70 md:from-[var(--color-gold)] to-transparent md:to-[var(--color-gold-light)]/0"
-          />
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 1.25 }}
+              className="flex flex-col gap-3 sm:flex-row sm:items-center"
+            >
+              <Link href="/reservation" className="btn-hero-primary">
+                ご予約はこちら
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/menu" className="btn-hero-ghost">
+                メニューを見る
+              </Link>
+            </motion.div>
+          </div>
 
-          {/* Tagline */}
+          {/* Right-side editorial meta — desktop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 1.5 }}
-            className="relative inline-block max-w-md mx-auto md:mx-0 mb-14 md:mb-16"
+            transition={{ duration: 1, delay: 1.4 }}
+            className="hidden justify-self-end md:flex md:flex-col md:items-end md:gap-8"
           >
-            <div className="absolute -inset-4 bg-[var(--color-cream)]/75 blur-xl rounded-full md:hidden" />
-            <p className="relative text-[var(--color-warm-gray)] font-light text-xs md:text-sm leading-relaxed">
-              自然由来の成分と熟練の技術で<br />
-              心と髪に優しいサロン体験を
-            </p>
-          </motion.div>
-
-          {/* CTA accent dots */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 1.6 }}
-            className="flex items-center gap-2 justify-center md:justify-start mb-6"
-          >
-            <div className="w-1 h-1 rounded-full bg-[var(--color-gold)] opacity-30" />
-            <div className="w-1 h-1 rounded-full bg-[var(--color-gold)] opacity-60" />
-            <div className="w-1 h-1 rounded-full bg-[var(--color-gold)] opacity-30" />
-          </motion.div>
-
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1.8 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start"
-          >
-            <Link href="/reservation" className="btn-hero-primary">
-              ご予約はこちら
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link href="/menu" className="btn-hero-outline">
-              メニューを見る
-            </Link>
+            <div className="max-w-[220px] border-l border-[var(--color-gold)]/35 pl-6 text-right">
+              <p className="mb-2 text-[10px] tracking-[0.32em] text-[var(--color-gold-light)]/80 uppercase">
+                Private salon
+              </p>
+              <p className="font-[family-name:var(--font-serif)] text-lg italic leading-snug text-[var(--color-cream)]/85">
+                Organic care,
+                <br />
+                crafted for you.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 text-[10px] tracking-[0.28em] text-[var(--color-cream)]/45 uppercase">
+              <span>完全予約制</span>
+              <span className="h-px w-6 bg-[var(--color-gold)]/40" />
+              <span>火定休</span>
+            </div>
           </motion.div>
         </div>
-
-        {/* Vertical decorative text - desktop only */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1.2, delay: 2.0 }}
-          className="hidden lg:flex absolute right-0 xl:right-8 top-1/2 -translate-y-1/2 flex-col items-center gap-4"
-        >
-          <div className="w-[1px] h-16 bg-gradient-to-b from-transparent to-[var(--color-gold)]/30" />
-          <span
-            className="text-[10px] tracking-[0.4em] text-[var(--color-warm-gray)]/50 uppercase"
-            style={{ writingMode: 'vertical-rl' }}
-          >
-            Since 2024
-          </span>
-          <div className="w-[1px] h-16 bg-gradient-to-b from-[var(--color-gold)]/30 to-transparent" />
-        </motion.div>
       </motion.div>
 
-      {/* === SCROLL INDICATOR === */}
+      {/* Vertical signature */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 2.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-3"
+        transition={{ duration: 1.1, delay: 1.6 }}
+        className="pointer-events-none absolute right-4 top-1/2 z-10 hidden -translate-y-1/2 flex-col items-center gap-4 lg:right-12 lg:flex"
       >
-        <span className="text-[9px] tracking-[0.35em] text-[var(--color-warm-gray)]/70 uppercase font-light">
-          Scroll
+        <div className="h-16 w-px bg-gradient-to-b from-transparent to-[var(--color-gold)]/45" />
+        <span
+          className="text-[10px] tracking-[0.42em] text-[var(--color-cream)]/50 uppercase"
+          style={{ writingMode: 'vertical-rl' }}
+        >
+          Since 2024
         </span>
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-          className="w-[1px] h-8 bg-gradient-to-b from-[var(--color-warm-gray)]/50 to-transparent"
-        />
+        <div className="h-16 w-px bg-gradient-to-b from-[var(--color-gold)]/45 to-transparent" />
       </motion.div>
+
+      {/* Bottom rail */}
+      <div className="absolute inset-x-0 bottom-0 z-10 hidden items-end justify-between px-12 pb-8 lg:flex lg:px-20">
+        <p className="text-[10px] tracking-[0.28em] text-[var(--color-cream)]/40 uppercase">
+          表参道駅 A1出口 徒歩3分
+        </p>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2 }}
+          className="flex flex-col items-center gap-2"
+        >
+          <span className="text-[9px] font-light tracking-[0.38em] text-[var(--color-cream)]/55 uppercase">
+            Scroll
+          </span>
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+            className="h-8 w-px bg-gradient-to-b from-[var(--color-cream)]/55 to-transparent"
+          />
+        </motion.div>
+      </div>
     </section>
   );
 }

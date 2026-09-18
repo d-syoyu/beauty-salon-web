@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const navItems = [
@@ -12,8 +13,10 @@ const navItems = [
 ];
 
 const Header = () => {
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const onDarkHero = pathname === '/' && !scrolled && !mobileMenuOpen;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -53,10 +56,14 @@ const Header = () => {
             href="/"
             className="relative z-50 group"
           >
-            <span className="text-xl md:text-2xl font-[family-name:var(--font-serif)] tracking-[0.15em] text-[var(--color-charcoal)] transition-colors duration-300">
+            <span className={`text-xl md:text-2xl font-[family-name:var(--font-serif)] tracking-[0.15em] transition-colors duration-300 ${
+              onDarkHero ? 'text-[var(--color-cream)]' : 'text-[var(--color-charcoal)]'
+            }`}>
               LUMINA
             </span>
-            <span className="block text-[10px] tracking-[0.3em] text-[var(--color-warm-gray)] uppercase">
+            <span className={`block text-[10px] tracking-[0.3em] uppercase transition-colors duration-300 ${
+              onDarkHero ? 'text-[var(--color-cream)]/70' : 'text-[var(--color-warm-gray)]'
+            }`}>
               HAIR STUDIO
             </span>
           </Link>
@@ -68,7 +75,11 @@ const Header = () => {
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className="group relative text-[var(--color-charcoal)] transition-colors duration-300 hover:text-[var(--color-sage-dark)]"
+                    className={`group relative transition-colors duration-300 ${
+                      onDarkHero
+                        ? 'text-[var(--color-cream)]/90 hover:text-[var(--color-gold-light)]'
+                        : 'text-[var(--color-charcoal)] hover:text-[var(--color-sage-dark)]'
+                    }`}
                   >
                     <span className="text-xs tracking-[0.2em] uppercase">
                       {item.name}
@@ -102,14 +113,18 @@ const Header = () => {
                   translateY: mobileMenuOpen ? '-50%' : '0%',
                 }}
                 transition={{ duration: 0.3 }}
-                className="absolute left-0 w-full h-[1px] bg-[var(--color-charcoal)]"
+                className={`absolute left-0 w-full h-[1px] transition-colors duration-300 ${
+                  onDarkHero ? 'bg-[var(--color-cream)]' : 'bg-[var(--color-charcoal)]'
+                }`}
               />
               <motion.span
                 animate={{
                   opacity: mobileMenuOpen ? 0 : 1,
                 }}
                 transition={{ duration: 0.2 }}
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-[1px] bg-[var(--color-charcoal)]"
+                className={`absolute left-0 top-1/2 -translate-y-1/2 w-full h-[1px] transition-colors duration-300 ${
+                  onDarkHero ? 'bg-[var(--color-cream)]' : 'bg-[var(--color-charcoal)]'
+                }`}
               />
               <motion.span
                 animate={{
@@ -118,7 +133,9 @@ const Header = () => {
                   translateY: mobileMenuOpen ? '50%' : '0%',
                 }}
                 transition={{ duration: 0.3 }}
-                className="absolute left-0 bottom-0 w-full h-[1px] bg-[var(--color-charcoal)]"
+                className={`absolute left-0 bottom-0 w-full h-[1px] transition-colors duration-300 ${
+                  onDarkHero ? 'bg-[var(--color-cream)]' : 'bg-[var(--color-charcoal)]'
+                }`}
               />
             </div>
           </button>

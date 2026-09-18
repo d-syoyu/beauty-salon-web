@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Geist } from "next/font/google";
+import { Cormorant_Garamond, Geist, Shippori_Mincho } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "../components/providers/session-provider";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,13 @@ const cormorant = Cormorant_Garamond({
   weight: ["300", "400", "500", "600"],
   style: ["normal", "italic"],
   variable: "--font-serif",
+  display: "swap",
+});
+
+const shippori = Shippori_Mincho({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-jp",
   display: "swap",
 });
 
@@ -25,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={cn("scroll-smooth", cormorant.variable, "font-sans", geist.variable)}>
+    <html lang="ja" className={cn("scroll-smooth", cormorant.variable, shippori.variable, "font-sans", geist.variable)}>
       <body className="flex flex-col min-h-screen">
         <SessionProvider>
           {children}
